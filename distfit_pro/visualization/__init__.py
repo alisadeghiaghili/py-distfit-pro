@@ -1,5 +1,1 @@
-"""
-Visualization modules
-"""
-
-__all__ = []
+"""Visualization modules"""

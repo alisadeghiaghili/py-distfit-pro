@@ -1,5 +1,1 @@
-"""
-Utility modules
-"""
-
-__all__ = []
+"""Utility modules"""
