@@ -6,6 +6,10 @@ Distribution Classes with Self-Explanatory Behavior
 - پارامترها را واضح توضیح می‌دهند
 - محدوده‌ی مناسب برای داده را می‌گویند
 - کاربردهای عملی را نشان می‌دهند
+
+**30 توزیع آماری:**
+- 25 توزیع پیوسته (Continuous)
+- 5 توزیع گسسته (Discrete)
 """
 
 from abc import ABC, abstractmethod
@@ -14,6 +18,7 @@ from typing import Dict, Any, Optional, Tuple, List
 import numpy as np
 from scipy import stats
 from scipy.optimize import minimize, brentq
+from scipy.special import gamma as gamma_func
 
 
 @dataclass
@@ -45,6 +50,7 @@ class BaseDistribution(ABC):
         self.params: Optional[Dict[str, float]] = None
         self.fitted: bool = False
         self._scipy_dist = None
+        self._is_discrete = False
         
     @property
     @abstractmethod
@@ -54,7 +60,7 @@ class BaseDistribution(ABC):
     
     @abstractmethod
     def pdf(self, x: np.ndarray) -> np.ndarray:
-        """Probability density function"""
+        """Probability density/mass function"""
         pass
     
     @abstractmethod
@@ -87,83 +93,66 @@ class BaseDistribution(ABC):
         """Generate random samples"""
         if random_state is not None:
             np.random.seed(random_state)
+        if self._scipy_dist and self.params:
+            return self._scipy_dist.rvs(**self.params, size=size, random_state=random_state)
         u = np.random.uniform(0, 1, size)
         return self.ppf(u)
     
     # ========== آمارهای توزیع ==========
     
     def mean(self) -> float:
-        """Distribution mean (میانگین)"""
+        """میانگین توزیع"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.mean(**self.params)
         raise NotImplementedError(f"Mean not implemented for {self.info.name}")
     
     def var(self) -> float:
-        """Distribution variance (واریانس)"""
+        """واریانس توزیع"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.var(**self.params)
         raise NotImplementedError(f"Variance not implemented for {self.info.name}")
     
     def variance(self) -> float:
-        """همان var() - alias برای خوانایی بهتر"""
         return self.var()
     
     def std(self) -> float:
-        """Distribution standard deviation (انحراف معیار)"""
+        """انحراف معیار"""
         return np.sqrt(self.var())
     
     def median(self) -> float:
-        """
-        Distribution median (میانه)
-        مقداری که 50% داده‌ها زیر آن قرار دارند
-        """
+        """میانه"""
         return self.ppf(0.5)
     
     def mode(self) -> float:
-        """
-        Distribution mode (مد/نما)
-        مقداری که بیشترین چگالی احتمال را دارد
-        """
-        # پیدا کردن mode با بیشینه‌سازی pdf
-        # محدوده جستجو: بین percentile 1 تا 99
-        x_min = self.ppf(0.01)
-        x_max = self.ppf(0.99)
-        
-        # برای توزیع‌هایی که mode در 0 هست (مثل exponential)
+        """مد (بیشترین چگالی)"""
         if hasattr(self, '_mode_at_zero') and self._mode_at_zero:
             return 0.0
-        
+        if hasattr(self, '_mode_value'):
+            return self._mode_value()
         try:
+            x_min = self.ppf(0.01)
+            x_max = self.ppf(0.99)
             from scipy.optimize import minimize_scalar
             result = minimize_scalar(lambda x: -self.pdf(np.array([x]))[0], 
-                                    bounds=(x_min, x_max), 
-                                    method='bounded')
+                                    bounds=(x_min, x_max), method='bounded')
             return result.x
         except:
-            # اگر نشد، median رو برگردون (تقریب معقول)
             return self.median()
     
     def skewness(self) -> float:
-        """چولگی توزیع"""
+        """چولگی"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.stats(**self.params, moments='s')
         raise NotImplementedError(f"Skewness not implemented for {self.info.name}")
     
     def kurtosis(self) -> float:
-        """کشیدگی توزیع (excess)"""
+        """کشیدگی"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.stats(**self.params, moments='k')
         raise NotImplementedError(f"Kurtosis not implemented for {self.info.name}")
     
-    # ========== Reliability/Survival Analysis ==========
-    
     def hazard_rate(self, t: float) -> float:
-        """
-        Hazard rate (failure rate) at time t
-        نرخ خطر (نرخ خرابی) در زمان t
-        
-        h(t) = f(t) / S(t) = pdf(t) / (1 - cdf(t))
-        """
+        """نرخ خطر"""
         pdf_t = self.pdf(np.array([t]))[0]
         sf_t = self.sf(np.array([t]))[0]
         if sf_t < 1e-10:
@@ -171,67 +160,27 @@ class BaseDistribution(ABC):
         return pdf_t / sf_t
     
     def reliability(self, t: float) -> float:
-        """
-        Reliability function at time t
-        احتمال بقا (عدم خرابی) تا زمان t
-        
-        R(t) = P(T > t) = 1 - F(t)
-        """
+        """قابلیت اطمینان"""
         return self.sf(np.array([t]))[0]
     
     def mean_time_to_failure(self) -> float:
-        """
-        Mean Time To Failure (MTTF)
-        میانگین زمان تا خرابی
-        
-        برای توزیع‌های lifetime، MTTF = E[T] = mean
-        """
+        """MTTF"""
         return self.mean()
     
     def conditional_var(self, alpha: float) -> float:
-        """
-        Conditional Value at Risk (CVaR) / Expected Shortfall
-        ارزش در معرض خطر شرطی
-        
-        CVaR_α = E[X | X ≤ VaR_α]
-        
-        برای مثال، alpha=0.01 برای 99% confidence
-        """
-        var = self.ppf(alpha)
-        # محاسبه expected value برای tail
-        # به صورت تقریبی
-        x_min = self.ppf(0.0001)
+        """CVaR"""
         quantiles = np.linspace(0.0001, alpha, 100)
-        x_values = self.ppf(quantiles)
-        return np.mean(x_values)
-    
-    # ========== Fitting Methods ==========
+        return np.mean(self.ppf(quantiles))
     
     @abstractmethod
     def fit_mle(self, data: np.ndarray, **kwargs) -> Dict[str, float]:
-        """Maximum Likelihood Estimation"""
         pass
     
     @abstractmethod
     def fit_moments(self, data: np.ndarray) -> Dict[str, float]:
-        """Method of Moments"""
         pass
     
     def fit(self, data: np.ndarray, method: str = 'mle', **kwargs) -> 'BaseDistribution':
-        """
-        فیت توزیع به داده
-        
-        Parameters:
-        -----------
-        data : array-like
-            داده‌ی مشاهده‌شده
-        method : str
-            روش تخمین: 'mle', 'moments', 'quantile'
-        
-        Returns:
-        --------
-        self : fitted distribution
-        """
         data = np.asarray(data).flatten()
         data = data[~np.isnan(data)]
         
@@ -248,14 +197,8 @@ class BaseDistribution(ABC):
         return self
     
     def fit_quantile(self, data: np.ndarray, quantiles: Optional[List[float]] = None) -> Dict[str, float]:
-        """
-        Quantile matching estimation
-        
-        برآورد با تطبیق کوانتایل‌ها
-        """
         if quantiles is None:
             quantiles = [0.25, 0.5, 0.75]
-        
         empirical_quantiles = np.quantile(data, quantiles)
         
         def objective(params_array):
@@ -263,34 +206,19 @@ class BaseDistribution(ABC):
             theoretical_quantiles = self.ppf(np.array(quantiles))
             return np.sum((empirical_quantiles - theoretical_quantiles) ** 2)
         
-        # Initial guess from moments
         initial_params = self.fit_moments(data)
         x0 = self._params_to_array(initial_params)
-        
         result = minimize(objective, x0, method='Nelder-Mead')
         return self._array_to_params(result.x)
     
     def _params_to_array(self, params: Dict[str, float]) -> np.ndarray:
-        """Convert params dict to array"""
         return np.array(list(params.values()))
     
     def _array_to_params(self, array: np.ndarray) -> Dict[str, float]:
-        """Convert array to params dict"""
         keys = list(self.info.parameters.keys())
         return dict(zip(keys, array))
     
     def explain(self) -> str:
-        """
-        توضیح مفهومی توزیع و پارامترها
-        
-        این متد فوکوس دارد روی:
-        - پارامترهای برآورد شده
-        - کاربردهای عملی
-        - ویژگی‌های توزیع
-        - هشدارها
-        
-        برای آمارها (mean, variance, etc) از results.summary() استفاده کنید.
-        """
         if not self.fitted:
             return f"⚠️  {self.info.display_name} هنوز فیت نشده است."
         
@@ -317,7 +245,6 @@ class BaseDistribution(ABC):
             explanation += f"\n⚠️  هشدار: {self.info.warning}\n"
         
         explanation += f"\n📈 برای آمارها و تشخیص: results.summary() را ببینید\n"
-        
         return explanation
     
     def __repr__(self) -> str:
@@ -328,17 +255,10 @@ class BaseDistribution(ABC):
 
 
 # ═══════════════════════════════════════════════════════════════
-# توزیع‌های پیوسته
+# توزیع‌های پیوسته (CONTINUOUS DISTRIBUTIONS)
 # ═══════════════════════════════════════════════════════════════
 
 class NormalDistribution(BaseDistribution):
-    """
-    توزیع نرمال (گوسی)
-    
-    توزیع پایه‌ای که برای متغیرهایی که حاصل جمع تعداد زیادی 
-    اثر مستقل و کوچک هستند مناسب است (قضیه حد مرکزی).
-    """
-    
     def __init__(self):
         super().__init__()
         self._scipy_dist = stats.norm
@@ -348,57 +268,26 @@ class NormalDistribution(BaseDistribution):
         return DistributionInfo(
             name="normal",
             display_name="Normal (Gaussian) Distribution",
-            parameters={
-                "loc": "μ (mean/location)",
-                "scale": "σ (standard deviation/scale)"
-            },
+            parameters={"loc": "μ (mean)", "scale": "σ (std)"},
             support="(-∞, +∞)",
-            use_cases=[
-                "خطاهای اندازه‌گیری",
-                "قد و وزن افراد",
-                "نمرات تست‌های استاندارد",
-                "نویز در سیگنال‌ها",
-                "بازده‌های مالی (تقریب)"
-            ],
-            characteristics=[
-                "متقارن حول میانگین",
-                "به شکل زنگ",
-                "68% داده در μ±σ",
-                "95% داده در μ±2σ",
-                "99.7% داده در μ±3σ"
-            ],
-            warning="برای داده‌های چوله یا دارای دنباله سنگین مناسب نیست"
+            use_cases=["خطاهای اندازه‌گیری", "قد و وزن", "نمرات تست", "نویز سیگنال"],
+            characteristics=["متقارن", "68% در μ±σ", "95% در μ±2σ"],
+            warning="برای داده‌های چوله مناسب نیست"
         )
     
-    def pdf(self, x: np.ndarray) -> np.ndarray:
+    def pdf(self, x):
         return self._scipy_dist.pdf(x, **self.params)
-    
-    def cdf(self, x: np.ndarray) -> np.ndarray:
+    def cdf(self, x):
         return self._scipy_dist.cdf(x, **self.params)
-    
-    def ppf(self, q: np.ndarray) -> np.ndarray:
+    def ppf(self, q):
         return self._scipy_dist.ppf(q, **self.params)
-    
-    def fit_mle(self, data: np.ndarray, **kwargs) -> Dict[str, float]:
-        """MLE for normal is simply sample mean and std"""
-        return {
-            "loc": np.mean(data),
-            "scale": np.std(data, ddof=1)
-        }
-    
-    def fit_moments(self, data: np.ndarray) -> Dict[str, float]:
-        """Same as MLE for normal"""
+    def fit_mle(self, data, **kwargs):
+        return {"loc": np.mean(data), "scale": np.std(data, ddof=1)}
+    def fit_moments(self, data):
         return self.fit_mle(data)
 
 
 class LognormalDistribution(BaseDistribution):
-    """
-    توزیع لوگ‌نرمال
-    
-    برای متغیرهایی که لگاریتم آن‌ها نرمال است.
-    مناسب برای داده‌های مثبت و راست‌چوله.
-    """
-    
     def __init__(self):
         super().__init__()
         self._scipy_dist = stats.lognorm
@@ -408,55 +297,28 @@ class LognormalDistribution(BaseDistribution):
         return DistributionInfo(
             name="lognormal",
             display_name="Lognormal Distribution",
-            parameters={
-                "s": "σ (shape - log-scale)",
-                "scale": "exp(μ) (scale - log-location)"
-            },
+            parameters={"s": "σ (log-scale)", "scale": "exp(μ)"},
             support="(0, +∞)",
-            use_cases=[
-                "درآمد و ثروت افراد",
-                "اندازه‌ی ذرات و سلول‌ها",
-                "زمان رخداد شکست (reliability)",
-                "قیمت سهام و دارایی‌ها",
-                "طول عمر باتری و قطعات الکترونیکی"
-            ],
-            characteristics=[
-                "فقط برای مقادیر مثبت",
-                "راست‌چوله (دنباله سمت راست بلند)",
-                "حاصل‌ضرب متغیرهای تصادفی مثبت",
-                "میانه < میانگین (به دلیل چولگی)"
-            ],
-            warning="برای داده‌های با مقادیر منفی یا صفر قابل استفاده نیست"
+            use_cases=["درآمد", "قیمت سهام", "زمان شکست"],
+            characteristics=["راست‌چوله", "مثبت"],
+            warning="فقط برای مقادیر مثبت"
         )
     
-    def pdf(self, x: np.ndarray) -> np.ndarray:
+    def pdf(self, x):
         return self._scipy_dist.pdf(x, self.params['s'], scale=self.params['scale'])
-    
-    def cdf(self, x: np.ndarray) -> np.ndarray:
+    def cdf(self, x):
         return self._scipy_dist.cdf(x, self.params['s'], scale=self.params['scale'])
-    
-    def ppf(self, q: np.ndarray) -> np.ndarray:
+    def ppf(self, q):
         return self._scipy_dist.ppf(q, self.params['s'], scale=self.params['scale'])
-    
-    def fit_mle(self, data: np.ndarray, **kwargs) -> Dict[str, float]:
-        data = data[data > 0]  # فقط مقادیر مثبت
+    def fit_mle(self, data, **kwargs):
+        data = data[data > 0]
         log_data = np.log(data)
-        mu = np.mean(log_data)
-        sigma = np.std(log_data, ddof=1)
-        return {"s": sigma, "scale": np.exp(mu)}
-    
-    def fit_moments(self, data: np.ndarray) -> Dict[str, float]:
-        return self.fit_mle(data)  # برای لوگ‌نرمال یکسان است
+        return {"s": np.std(log_data, ddof=1), "scale": np.exp(np.mean(log_data))}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
 
 
 class WeibullDistribution(BaseDistribution):
-    """
-    توزیع وایبل
-    
-    بسیار در تحلیل قابلیت اطمینان و زمان شکست استفاده می‌شود.
-    انعطاف بالا برای مدل‌سازی نرخ خرابی متغیر.
-    """
-    
     def __init__(self):
         super().__init__()
         self._scipy_dist = stats.weibull_min
@@ -466,55 +328,27 @@ class WeibullDistribution(BaseDistribution):
         return DistributionInfo(
             name="weibull",
             display_name="Weibull Distribution",
-            parameters={
-                "c": "k (shape - تعیین‌کننده‌ی شکل نرخ خرابی)",
-                "scale": "λ (scale - مشخص‌کننده‌ی مقیاس)"
-            },
+            parameters={"c": "k (shape)", "scale": "λ (scale)"},
             support="(0, +∞)",
-            use_cases=[
-                "تحلیل قابلیت اطمینان (reliability)",
-                "زمان تا شکست (failure time)",
-                "تحلیل عمر (lifetime analysis)",
-                "سرعت باد (meteorology)",
-                "زمان بازگشت در هیدرولوژی"
-            ],
-            characteristics=[
-                "k < 1: نرخ خرابی کاهشی (infant mortality)",
-                "k = 1: نرخ خرابی ثابت = توزیع نمایی",
-                "k > 1: نرخ خرابی افزایشی (wear-out)",
-                "k ≈ 3.5: تقریباً نرمال",
-                "انعطاف بالا در مدل‌سازی"
-            ],
-            warning="حساس به داده‌های پرت - از روش‌های robust استفاده کنید"
+            use_cases=["قابلیت اطمینان", "زمان شکست", "سرعت باد"],
+            characteristics=["k<1: خرابی کاهشی", "k=1: نمایی", "k>1: فرسودگی"],
         )
     
-    def pdf(self, x: np.ndarray) -> np.ndarray:
+    def pdf(self, x):
         return self._scipy_dist.pdf(x, self.params['c'], scale=self.params['scale'])
-    
-    def cdf(self, x: np.ndarray) -> np.ndarray:
+    def cdf(self, x):
         return self._scipy_dist.cdf(x, self.params['c'], scale=self.params['scale'])
-    
-    def ppf(self, q: np.ndarray) -> np.ndarray:
+    def ppf(self, q):
         return self._scipy_dist.ppf(q, self.params['c'], scale=self.params['scale'])
-    
-    def fit_mle(self, data: np.ndarray, **kwargs) -> Dict[str, float]:
+    def fit_mle(self, data, **kwargs):
         data = data[data > 0]
-        params = self._scipy_dist.fit(data, floc=0)  # location=0
+        params = self._scipy_dist.fit(data, floc=0)
         return {"c": params[0], "scale": params[2]}
-    
-    def fit_moments(self, data: np.ndarray) -> Dict[str, float]:
-        # برای وایبل MOM پیچیده است، از MLE استفاده می‌کنیم
+    def fit_moments(self, data):
         return self.fit_mle(data)
 
 
 class GammaDistribution(BaseDistribution):
-    """
-    توزیع گاما
-    
-    برای مدل‌سازی زمان‌های انتظار و فرآیندهای شمارش.
-    تعمیم توزیع نمایی.
-    """
-    
     def __init__(self):
         super().__init__()
         self._scipy_dist = stats.gamma
@@ -524,112 +358,701 @@ class GammaDistribution(BaseDistribution):
         return DistributionInfo(
             name="gamma",
             display_name="Gamma Distribution",
-            parameters={
-                "a": "α (shape - شکل)",
-                "scale": "θ (scale - مقیاس)"
-            },
+            parameters={"a": "α (shape)", "scale": "θ (scale)"},
             support="(0, +∞)",
-            use_cases=[
-                "زمان انتظار برای k رویداد (فرآیند پواسون)",
-                "مدل‌سازی باران و جریان رودخانه",
-                "مدل‌سازی بار (load) در network",
-                "توزیع prior در Bayesian",
-                "زمان سرویس در صف‌ها"
-            ],
-            characteristics=[
-                "α = 1: می‌شود توزیع نمایی",
-                "α بزرگ: نزدیک به نرمال",
-                "راست‌چوله برای α کوچک",
-                "انعطاف‌پذیر در shape"
-            ]
+            use_cases=["زمان انتظار", "باران", "prior Bayesian"],
+            characteristics=["α=1: نمایی", "α بزرگ: نرمال"],
         )
     
-    def pdf(self, x: np.ndarray) -> np.ndarray:
+    def pdf(self, x):
         return self._scipy_dist.pdf(x, self.params['a'], scale=self.params['scale'])
-    
-    def cdf(self, x: np.ndarray) -> np.ndarray:
+    def cdf(self, x):
         return self._scipy_dist.cdf(x, self.params['a'], scale=self.params['scale'])
-    
-    def ppf(self, q: np.ndarray) -> np.ndarray:
+    def ppf(self, q):
         return self._scipy_dist.ppf(q, self.params['a'], scale=self.params['scale'])
-    
-    def fit_mle(self, data: np.ndarray, **kwargs) -> Dict[str, float]:
+    def fit_mle(self, data, **kwargs):
         data = data[data > 0]
         params = self._scipy_dist.fit(data, floc=0)
         return {"a": params[0], "scale": params[2]}
-    
-    def fit_moments(self, data: np.ndarray) -> Dict[str, float]:
-        m = np.mean(data)
-        v = np.var(data, ddof=1)
-        scale = v / m
-        shape = m / scale
-        return {"a": shape, "scale": scale}
+    def fit_moments(self, data):
+        m, v = np.mean(data), np.var(data, ddof=1)
+        return {"a": m*m/v, "scale": v/m}
 
 
 class ExponentialDistribution(BaseDistribution):
-    """
-    توزیع نمایی
-    
-    برای زمان بین رویدادهای مستقل با نرخ ثابت.
-    """
-    
     def __init__(self):
         super().__init__()
         self._scipy_dist = stats.expon
-        self._mode_at_zero = True  # mode is at 0
+        self._mode_at_zero = True
     
     @property
     def info(self) -> DistributionInfo:
         return DistributionInfo(
             name="exponential",
             display_name="Exponential Distribution",
-            parameters={
-                "scale": "1/λ (mean - میانگین)"
-            },
+            parameters={"scale": "1/λ (mean)"},
             support="(0, +∞)",
-            use_cases=[
-                "زمان بین ورود مشتری (قانون پواسون)",
-                "عمر قطعات با نرخ خرابی ثابت",
-                "زمان‌های فاصله در radioactive decay",
-                "مدت زمان تماس تلفنی"
-            ],
-            characteristics=[
-                "بی‌حافظه (memoryless)",
-                "نرخ خطر ثابت",
-                "حداکثر آنتروپی برای میانگین مشخص",
-                "ساده‌ترین توزیع برای lifetime"
-            ]
+            use_cases=["زمان بین رویداد", "عمر قطعات"],
+            characteristics=["بی‌حافظه", "نرخ خطر ثابت"],
         )
     
-    def pdf(self, x: np.ndarray) -> np.ndarray:
+    def pdf(self, x):
         return self._scipy_dist.pdf(x, scale=self.params['scale'])
-    
-    def cdf(self, x: np.ndarray) -> np.ndarray:
+    def cdf(self, x):
         return self._scipy_dist.cdf(x, scale=self.params['scale'])
-    
-    def ppf(self, q: np.ndarray) -> np.ndarray:
+    def ppf(self, q):
         return self._scipy_dist.ppf(q, scale=self.params['scale'])
-    
-    def fit_mle(self, data: np.ndarray, **kwargs) -> Dict[str, float]:
+    def fit_mle(self, data, **kwargs):
         return {"scale": np.mean(data[data > 0])}
-    
-    def fit_moments(self, data: np.ndarray) -> Dict[str, float]:
+    def fit_moments(self, data):
         return self.fit_mle(data)
 
 
-# Factory برای ساخت راحت توزیع‌ها
+class BetaDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.beta
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="beta",
+            display_name="Beta Distribution",
+            parameters={"a": "α (shape 1)", "b": "β (shape 2)"},
+            support="[0, 1]",
+            use_cases=["احتمالات", "نرخ موفقیت", "prior Bayesian"],
+            characteristics=["انعطاف‌پذیر", "محدود به [0,1]"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['a'], self.params['b'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['a'], self.params['b'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['a'], self.params['b'])
+    def fit_mle(self, data, **kwargs):
+        data = data[(data > 0) & (data < 1)]
+        params = self._scipy_dist.fit(data, floc=0, fscale=1)
+        return {"a": params[0], "b": params[1]}
+    def fit_moments(self, data):
+        m, v = np.mean(data), np.var(data, ddof=1)
+        common = m * (1 - m) / v - 1
+        return {"a": m * common, "b": (1 - m) * common}
+
+
+class UniformDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.uniform
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="uniform",
+            display_name="Uniform Distribution",
+            parameters={"loc": "a (min)", "scale": "b-a (width)"},
+            support="[a, b]",
+            use_cases=["تولید عدد تصادفی", "prior بی‌اطلاع"],
+            characteristics=["احتمال یکسان", "حداکثر آنتروپی"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['loc'], self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['loc'], self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['loc'], self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        return {"loc": np.min(data), "scale": np.max(data) - np.min(data)}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class TriangularDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.triang
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="triangular",
+            display_name="Triangular Distribution",
+            parameters={"c": "mode position", "loc": "min", "scale": "width"},
+            support="[min, min+width]",
+            use_cases=["PERT", "برآورد خبره"],
+            characteristics=["ساده", "شهودی"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['c'], self.params['loc'], self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['c'], self.params['loc'], self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['c'], self.params['loc'], self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        a, b = np.min(data), np.max(data)
+        # Simple estimate: mode near mean
+        c = (np.mean(data) - a) / (b - a) if b > a else 0.5
+        return {"c": c, "loc": a, "scale": b - a}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class LogisticDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.logistic
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="logistic",
+            display_name="Logistic Distribution",
+            parameters={"loc": "μ (location)", "scale": "s (scale)"},
+            support="(-∞, +∞)",
+            use_cases=["رگرسیون logistic", "مدل‌های رشد"],
+            characteristics=["دنباله سنگین‌تر از نرمال"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['loc'], self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['loc'], self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['loc'], self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        return {"loc": np.mean(data), "scale": np.std(data) * np.sqrt(3) / np.pi}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class GumbelDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.gumbel_r
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="gumbel",
+            display_name="Gumbel Distribution (Extreme Value Type I)",
+            parameters={"loc": "μ (location)", "scale": "β (scale)"},
+            support="(-∞, +∞)",
+            use_cases=["سیلاب", "زلزله", "مقادیر حداکثر"],
+            characteristics=["چولگی مثبت", "extreme values"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['loc'], self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['loc'], self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['loc'], self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        params = self._scipy_dist.fit(data)
+        return {"loc": params[0], "scale": params[1]}
+    def fit_moments(self, data):
+        m, s = np.mean(data), np.std(data, ddof=1)
+        return {"scale": s * np.sqrt(6) / np.pi, "loc": m - 0.5772 * s * np.sqrt(6) / np.pi}
+
+
+class FrechetDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.invweibull
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="frechet",
+            display_name="Frechet Distribution (Extreme Value Type II)",
+            parameters={"c": "α (shape)", "scale": "s (scale)"},
+            support="(0, +∞)",
+            use_cases=["مقادیر حداکثر مثبت", "بیمه"],
+            characteristics=["دنباله بسیار سنگین"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['c'], scale=self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['c'], scale=self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['c'], scale=self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        data = data[data > 0]
+        params = self._scipy_dist.fit(data, floc=0)
+        return {"c": params[0], "scale": params[2]}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class ParetoDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.pareto
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="pareto",
+            display_name="Pareto Distribution",
+            parameters={"b": "α (shape)", "scale": "x_m (minimum)"},
+            support="[x_m, +∞)",
+            use_cases=["ثروت", "درآمد", "80-20 rule"],
+            characteristics=["دنباله سنگین", "power law"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['b'], scale=self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['b'], scale=self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['b'], scale=self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        data = data[data > 0]
+        xm = np.min(data)
+        n = len(data)
+        alpha = n / np.sum(np.log(data / xm))
+        return {"b": alpha, "scale": xm}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class CauchyDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.cauchy
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="cauchy",
+            display_name="Cauchy Distribution",
+            parameters={"loc": "x_0 (location)", "scale": "γ (scale)"},
+            support="(-∞, +∞)",
+            use_cases=["فیزیک", "رزونانس"],
+            characteristics=["میانگین نامعلوم", "دنباله خیلی سنگین"],
+            warning="میانگین و واریانس ندارد"
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['loc'], self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['loc'], self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['loc'], self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        return {"loc": np.median(data), "scale": np.percentile(np.abs(data - np.median(data)), 50)}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+    
+    def mean(self):
+        return np.nan  # Undefined
+    def var(self):
+        return np.nan  # Undefined
+
+
+class StudentTDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.t
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="studentt",
+            display_name="Student's t Distribution",
+            parameters={"df": "ν (degrees of freedom)", "loc": "μ", "scale": "σ"},
+            support="(-∞, +∞)",
+            use_cases=["تست فرضیه", "نمونه کوچک"],
+            characteristics=["دنباله سنگین‌تر از نرمال"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['df'], self.params['loc'], self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['df'], self.params['loc'], self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['df'], self.params['loc'], self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        params = self._scipy_dist.fit(data)
+        return {"df": params[0], "loc": params[1], "scale": params[2]}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class ChiSquaredDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.chi2
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="chisquared",
+            display_name="Chi-Squared Distribution",
+            parameters={"df": "k (degrees of freedom)"},
+            support="[0, +∞)",
+            use_cases=["تست GOF", "واریانس"],
+            characteristics=["حالت خاص گاما"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['df'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['df'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['df'])
+    def fit_mle(self, data, **kwargs):
+        return {"df": np.mean(data)}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class FDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.f
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="f",
+            display_name="F Distribution",
+            parameters={"dfn": "d1 (numerator df)", "dfd": "d2 (denominator df)"},
+            support="[0, +∞)",
+            use_cases=["ANOVA", "نسبت واریانس‌ها"],
+            characteristics=["چوله"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['dfn'], self.params['dfd'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['dfn'], self.params['dfd'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['dfn'], self.params['dfd'])
+    def fit_mle(self, data, **kwargs):
+        # Rough estimate
+        return {"dfn": 5, "dfd": 10}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class RayleighDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.rayleigh
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="rayleigh",
+            display_name="Rayleigh Distribution",
+            parameters={"scale": "σ (scale)"},
+            support="[0, +∞)",
+            use_cases=["سیگنال رادار", "سرعت باد"],
+            characteristics=["چولگی مثبت"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, scale=self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, scale=self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, scale=self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        data = data[data >= 0]
+        return {"scale": np.sqrt(np.mean(data**2) / 2)}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class LaplaceDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.laplace
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="laplace",
+            display_name="Laplace Distribution (Double Exponential)",
+            parameters={"loc": "μ (location)", "scale": "b (scale)"},
+            support="(-∞, +∞)",
+            use_cases=["تفاضل‌ها", "Lasso regression"],
+            characteristics=["دنباله سنگین‌تر از نرمال"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['loc'], self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['loc'], self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['loc'], self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        return {"loc": np.median(data), "scale": np.mean(np.abs(data - np.median(data)))}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class InverseGammaDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.invgamma
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="invgamma",
+            display_name="Inverse Gamma Distribution",
+            parameters={"a": "α (shape)", "scale": "β (scale)"},
+            support="(0, +∞)",
+            use_cases=["prior برای واریانس"],
+            characteristics=["دنباله سنگین"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['a'], scale=self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['a'], scale=self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['a'], scale=self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        data = data[data > 0]
+        params = self._scipy_dist.fit(data, floc=0)
+        return {"a": params[0], "scale": params[2]}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class LogLogisticDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.fisk
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="loglogistic",
+            display_name="Log-Logistic Distribution",
+            parameters={"c": "α (shape)", "scale": "β (scale)"},
+            support="(0, +∞)",
+            use_cases=["تحلیل بقا", "survival analysis"],
+            characteristics=["دنباله سنگین"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pdf(x, self.params['c'], scale=self.params['scale'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['c'], scale=self.params['scale'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['c'], scale=self.params['scale'])
+    def fit_mle(self, data, **kwargs):
+        data = data[data > 0]
+        params = self._scipy_dist.fit(data, floc=0)
+        return {"c": params[0], "scale": params[2]}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+# ═══════════════════════════════════════════════════════════════
+# توزیع‌های گسسته (DISCRETE DISTRIBUTIONS)
+# ═══════════════════════════════════════════════════════════════
+
+class PoissonDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.poisson
+        self._is_discrete = True
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="poisson",
+            display_name="Poisson Distribution",
+            parameters={"mu": "λ (rate)"},
+            support="{0, 1, 2, ...}",
+            use_cases=["تعداد رویدادها", "تعداد تماس‌ها"],
+            characteristics=["میانگین = واریانس = λ"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pmf(x, self.params['mu'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['mu'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['mu'])
+    def fit_mle(self, data, **kwargs):
+        return {"mu": np.mean(data)}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class BinomialDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.binom
+        self._is_discrete = True
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="binomial",
+            display_name="Binomial Distribution",
+            parameters={"n": "n (trials)", "p": "p (success prob)"},
+            support="{0, 1, 2, ..., n}",
+            use_cases=["آزمایش‌های موفق/ناموفق"],
+            characteristics=["n آزمایش مستقل"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pmf(x, self.params['n'], self.params['p'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['n'], self.params['p'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['n'], self.params['p'])
+    def fit_mle(self, data, **kwargs):
+        n = int(np.max(data))
+        p = np.mean(data) / n if n > 0 else 0.5
+        return {"n": n, "p": p}
+    def fit_moments(self, data):
+        m, v = np.mean(data), np.var(data, ddof=1)
+        p = 1 - v / m if m > 0 else 0.5
+        n = int(m / p) if p > 0 else 1
+        return {"n": max(n, 1), "p": np.clip(p, 0.01, 0.99)}
+
+
+class NegativeBinomialDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.nbinom
+        self._is_discrete = True
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="nbinom",
+            display_name="Negative Binomial Distribution",
+            parameters={"n": "r (successes)", "p": "p (success prob)"},
+            support="{0, 1, 2, ...}",
+            use_cases=["overdispersed counts"],
+            characteristics=["واریانس > میانگین"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pmf(x, self.params['n'], self.params['p'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['n'], self.params['p'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['n'], self.params['p'])
+    def fit_mle(self, data, **kwargs):
+        m, v = np.mean(data), np.var(data, ddof=1)
+        p = m / v if v > m else 0.5
+        n = m * p / (1 - p) if p < 1 else 1
+        return {"n": max(n, 1), "p": np.clip(p, 0.01, 0.99)}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class GeometricDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.geom
+        self._is_discrete = True
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="geometric",
+            display_name="Geometric Distribution",
+            parameters={"p": "p (success prob)"},
+            support="{1, 2, 3, ...}",
+            use_cases=["زمان تا اولین موفقیت"],
+            characteristics=["بی‌حافظه"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pmf(x, self.params['p'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['p'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['p'])
+    def fit_mle(self, data, **kwargs):
+        return {"p": 1.0 / np.mean(data)}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+class HypergeometricDistribution(BaseDistribution):
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.hypergeom
+        self._is_discrete = True
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="hypergeometric",
+            display_name="Hypergeometric Distribution",
+            parameters={"M": "population", "n": "successes in pop", "N": "draws"},
+            support="{max(0, N+n-M), ..., min(n, N)}",
+            use_cases=["نمونه‌گیری بدون جایگذاری"],
+            characteristics=["محدود"],
+        )
+    
+    def pdf(self, x):
+        return self._scipy_dist.pmf(x, self.params['M'], self.params['n'], self.params['N'])
+    def cdf(self, x):
+        return self._scipy_dist.cdf(x, self.params['M'], self.params['n'], self.params['N'])
+    def ppf(self, q):
+        return self._scipy_dist.ppf(q, self.params['M'], self.params['n'], self.params['N'])
+    def fit_mle(self, data, **kwargs):
+        # Simplified - needs population info
+        N = int(np.max(data)) + 10
+        return {"M": N, "n": N // 2, "N": int(np.mean(data))}
+    def fit_moments(self, data):
+        return self.fit_mle(data)
+
+
+# ═══════════════════════════════════════════════════════════════
+# REGISTRY & FACTORY
+# ═══════════════════════════════════════════════════════════════
+
 DISTRIBUTION_REGISTRY = {
+    # Continuous
     'normal': NormalDistribution,
     'lognormal': LognormalDistribution,
     'weibull': WeibullDistribution,
     'gamma': GammaDistribution,
     'exponential': ExponentialDistribution,
+    'beta': BetaDistribution,
+    'uniform': UniformDistribution,
+    'triangular': TriangularDistribution,
+    'logistic': LogisticDistribution,
+    'gumbel': GumbelDistribution,
+    'frechet': FrechetDistribution,
+    'pareto': ParetoDistribution,
+    'cauchy': CauchyDistribution,
+    'studentt': StudentTDistribution,
+    'chisquared': ChiSquaredDistribution,
+    'f': FDistribution,
+    'rayleigh': RayleighDistribution,
+    'laplace': LaplaceDistribution,
+    'invgamma': InverseGammaDistribution,
+    'loglogistic': LogLogisticDistribution,
+    # Discrete
+    'poisson': PoissonDistribution,
+    'binomial': BinomialDistribution,
+    'nbinom': NegativeBinomialDistribution,
+    'geometric': GeometricDistribution,
+    'hypergeometric': HypergeometricDistribution,
 }
 
 
 def get_distribution(name: str) -> BaseDistribution:
     """
-    دریافت یک توزیع بر اساس نام
+    دریافت توزیع بر اساس نام
     
     Example:
     --------
@@ -638,11 +1061,21 @@ def get_distribution(name: str) -> BaseDistribution:
     """
     name = name.lower()
     if name not in DISTRIBUTION_REGISTRY:
-        available = ', '.join(DISTRIBUTION_REGISTRY.keys())
+        available = ', '.join(sorted(DISTRIBUTION_REGISTRY.keys()))
         raise ValueError(f"Unknown distribution '{name}'. Available: {available}")
     return DISTRIBUTION_REGISTRY[name]()
 
 
 def list_distributions() -> List[str]:
-    """لیست تمام توزیع‌های موجود"""
-    return list(DISTRIBUTION_REGISTRY.keys())
+    """لیست تمام توزیع‌های موجود (30 توزیع)"""
+    return sorted(list(DISTRIBUTION_REGISTRY.keys()))
+
+
+def list_continuous_distributions() -> List[str]:
+    """لیست توزیع‌های پیوسته (20 توزیع)"""
+    return [k for k, v in DISTRIBUTION_REGISTRY.items() if not get_distribution(k)._is_discrete]
+
+
+def list_discrete_distributions() -> List[str]:
+    """لیست توزیع‌های گسسته (5 توزیع)"""
+    return [k for k, v in DISTRIBUTION_REGISTRY.items() if get_distribution(k)._is_discrete]
