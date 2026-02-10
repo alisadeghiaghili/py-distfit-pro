@@ -144,13 +144,13 @@ class BaseDistribution(ABC):
             return self.median()
     
     def skewness(self) -> float:
-        """Distribution skewness (چولگی)"""
+        """چولگی توزیع"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.stats(**self.params, moments='s')
         raise NotImplementedError(f"Skewness not implemented for {self.info.name}")
     
     def kurtosis(self) -> float:
-        """Distribution kurtosis (excess) (کشیدگی)"""
+        """کشیدگی توزیع (excess)"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.stats(**self.params, moments='k')
         raise NotImplementedError(f"Kurtosis not implemented for {self.info.name}")
@@ -281,7 +281,15 @@ class BaseDistribution(ABC):
     
     def explain(self) -> str:
         """
-        توضیح کامل درباره‌ی توزیع و پارامترهای برآورد شده
+        توضیح مفهومی توزیع و پارامترها
+        
+        این متد فوکوس دارد روی:
+        - پارامترهای برآورد شده
+        - کاربردهای عملی
+        - ویژگی‌های توزیع
+        - هشدارها
+        
+        برای آمارها (mean, variance, etc) از results.summary() استفاده کنید.
         """
         if not self.fitted:
             return f"⚠️  {self.info.display_name} هنوز فیت نشده است."
@@ -297,18 +305,6 @@ class BaseDistribution(ABC):
             param_desc = self.info.parameters.get(param_name, param_name)
             explanation += f"   • {param_desc}: {param_value:.4f}\n"
         
-        explanation += f"\n📈 ویژگی‌های توزیع:\n"
-        try:
-            explanation += f"   • میانگین: {self.mean():.4f}\n"
-            explanation += f"   • میانه: {self.median():.4f}\n"
-            explanation += f"   • مد: {self.mode():.4f}\n"
-            explanation += f"   • انحراف معیار: {self.std():.4f}\n"
-            explanation += f"   • واریانس: {self.variance():.4f}\n"
-            explanation += f"   • چولگی: {self.skewness():.4f}\n"
-            explanation += f"   • کشیدگی: {self.kurtosis():.4f}\n"
-        except:
-            pass
-        
         explanation += f"\n💡 کاربردهای عملی:\n"
         for use_case in self.info.use_cases:
             explanation += f"   • {use_case}\n"
@@ -319,6 +315,8 @@ class BaseDistribution(ABC):
         
         if self.info.warning:
             explanation += f"\n⚠️  هشدار: {self.info.warning}\n"
+        
+        explanation += f"\n📈 برای آمارها و تشخیص: results.summary() را ببینید\n"
         
         return explanation
     
