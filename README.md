@@ -85,7 +85,12 @@ results.plot(kind='diagnostics')  # Residuals, tail behavior
 
 # Get best model with explanation
 best = results.get_best(criterion='aic')
-print(best.explanation)
+print(best.explain())  # ✅ Note: it's a method, not attribute!
+
+# Access parameters and statistics
+print(best.params)      # Fitted parameters
+print(best.mean())      # Distribution mean
+print(best.variance())  # Distribution variance
 ```
 
 ---
@@ -216,20 +221,20 @@ print(f"CVaR(99%): {cvar_99:.2%}")
 - Model selection (AIC, BIC, LOO-CV)
 - Basic fitting functionality
 - Self-explanatory outputs
+- Visualization module (matplotlib + plotly)
 
 ### 🔨 In Progress:
-- Complete fitter implementation
-- Diagnostics module
-- Visualization module
-- Bootstrap CI
-- Additional distributions
+- Additional distributions (20+ more)
+- Diagnostics module enhancement
+- Bootstrap CI implementation
+- Censored data support
 
 ### 📋 Planned:
 - Bayesian inference (PyMC integration)
 - Mixture models
-- Censored data support
 - Interactive dashboards
 - Comprehensive test suite
+- Full documentation site
 
 ---
 
