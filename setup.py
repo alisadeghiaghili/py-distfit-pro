@@ -19,7 +19,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 setup(
     name="distfit-pro",
     version="0.1.0",
-    author="Ali Aghili",
+    author="Ali Sadeghi Aghili",
     author_email="alisadeghiaghili@gmail.com",
     description="Professional distribution fitting with model selection, diagnostics, and explanations",
     long_description=long_description,
