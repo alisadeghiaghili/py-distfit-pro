@@ -5,7 +5,7 @@ DistFit Pro - Professional Distribution Fitting Package
 A comprehensive, production-ready Python package for statistical distribution fitting
 that combines the best features of EasyFit and fitdistrplus with modern improvements.
 
-Author: Ali Aghili (https://zil.ink/thedatascientist)
+Author: Ali Sadeghi Aghili (https://linktr.ee/aliaghili)
 """
 
 from setuptools import setup, find_packages
@@ -27,7 +27,7 @@ setup(
     url="https://github.com/alisadeghiaghili/py-distfit-pro",
     packages=find_packages(),
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
         "Topic :: Scientific/Engineering :: Mathematics",
@@ -38,6 +38,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     python_requires=">=3.8",
     install_requires=requirements,
