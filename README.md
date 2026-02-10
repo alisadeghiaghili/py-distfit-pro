@@ -36,7 +36,7 @@ A comprehensive, production-ready package that combines the best features of Eas
 - ✅ **Efficient algorithms** with numba JIT
 
 ### Better Software Engineering
-- ✅ **Comprehensive test suite** (90%+ coverage)
+- ✅ **Comprehensive test suite** (90%+ coverage target)
 - ✅ **CI/CD ready** with GitHub Actions
 - ✅ **Version controlled** and reproducible
 - ✅ **Type hints** and mypy compatible
@@ -92,35 +92,77 @@ print(best.explanation)
 
 ## 📚 Core Features
 
-### Comprehensive Distribution Support
+### 1. Comprehensive Distribution Support
 
-**Continuous (30+):** Normal, Lognormal, Exponential, Gamma, Weibull, Beta, Chi-square, Student-t, F, Cauchy, Pareto, Gumbel, GEV, Rayleigh, and more...
+**Continuous Distributions (30+):**
+- Normal, Lognormal, Exponential, Gamma, Weibull
+- Beta, Chi-square, Student-t, F, Cauchy
+- Pareto, Gumbel, GEV, Rayleigh, Rice
+- Burr, Inverse Gamma, Log-logistic, Nakagami
+- And more...
 
-**Discrete (15+):** Poisson, Binomial, Negative Binomial, Geometric, Hypergeometric, and more...
+**Discrete Distributions (15+):**
+- Poisson, Binomial, Negative Binomial
+- Geometric, Hypergeometric, Multinomial
+- Zero-inflated variants
 
-### Advanced Estimation Methods
+### 2. Advanced Estimation Methods
 
-- **Maximum Likelihood (MLE)** - efficient and asymptotically optimal
+- **Maximum Likelihood (MLE)** - default, efficient
 - **Method of Moments** - robust to outliers
 - **Quantile Matching** - fits specific percentiles
+- **Maximum Goodness-of-Fit** - optimizes GOF statistic
 - **Bayesian Estimation** - full posterior with uncertainty
 
-### Model Selection Criteria
+### 3. Model Selection Criteria
 
 - **AIC/BIC** - penalized likelihood
-- **WAIC** - Bayesian information criterion  
+- **WAIC** - Bayesian information criterion
 - **LOO-CV** - leave-one-out cross-validation
+- **K-fold CV** - robust cross-validation
 - **Bayesian Model Averaging** - weighted ensemble
+
+### 4. Censored and Truncated Data
+
+Support for:
+- Right-censored data (survival analysis)
+- Left-truncated data
+- Interval-censored data
+
+### 5. Mixture Models
+
+Fit mixture of distributions using EM algorithm with automatic component selection.
+
+### 6. Rich Diagnostics
+
+- Goodness-of-fit tests (KS, AD, CVM, χ²)
+- Residual analysis
+- Tail behavior assessment
+- Outlier detection
+- Influence analysis
+- Cross-validation scores
+
+### 7. Bootstrap Confidence Intervals
+
+Parametric and nonparametric bootstrap with parallel processing.
+
+### 8. Interactive Visualizations
+
+Static plots (matplotlib/seaborn) and interactive plots (plotly).
 
 ---
 
 ## 🔬 Advanced Examples
 
-### Reliability Engineering
+### Example 1: Reliability Engineering
 
 ```python
-failure_times = np.array([120, 145, 167, 189, 201])
-censored = np.array([0, 0, 0, 1, 0])  # 1=censored
+import numpy as np
+from distfit_pro import DistributionFitter
+
+# Failure time data (right-censored)
+failure_times = np.array([120, 145, 167, 189, 201, 234, 267, 289, 312, 345])
+censored = np.array([0, 0, 0, 1, 0, 1, 0, 0, 1, 0])  # 1=censored
 
 fitter = DistributionFitter(
     data=failure_times,
@@ -128,27 +170,72 @@ fitter = DistributionFitter(
     censoring_type='right'
 )
 
-results = fitter.fit(['weibull', 'lognormal', 'gamma'])
+results = fitter.fit(
+    distributions=['weibull', 'lognormal', 'gamma', 'exponential'],
+    method='mle'
+)
+
+# Reliability functions
 reliability = results.best_model.reliability(t=200)
+hazard = results.best_model.hazard_rate(t=200)
+mttf = results.best_model.mean_time_to_failure()
+
 print(f"Reliability at t=200h: {reliability:.3f}")
+print(f"Hazard rate at t=200h: {hazard:.4f}")
+print(f"MTTF: {mttf:.1f}h")
 ```
 
-### Financial Risk (VaR)
+### Example 2: Financial Risk (VaR Estimation)
 
 ```python
+# Stock returns
 returns = load_stock_returns('AAPL')
-fitter = DistributionFitter(returns)
-results = fitter.fit(['normal', 'student_t', 'gev'])
 
-var_99 = results.best_model.ppf(0.01)
+fitter = DistributionFitter(returns)
+results = fitter.fit(
+    distributions=['normal', 'student_t', 'cauchy', 'gev'],
+    method='mle'
+)
+
+# Value at Risk (99% confidence)
+var_99 = results.best_model.ppf(0.01)  # 1st percentile
+cvar_99 = results.best_model.conditional_var(0.01)  # Expected Shortfall
+
 print(f"VaR(99%): {var_99:.2%}")
+print(f"CVaR(99%): {cvar_99:.2%}")
 ```
+
+---
+
+## 🧪 Development Status
+
+**Current Version:** v0.1.0-alpha
+
+### ✅ Implemented (v0.1.0):
+- Core distribution classes (5 distributions)
+- Model selection (AIC, BIC, LOO-CV)
+- Basic fitting functionality
+- Self-explanatory outputs
+
+### 🔨 In Progress:
+- Complete fitter implementation
+- Diagnostics module
+- Visualization module
+- Bootstrap CI
+- Additional distributions
+
+### 📋 Planned:
+- Bayesian inference (PyMC integration)
+- Mixture models
+- Censored data support
+- Interactive dashboards
+- Comprehensive test suite
 
 ---
 
 ## 🤝 Contributing
 
-Contributions welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
@@ -167,4 +254,15 @@ MIT License - see [LICENSE](LICENSE) file.
 
 ---
 
-**Made with ❤️ in Frankfurt & Tehran**
+## 🙏 Acknowledgments
+
+Inspired by:
+- R's `fitdistrplus` package
+- MathWave's EasyFit software
+- SciPy's statistical distributions
+
+Built with modern improvements in statistical methodology and software engineering practices.
+
+---
+
+**Made with ❤️ and ☕ by Ali Aghili**
