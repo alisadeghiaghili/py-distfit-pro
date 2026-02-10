@@ -27,6 +27,7 @@ from .core.distributions import (
     list_distributions
 )
 from .core.model_selection import ModelSelection, ModelScore, DeltaComparison
+from .visualization.plots import DistributionPlotter
 
 # Public API
 __all__ = [
@@ -48,6 +49,9 @@ __all__ = [
     'ModelSelection',
     'ModelScore',
     'DeltaComparison',
+    
+    # Visualization
+    'DistributionPlotter',
     
     # Version info
     '__version__',
