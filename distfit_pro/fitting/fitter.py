@@ -20,6 +20,7 @@ from tqdm import tqdm
 
 from ..core.distributions import get_distribution, list_distributions, BaseDistribution
 from ..core.model_selection import ModelSelection, DeltaComparison, ModelScore
+from ..visualization.plots import DistributionPlotter
 
 
 @dataclass
@@ -33,6 +34,7 @@ class FitResults:
     best_model: BaseDistribution
     diagnostics: Dict
     recommendations: List[str]
+    _data: np.ndarray = None  # داده اصلی برای plot
     
     def summary(self) -> str:
         """
@@ -103,6 +105,79 @@ class FitResults:
     def get_best(self, criterion: Optional[str] = None) -> BaseDistribution:
         """دریافت بهترین مدل"""
         return self.best_model
+    
+    def plot(
+        self,
+        kind: str = 'comparison',
+        figsize: Optional[Tuple[int, int]] = None,
+        show_top_n: int = 3,
+        show: bool = True
+    ):
+        """
+        رسم نمودارهای تشخیصی و مقایسه‌ای
+        
+        Parameters:
+        -----------
+        kind : str
+            نوع نمودار:
+            - 'comparison': PDF, CDF, P-P, Q-Q plots
+            - 'diagnostics': Residual analysis, tail behavior
+            - 'interactive': Interactive Plotly dashboard
+        figsize : tuple, optional
+            اندازه figure (فقط برای matplotlib)
+        show_top_n : int
+            تعداد بهترین مدل‌ها برای نمایش
+        show : bool
+            نمایش نمودار (برای matplotlib)
+        
+        Returns:
+        --------
+        fig : matplotlib Figure یا plotly Figure
+        
+        Examples:
+        ---------
+        >>> results.plot(kind='comparison')  # P-P, Q-Q, PDF, CDF
+        >>> results.plot(kind='diagnostics')  # Residuals, tail behavior
+        >>> results.plot(kind='interactive')  # Interactive Plotly
+        """
+        if self._data is None:
+            raise ValueError(
+                "داده اصلی در دسترس نیست. این اتفاق نباید بیفتد - لطفاً bug report کنید!"
+            )
+        
+        plotter = DistributionPlotter(
+            data=self._data,
+            fitted_models=self.fitted_models,
+            best_model=self.best_model
+        )
+        
+        if kind == 'comparison':
+            figsize = figsize or (14, 10)
+            fig = plotter.plot_comparison(figsize=figsize, show_top_n=show_top_n)
+            if show:
+                import matplotlib.pyplot as plt
+                plt.show()
+            return fig
+        
+        elif kind == 'diagnostics':
+            figsize = figsize or (14, 10)
+            fig = plotter.plot_diagnostics(figsize=figsize)
+            if show:
+                import matplotlib.pyplot as plt
+                plt.show()
+            return fig
+        
+        elif kind == 'interactive':
+            fig = plotter.plot_interactive(show_top_n=show_top_n)
+            if show:
+                fig.show()
+            return fig
+        
+        else:
+            raise ValueError(
+                f"نوع نمودار '{kind}' نامعتبر است. "
+                "گزینه‌های معتبر: 'comparison', 'diagnostics', 'interactive'"
+            )
 
 
 class DistributionFitter:
@@ -121,6 +196,7 @@ class DistributionFitter:
     >>> fitter = DistributionFitter(data)
     >>> results = fitter.fit(distributions=['normal', 'lognormal', 'weibull'])
     >>> print(results.summary())
+    >>> results.plot(kind='comparison')
     """
     
     def __init__(
@@ -363,7 +439,8 @@ class DistributionFitter:
             model_scores=model_scores,
             best_model=best_model,
             diagnostics=diagnostics,
-            recommendations=recommendations
+            recommendations=recommendations,
+            _data=self.data.copy()  # ذخیره داده برای plot
         )
         
         if verbose:
