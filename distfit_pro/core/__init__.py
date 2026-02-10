@@ -1,6 +1,4 @@
-"""
-Core modules for distribution fitting
-"""
+"""Core modules for distribution fitting"""
 
 from .distributions import (
     BaseDistribution,
@@ -10,7 +8,8 @@ from .distributions import (
     GammaDistribution,
     ExponentialDistribution,
     get_distribution,
-    list_distributions
+    list_distributions,
+    DISTRIBUTION_REGISTRY
 )
 
 from .model_selection import (
@@ -28,7 +27,8 @@ __all__ = [
     'ExponentialDistribution',
     'get_distribution',
     'list_distributions',
+    'DISTRIBUTION_REGISTRY',
     'ModelSelection',
     'ModelScore',
-    'DeltaComparison'
+    'DeltaComparison',
 ]
