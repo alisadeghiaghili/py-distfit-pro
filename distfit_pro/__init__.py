@@ -1,19 +1,56 @@
 """
 DistFit Pro - Professional Distribution Fitting Package
-======================================================
+========================================================
 
-Author: Ali Aghili
-Website: https://zil.ink/thedatascientist
+A comprehensive, production-ready Python package for statistical
+distribution fitting with model selection, diagnostics, and explanations.
+
+Author: Ali Sadeghi Aghili
+Website: https://linktr.ee/aliaghili
+GitHub: https://github.com/alisadeghiaghili/py-distfit-pro
 """
 
 __version__ = "0.1.0"
-__author__ = "Ali Aghili"
+__author__ = "Ali Sadeghi Aghili"
+__email__ = "alisadeghiaghili@gmail.com"
 
-from .fitting.fitter import DistributionFitter
-from .core.distributions import get_distribution, list_distributions
+# Core imports
+from .fitting.fitter import DistributionFitter, FitResults
+from .core.distributions import (
+    BaseDistribution,
+    NormalDistribution,
+    LognormalDistribution,
+    WeibullDistribution,
+    GammaDistribution,
+    ExponentialDistribution,
+    get_distribution,
+    list_distributions
+)
+from .core.model_selection import ModelSelection, ModelScore, DeltaComparison
 
+# Public API
 __all__ = [
+    # Main fitter
     'DistributionFitter',
-    'get_distribution', 
-    'list_distributions'
+    'FitResults',
+    
+    # Distributions
+    'BaseDistribution',
+    'NormalDistribution',
+    'LognormalDistribution',
+    'WeibullDistribution',
+    'GammaDistribution',
+    'ExponentialDistribution',
+    'get_distribution',
+    'list_distributions',
+    
+    # Model selection
+    'ModelSelection',
+    'ModelScore',
+    'DeltaComparison',
+    
+    # Version info
+    '__version__',
+    '__author__',
+    '__email__',
 ]
