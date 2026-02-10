@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple, List
 import numpy as np
 from scipy import stats
-from scipy.optimize import minimize
+from scipy.optimize import minimize, brentq
 
 
 @dataclass
@@ -90,33 +90,122 @@ class BaseDistribution(ABC):
         u = np.random.uniform(0, 1, size)
         return self.ppf(u)
     
+    # ========== آمارهای توزیع ==========
+    
     def mean(self) -> float:
-        """Distribution mean"""
+        """Distribution mean (میانگین)"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.mean(**self.params)
-        raise NotImplementedError
+        raise NotImplementedError(f"Mean not implemented for {self.info.name}")
     
     def var(self) -> float:
-        """Distribution variance"""
+        """Distribution variance (واریانس)"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.var(**self.params)
-        raise NotImplementedError
+        raise NotImplementedError(f"Variance not implemented for {self.info.name}")
+    
+    def variance(self) -> float:
+        """همان var() - alias برای خوانایی بهتر"""
+        return self.var()
     
     def std(self) -> float:
-        """Distribution standard deviation"""
+        """Distribution standard deviation (انحراف معیار)"""
         return np.sqrt(self.var())
     
+    def median(self) -> float:
+        """
+        Distribution median (میانه)
+        مقداری که 50% داده‌ها زیر آن قرار دارند
+        """
+        return self.ppf(0.5)
+    
+    def mode(self) -> float:
+        """
+        Distribution mode (مد/نما)
+        مقداری که بیشترین چگالی احتمال را دارد
+        """
+        # پیدا کردن mode با بیشینه‌سازی pdf
+        # محدوده جستجو: بین percentile 1 تا 99
+        x_min = self.ppf(0.01)
+        x_max = self.ppf(0.99)
+        
+        # برای توزیع‌هایی که mode در 0 هست (مثل exponential)
+        if hasattr(self, '_mode_at_zero') and self._mode_at_zero:
+            return 0.0
+        
+        try:
+            from scipy.optimize import minimize_scalar
+            result = minimize_scalar(lambda x: -self.pdf(np.array([x]))[0], 
+                                    bounds=(x_min, x_max), 
+                                    method='bounded')
+            return result.x
+        except:
+            # اگر نشد، median رو برگردون (تقریب معقول)
+            return self.median()
+    
     def skewness(self) -> float:
-        """Distribution skewness"""
+        """Distribution skewness (چولگی)"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.stats(**self.params, moments='s')
-        raise NotImplementedError
+        raise NotImplementedError(f"Skewness not implemented for {self.info.name}")
     
     def kurtosis(self) -> float:
-        """Distribution kurtosis (excess)"""
+        """Distribution kurtosis (excess) (کشیدگی)"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.stats(**self.params, moments='k')
-        raise NotImplementedError
+        raise NotImplementedError(f"Kurtosis not implemented for {self.info.name}")
+    
+    # ========== Reliability/Survival Analysis ==========
+    
+    def hazard_rate(self, t: float) -> float:
+        """
+        Hazard rate (failure rate) at time t
+        نرخ خطر (نرخ خرابی) در زمان t
+        
+        h(t) = f(t) / S(t) = pdf(t) / (1 - cdf(t))
+        """
+        pdf_t = self.pdf(np.array([t]))[0]
+        sf_t = self.sf(np.array([t]))[0]
+        if sf_t < 1e-10:
+            return np.inf
+        return pdf_t / sf_t
+    
+    def reliability(self, t: float) -> float:
+        """
+        Reliability function at time t
+        احتمال بقا (عدم خرابی) تا زمان t
+        
+        R(t) = P(T > t) = 1 - F(t)
+        """
+        return self.sf(np.array([t]))[0]
+    
+    def mean_time_to_failure(self) -> float:
+        """
+        Mean Time To Failure (MTTF)
+        میانگین زمان تا خرابی
+        
+        برای توزیع‌های lifetime، MTTF = E[T] = mean
+        """
+        return self.mean()
+    
+    def conditional_var(self, alpha: float) -> float:
+        """
+        Conditional Value at Risk (CVaR) / Expected Shortfall
+        ارزش در معرض خطر شرطی
+        
+        CVaR_α = E[X | X ≤ VaR_α]
+        
+        برای مثال، alpha=0.01 برای 99% confidence
+        """
+        var = self.ppf(alpha)
+        # محاسبه expected value برای tail
+        # به صورت تقریبی
+        x_min = self.ppf(0.0001)
+        quantiles = np.linspace(0.0001, alpha, 100)
+        x_values = self.ppf(quantiles)
+        return np.mean(x_values)
+    
+    # ========== Fitting Methods ==========
     
     @abstractmethod
     def fit_mle(self, data: np.ndarray, **kwargs) -> Dict[str, float]:
@@ -211,7 +300,10 @@ class BaseDistribution(ABC):
         explanation += f"\n📈 ویژگی‌های توزیع:\n"
         try:
             explanation += f"   • میانگین: {self.mean():.4f}\n"
+            explanation += f"   • میانه: {self.median():.4f}\n"
+            explanation += f"   • مد: {self.mode():.4f}\n"
             explanation += f"   • انحراف معیار: {self.std():.4f}\n"
+            explanation += f"   • واریانس: {self.variance():.4f}\n"
             explanation += f"   • چولگی: {self.skewness():.4f}\n"
             explanation += f"   • کشیدگی: {self.kurtosis():.4f}\n"
         except:
@@ -486,6 +578,7 @@ class ExponentialDistribution(BaseDistribution):
     def __init__(self):
         super().__init__()
         self._scipy_dist = stats.expon
+        self._mode_at_zero = True  # mode is at 0
     
     @property
     def info(self) -> DistributionInfo:
