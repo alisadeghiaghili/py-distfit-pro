@@ -1,12 +1,35 @@
 Basic Examples
 ==============
 
-Simple, practical examples for common tasks.
+Simple examples to get started.
 
-Example 1: Test Scores
-----------------------
+Example 1: Fitting Normal Distribution
+---------------------------------------
 
-**Analyzing exam scores:**
+.. code-block:: python
+
+    from distfit_pro import get_distribution
+    import numpy as np
+    
+    # Generate data
+    np.random.seed(42)
+    data = np.random.normal(loc=100, scale=15, size=500)
+    
+    # Fit
+    dist = get_distribution('normal')
+    dist.fit(data, method='mle')
+    
+    # Results
+    print(dist.summary())
+    print(f"\nMean: {dist.mean():.2f}")
+    print(f"Std: {dist.std():.2f}")
+    
+    # Generate new samples
+    new_samples = dist.rvs(size=10)
+    print(f"\nNew samples: {new_samples}")
+
+Example 2: Compare Multiple Distributions
+------------------------------------------
 
 .. code-block:: python
 
@@ -14,188 +37,132 @@ Example 1: Test Scores
     from distfit_pro.core.gof_tests import GOFTests
     import numpy as np
     
-    # Exam scores (0-100)
-    np.random.seed(42)
-    scores = np.random.normal(75, 10, 150)
-    scores = np.clip(scores, 0, 100)  # Keep in [0, 100]
+    # Generate gamma data
+    data = np.random.gamma(2, 3, 1000)
     
-    # Fit normal distribution
-    dist = get_distribution('normal')
-    dist.fit(scores)
+    # Try different distributions
+    candidates = ['gamma', 'lognormal', 'weibull', 'exponential']
     
-    print("Test Score Distribution:")
-    print(dist.summary())
+    results = {}
+    for name in candidates:
+        dist = get_distribution(name)
+        try:
+            dist.fit(data)
+            ks_result = GOFTests.kolmogorov_smirnov(data, dist)
+            
+            results[name] = {
+                'dist': dist,
+                'p_value': ks_result.p_value,
+                'aic': 2 * len(dist.params) - 2 * np.sum(dist.logpdf(data))
+            }
+        except:
+            pass
     
-    # GOF test
-    ks_result = GOFTests.kolmogorov_smirnov(scores, dist)
-    print(f"\nGOF Test: {ks_result.interpretation}")
+    # Print results
+    print("Distribution Comparison:\n")
+    print(f"{'Distribution':<15} {'P-value':<12} {'AIC':<12}")
+    print("-" * 40)
     
-    # What percentage scored above 85?
-    prob_above_85 = 1 - dist.cdf(np.array([85]))[0]
-    print(f"\nPercentage scoring > 85: {prob_above_85*100:.1f}%")
-    
-    # What score is 90th percentile?
-    score_90th = dist.ppf(0.90)
-    print(f"90th percentile score: {score_90th:.1f}")
+    for name, r in sorted(results.items(), key=lambda x: x[1]['aic']):
+        print(f"{name:<15} {r['p_value']:<12.6f} {r['aic']:<12.2f}")
 
-Example 2: Product Lifetimes
+Example 3: Bootstrap Confidence Intervals
+------------------------------------------
+
+.. code-block:: python
+
+    from distfit_pro import get_distribution
+    from distfit_pro.core.bootstrap import Bootstrap
+    import numpy as np
+    
+    # Small sample (where bootstrap helps!)
+    data = np.random.normal(50, 10, 30)
+    
+    # Fit
+    dist = get_distribution('normal')
+    dist.fit(data)
+    
+    # Bootstrap CI
+    ci_results = Bootstrap.nonparametric(
+        data=data,
+        distribution=dist,
+        n_bootstrap=2000,
+        confidence_level=0.95,
+        n_jobs=-1
+    )
+    
+    # Report
+    print("Parameter Estimates with 95% CI:\n")
+    for param, result in ci_results.items():
+        print(f"{param}:")
+        print(f"  Point estimate: {result.estimate:.4f}")
+        print(f"  95% CI: [{result.ci_lower:.4f}, {result.ci_upper:.4f}]")
+        print(f"  Width: {result.ci_upper - result.ci_lower:.4f}\n")
+
+Example 4: Outlier Detection
 -----------------------------
 
-**Reliability analysis:**
-
 .. code-block:: python
 
-    # Component lifetimes (hours)
-    lifetimes = np.array([
-        1234, 1567, 892, 2134, 1789, 1456, 2345, 1678,
-        1234, 1890, 2456, 1567, 1345, 2123, 1678, 1987,
-        1456, 1789, 2234, 1567, 1345, 1890, 2123, 1678
-    ])
+    from distfit_pro import get_distribution
+    from distfit_pro.core.diagnostics import Diagnostics
+    import numpy as np
     
-    # Fit Weibull (common for reliability)
-    dist = get_distribution('weibull')
-    dist.fit(lifetimes)
+    # Data with outliers
+    np.random.seed(42)
+    clean_data = np.random.normal(100, 10, 95)
+    outliers = np.array([150, 155, 160, 45, 40])  # 5 outliers
+    data = np.concatenate([clean_data, outliers])
     
-    print("Weibull Parameters:")
-    print(f"  Shape (k): {dist.params['c']:.3f}")
-    print(f"  Scale (λ): {dist.params['scale']:.1f}")
-    
-    # Reliability metrics
-    print("\nReliability Analysis:")
-    
-    # Mean Time To Failure
-    mttf = dist.mean_time_to_failure()
-    print(f"  MTTF: {mttf:.1f} hours")
-    
-    # Reliability at 1000 hours
-    R_1000 = dist.reliability(1000)
-    print(f"  R(1000h): {R_1000:.1%}")
-    
-    # Median lifetime
-    median_life = dist.median()
-    print(f"  Median lifetime: {median_life:.1f} hours")
-
-Example 3: Customer Wait Times
--------------------------------
-
-**Service time analysis:**
-
-.. code-block:: python
-
-    # Wait times (minutes)
-    wait_times = np.random.exponential(5, 200)
-    
-    # Fit exponential
-    dist = get_distribution('exponential')
-    dist.fit(wait_times)
-    
-    print(f"Average wait time: {dist.mean():.2f} minutes")
-    
-    # Service level: % served within 10 minutes
-    service_level = dist.cdf(np.array([10]))[0]
-    print(f"Service level (<10 min): {service_level:.1%}")
-    
-    # How long to achieve 95% service level?
-    target_time = dist.ppf(0.95)
-    print(f"Time for 95% service: {target_time:.2f} minutes")
-
-Example 4: Income Distribution
--------------------------------
-
-**Lognormal income data:**
-
-.. code-block:: python
-
-    # Annual income ($1000s)
-    incomes = np.random.lognormal(np.log(50), 0.6, 1000)
-    
-    # Fit lognormal
-    dist = get_distribution('lognormal')
-    dist.fit(incomes)
-    
-    print("Income Distribution:")
-    print(f"  Median: ${dist.median():.1f}K")
-    print(f"  Mean: ${dist.mean():.1f}K")
-    print(f"  Std: ${dist.std():.1f}K")
-    
-    # Income brackets
-    print("\nIncome Percentiles:")
-    for p in [25, 50, 75, 90, 95, 99]:
-        value = dist.ppf(p/100)
-        print(f"  {p}th: ${value:.1f}K")
-
-Example 5: Quality Control
---------------------------
-
-**Defect rate analysis:**
-
-.. code-block:: python
-
-    # Number of defects per batch (count data)
-    defects = np.array([0, 1, 0, 2, 1, 0, 3, 1, 0, 1, 2, 0, 1, 0, 4])
-    
-    # Fit Poisson
-    dist = get_distribution('poisson')
-    dist.fit(defects)
-    
-    print(f"Average defects per batch: {dist.mean():.2f}")
-    
-    # Probability of zero defects
-    prob_zero = dist.pdf(np.array([0]))[0]
-    print(f"P(zero defects): {prob_zero:.1%}")
-    
-    # Probability of > 3 defects (out of control)
-    prob_high = 1 - dist.cdf(np.array([3]))[0]
-    print(f"P(>3 defects): {prob_high:.1%}")
-
-Example 6: Survey Response Rates
----------------------------------
-
-**Beta distribution for proportions:**
-
-.. code-block:: python
-
-    # Response rates from different campaigns
-    response_rates = np.array([
-        0.23, 0.34, 0.28, 0.31, 0.25, 0.29, 0.32, 0.27,
-        0.30, 0.26, 0.33, 0.24, 0.28, 0.31, 0.29, 0.27
-    ])
-    
-    # Fit Beta (bounded [0,1])
-    dist = get_distribution('beta')
-    dist.fit(response_rates)
-    
-    print("Response Rate Distribution:")
-    print(f"  Mean: {dist.mean():.1%}")
-    print(f"  Mode: {dist.mode():.1%}")
-    
-    # Credible interval
-    ci_lower = dist.ppf(0.025)
-    ci_upper = dist.ppf(0.975)
-    print(f"  95% CI: [{ci_lower:.1%}, {ci_upper:.1%}]")
-
-Example 7: Website Traffic
---------------------------
-
-**Page views per hour:**
-
-.. code-block:: python
-
-    # Hourly page views
-    page_views = np.array([
-        1234, 1456, 1678, 1345, 1567, 1789, 1456, 1890,
-        2123, 2345, 2567, 2234, 2456, 2678, 2123, 1890,
-        1678, 1456, 1234, 1567, 1789, 1345, 1234, 1456
-    ])
-    
-    # Fit normal
+    # Fit
     dist = get_distribution('normal')
-    dist.fit(page_views)
+    dist.fit(data)
     
-    print("Traffic Statistics:")
-    print(f"  Average: {dist.mean():.0f} views/hour")
-    print(f"  Peak (95th): {dist.ppf(0.95):.0f} views/hour")
+    # Detect outliers
+    outliers_detected = Diagnostics.detect_outliers(
+        data=data,
+        distribution=dist,
+        method='zscore',
+        threshold=3
+    )
     
-    # Capacity planning: handle 99% of traffic
-    capacity = dist.ppf(0.99)
-    print(f"\nRecommended capacity: {capacity:.0f} views/hour")
+    print(f"Outliers detected: {len(outliers_detected.outlier_indices)}")
+    print(f"Indices: {outliers_detected.outlier_indices}")
+    print(f"Values: {data[outliers_detected.outlier_indices]}")
+
+Example 5: Weighted Data
+------------------------
+
+.. code-block:: python
+
+    from distfit_pro import get_distribution
+    from distfit_pro.core.weighted import WeightedFitting
+    import numpy as np
+    
+    # Survey data with sampling weights
+    # Urban (70% of pop): 100 samples
+    # Rural (30% of pop): 100 samples
+    
+    data_urban = np.random.normal(75, 12, 100)
+    data_rural = np.random.normal(65, 15, 100)
+    
+    data = np.concatenate([data_urban, data_rural])
+    weights = np.concatenate([
+        np.ones(100) * 0.7,  # Urban weight
+        np.ones(100) * 0.3   # Rural weight
+    ])
+    
+    # Weighted fit
+    dist = get_distribution('normal')
+    params = WeightedFitting.fit_weighted_mle(data, weights, dist)
+    dist.params = params
+    dist.fitted = True
+    
+    # Compare
+    dist_unweighted = get_distribution('normal')
+    dist_unweighted.fit(data)
+    
+    print("Weighted vs Unweighted:\n")
+    print(f"Weighted mean:   {params['loc']:.2f}")
+    print(f"Unweighted mean: {dist_unweighted.params['loc']:.2f}")
+    print(f"Difference:      {abs(params['loc'] - dist_unweighted.params['loc']):.2f}")
