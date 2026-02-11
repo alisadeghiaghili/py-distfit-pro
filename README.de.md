@@ -270,6 +270,7 @@ print(f"CVaR(99%): {cvar_99:.2%}")
 - Selbsterklärende Ausgaben
 - **Mehrsprachige Unterstützung** (EN/FA/DE)
 - Visualisierungsmodul (matplotlib + plotly)
+- i18n-Testsuite
 
 ### 🔨 In Arbeit:
 - Erweiterte Diagnostik
