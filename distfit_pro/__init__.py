@@ -1,90 +1,63 @@
 """
-DistFit Pro - Professional Distribution Fitting Package
-========================================================
+DistFit Pro - Professional Distribution Fitting for Python
+===========================================================
 
-A comprehensive, production-ready Python package for statistical
-distribution fitting with model selection, diagnostics, and explanations.
+A comprehensive package for statistical distribution fitting with:
+- 30 distributions (25 continuous, 5 discrete)
+- Goodness-of-fit tests (KS, AD, Chi-Square, CvM)
+- Bootstrap confidence intervals
+- Enhanced diagnostics
+- Weighted data support
+- Multilingual support (EN/FA/DE)
 
-Author: Ali Sadeghi Aghili
-Website: https://linktr.ee/aliaghili
-GitHub: https://github.com/alisadeghiaghili/py-distfit-pro
-
-Language Support:
------------------
-The package supports multilingual output in:
-- English (en) - Default
-- Persian/Farsi (fa)
-- German (de)
-
-Example:
---------
->>> from distfit_pro import set_language, DistributionFitter
+Quick Start
+-----------
+>>> from distfit_pro import get_distribution
 >>> import numpy as np
 >>> 
->>> # Set output language
->>> set_language('en')  # English
->>> # set_language('fa')  # Persian
->>> # set_language('de')  # German
->>> 
->>> # Fit distribution
 >>> data = np.random.normal(10, 2, 1000)
->>> fitter = DistributionFitter()
->>> results = fitter.fit(data)
->>> print(results.best_distribution.summary())  # Output in selected language
+>>> dist = get_distribution('normal')
+>>> dist.fit(data)
+>>> print(dist.summary())
+
+Modules
+-------
+- core.distributions: Distribution classes
+- core.gof_tests: Goodness-of-fit tests
+- core.bootstrap: Bootstrap confidence intervals
+- core.diagnostics: Enhanced diagnostics
+- core.weighted: Weighted data support
+- plotting: Visualization tools
+- locales: Multilingual support
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __author__ = "Ali Sadeghi Aghili"
-__email__ = "alisadeghiaghili@gmail.com"
+__email__ = ""
+__license__ = "MIT"
+__url__ = "https://github.com/alisadeghiaghili/py-distfit-pro"
 
-# Configuration
-from .core.config import set_language, get_language
-
-# Core imports
-from .fitting.fitter import DistributionFitter, FitResults
 from .core.distributions import (
-    BaseDistribution,
-    NormalDistribution,
-    LognormalDistribution,
-    WeibullDistribution,
-    GammaDistribution,
-    ExponentialDistribution,
     get_distribution,
-    list_distributions
+    list_distributions,
+    list_continuous_distributions,
+    list_discrete_distributions,
 )
-from .core.model_selection import ModelSelection, ModelScore, DeltaComparison
-from .visualization.plots import DistributionPlotter
 
-# Public API
+from .locales import set_language, get_language, t
+
 __all__ = [
-    # Configuration
-    'set_language',
-    'get_language',
+    # Version
+    "__version__",
     
-    # Main fitter
-    'DistributionFitter',
-    'FitResults',
+    # Distribution functions
+    "get_distribution",
+    "list_distributions",
+    "list_continuous_distributions",
+    "list_discrete_distributions",
     
-    # Distributions
-    'BaseDistribution',
-    'NormalDistribution',
-    'LognormalDistribution',
-    'WeibullDistribution',
-    'GammaDistribution',
-    'ExponentialDistribution',
-    'get_distribution',
-    'list_distributions',
-    
-    # Model selection
-    'ModelSelection',
-    'ModelScore',
-    'DeltaComparison',
-    
-    # Visualization
-    'DistributionPlotter',
-    
-    # Version info
-    '__version__',
-    '__author__',
-    '__email__',
+    # Localization
+    "set_language",
+    "get_language",
+    "t",
 ]
