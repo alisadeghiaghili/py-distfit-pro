@@ -7,6 +7,8 @@ A comprehensive, production-ready package that combines the best features of Eas
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+[English](README.md) | [Persian/فارسی](README.fa.md) | [Deutsch](README.de.md)
+
 ---
 
 ## 🚀 Why DistFit Pro?
@@ -21,6 +23,7 @@ A comprehensive, production-ready package that combines the best features of Eas
 - ✅ **Scikit-learn-like API** - intuitive and consistent
 - ✅ **Rich visualizations** with matplotlib/seaborn/plotly
 - ✅ **Self-explanatory outputs** - every step is documented
+- ✅ **Multilingual support** - English, Persian, German
 - ✅ **Comprehensive documentation** and tutorials
 
 ### Better Extensibility
@@ -62,7 +65,10 @@ pip install -e ".[dev]"
 
 ```python
 import numpy as np
-from distfit_pro import DistributionFitter
+from distfit_pro import set_language, DistributionFitter
+
+# Set language (en, fa, de)
+set_language('en')
 
 # Generate sample data
 np.random.seed(42)
@@ -72,11 +78,11 @@ data = np.random.lognormal(mean=2, sigma=0.5, size=1000)
 fitter = DistributionFitter(data)
 results = fitter.fit(
     distributions=['lognormal', 'gamma', 'weibull', 'normal'],
-    method='mle',  # or 'moments', 'quantile', 'bayesian'
+    method='mle',  # or 'moments', 'quantile'
     n_jobs=-1  # parallel processing
 )
 
-# Print self-explanatory results
+# Print self-explanatory results (in your language!)
 print(results.summary())
 
 # Visualize
@@ -84,13 +90,56 @@ results.plot(kind='comparison')  # P-P, Q-Q, PDF, CDF
 results.plot(kind='diagnostics')  # Residuals, tail behavior
 
 # Get best model with explanation
-best = results.get_best(criterion='aic')
-print(best.explain())  # ✅ Note: it's a method, not attribute!
+best = results.best_model
+print(best.explain())  # ✅ Output in your language!
 
 # Access parameters and statistics
 print(best.params)      # Fitted parameters
 print(best.mean())      # Distribution mean
 print(best.variance())  # Distribution variance
+```
+
+---
+
+## 🌐 Multilingual Support
+
+DistFit Pro supports **three languages** for all outputs:
+
+```python
+from distfit_pro import set_language
+
+# 🇬🇧 English
+set_language('en')
+print(dist.explain())
+# Output:
+# 📊 Estimated Parameters:
+#    • Income
+#    • Stock prices
+# 🔍 Characteristics:
+#    • Right-skewed
+#    • Positive values only
+
+# 🇮🇷 Persian/Farsi
+set_language('fa')
+print(dist.explain())
+# خروجی:
+# 📊 پارامترهای برآورد شده:
+#    • درآمد
+#    • قیمت سهام
+# 🔍 ویژگی‌ها:
+#    • راست‌چوله
+#    • فقط مقادیر مثبت
+
+# 🇩🇪 German
+set_language('de')
+print(dist.explain())
+# Ausgabe:
+# 📊 Geschätzte Parameter:
+#    • Einkommen
+#    • Aktienkurse
+# 🔍 Eigenschaften:
+#    • Rechtsschief
+#    • Nur positive Werte
 ```
 
 ---
@@ -163,7 +212,9 @@ Static plots (matplotlib/seaborn) and interactive plots (plotly).
 
 ```python
 import numpy as np
-from distfit_pro import DistributionFitter
+from distfit_pro import set_language, DistributionFitter
+
+set_language('en')
 
 # Failure time data (right-censored)
 failure_times = np.array([120, 145, 167, 189, 201, 234, 267, 289, 312, 345])
@@ -193,6 +244,8 @@ print(f"MTTF: {mttf:.1f}h")
 ### Example 2: Financial Risk (VaR Estimation)
 
 ```python
+set_language('en')
+
 # Stock returns
 returns = load_stock_returns('AAPL')
 
@@ -217,15 +270,16 @@ print(f"CVaR(99%): {cvar_99:.2%}")
 **Current Version:** v0.1.0-alpha
 
 ### ✅ Implemented (v0.1.0):
-- Core distribution classes (5 distributions)
+- Core distribution classes (30 distributions)
 - Model selection (AIC, BIC, LOO-CV)
 - Basic fitting functionality
 - Self-explanatory outputs
+- **Multilingual support** (EN/FA/DE)
 - Visualization module (matplotlib + plotly)
+- i18n test suite
 
 ### 🔨 In Progress:
-- Additional distributions (20+ more)
-- Diagnostics module enhancement
+- Advanced diagnostics module enhancement
 - Bootstrap CI implementation
 - Censored data support
 
@@ -233,7 +287,7 @@ print(f"CVaR(99%): {cvar_99:.2%}")
 - Bayesian inference (PyMC integration)
 - Mixture models
 - Interactive dashboards
-- Comprehensive test suite
+- Comprehensive test suite (full coverage)
 - Full documentation site
 
 ---
@@ -270,4 +324,4 @@ Built with modern improvements in statistical methodology and software engineeri
 
 ---
 
-**Made with ❤️ and ☕ by Ali Aghili**
+**Made with ❤️ and ☕ by Ali Sadeghi Aghili**
