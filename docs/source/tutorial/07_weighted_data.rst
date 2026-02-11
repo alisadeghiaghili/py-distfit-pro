@@ -1,43 +1,21 @@
-Tutorial 7: Weighted Data Support
-==================================
+Tutorial 7: Weighted Data
+=========================
 
-Learn how to fit distributions when observations have different weights.
+Learn to fit distributions to weighted observations.
 
-Why Weighted Data?
-------------------
+When to Use Weights
+-------------------
 
-**Not all observations are created equal!**
+**Use weighted fitting when:**
 
-**Common scenarios:**
+1. **Survey Data** - sampling weights
+2. **Stratified Sampling** - different strata sizes
+3. **Aggregated Data** - frequency counts
+4. **Reliability** - different observation qualities
+5. **Meta-Analysis** - combining studies
 
-1. **Survey data** - sampling weights
-2. **Stratified sampling** - different strata sizes
-3. **Reliability** - different measurement precision
-4. **Aggregated data** - frequency counts
-5. **Meta-analysis** - combining studies
-
-**Example:**
-
-.. code-block:: python
-
-    # Survey with oversampling
-    # Group A: 100 people, weight=1.0
-    # Group B: 50 people, weight=2.0 (underrepresented)
-    
-    data = np.concatenate([
-        np.random.normal(10, 2, 100),  # Group A
-        np.random.normal(12, 2, 50)    # Group B
-    ])
-    
-    weights = np.concatenate([
-        np.ones(100) * 1.0,   # Group A weight
-        np.ones(50) * 2.0     # Group B weight (more important)
-    ])
-
-Weighted MLE
-------------
-
-**Maximum Likelihood with observation weights.**
+Basic Weighted Fitting
+----------------------
 
 .. code-block:: python
 
@@ -45,403 +23,384 @@ Weighted MLE
     from distfit_pro.core.weighted import WeightedFitting
     import numpy as np
     
-    # Generate weighted data
+    # Data with different reliabilities
     np.random.seed(42)
     data = np.random.normal(10, 2, 1000)
+    
+    # Weights (higher = more reliable)
     weights = np.random.uniform(0.5, 1.5, 1000)
     
     # Weighted MLE
     dist = get_distribution('normal')
-    params = WeightedFitting.fit_weighted_mle(
-        data=data,
-        weights=weights,
-        distribution=dist
-    )
+    params = WeightedFitting.fit_weighted_mle(data, weights, dist)
     
-    # Set parameters
     dist.params = params
     dist.fitted = True
     
-    print("Weighted MLE Parameters:")
-    print(dist.params)
-    print("\n" + dist.summary())
+    print("Weighted fit:")
+    print(dist.summary())
 
-**Comparison with unweighted:**
+Weighted MLE
+------------
+
+**Maximum likelihood with observation weights.**
 
 .. code-block:: python
 
-    # Unweighted fit
-    dist_unweighted = get_distribution('normal')
-    dist_unweighted.fit(data, method='mle')
+    # Weighted MLE
+    params_weighted = WeightedFitting.fit_weighted_mle(
+        data,
+        weights,
+        dist
+    )
     
-    print("\nComparison:")
-    print(f"Weighted mean:   {params['loc']:.4f}")
-    print(f"Unweighted mean: {dist_unweighted.params['loc']:.4f}")
-    print(f"Difference:      {abs(params['loc'] - dist_unweighted.params['loc']):.4f}")
+    print("Weighted parameters:", params_weighted)
 
-Weighted Moments
-----------------
+**How it works:**
 
-**Method of Moments with weights.**
+Maximizes weighted log-likelihood:
+
+.. math::
+
+    \sum_{i=1}^n w_i \log f(x_i; \theta)
+
+Where:
+- :math:`w_i` = weight for observation :math:`i`
+- :math:`f(x_i; \theta)` = PDF with parameters :math:`\theta`
+
+Weighted Method of Moments
+---------------------------
+
+**Faster alternative to weighted MLE.**
 
 .. code-block:: python
 
     # Weighted moments
-    params_mom = WeightedFitting.fit_weighted_moments(
-        data=data,
-        weights=weights,
-        distribution=dist
+    params_moments = WeightedFitting.fit_weighted_moments(
+        data,
+        weights,
+        dist
     )
     
-    print("Weighted Moments Parameters:")
-    print(params_mom)
+    print("Weighted moments:", params_moments)
 
-**Manual calculation:**
+**How it works:**
+
+Calculates weighted moments:
 
 .. code-block:: python
 
     # Normalize weights
-    w_norm = weights / np.sum(weights)
+    w = weights / np.sum(weights)
     
     # Weighted mean
-    wmean = np.sum(w_norm * data)
+    wmean = np.sum(w * data)
     
     # Weighted variance
-    wvar = np.sum(w_norm * (data - wmean)**2)
+    wvar = np.sum(w * (data - wmean)**2)
+
+Comparing Methods
+-----------------
+
+.. code-block:: python
+
+    import numpy as np
+    from distfit_pro import get_distribution
+    from distfit_pro.core.weighted import WeightedFitting
     
-    print(f"\nManual:")
-    print(f"  Weighted mean: {wmean:.4f}")
-    print(f"  Weighted var:  {wvar:.4f}")
+    np.random.seed(42)
+    data = np.random.gamma(2, 3, 1000)
+    weights = np.random.uniform(0.5, 1.5, 1000)
+    
+    dist = get_distribution('gamma')
+    
+    # Unweighted MLE
+    dist.fit(data, method='mle')
+    params_unweighted = dist.params.copy()
+    
+    # Weighted MLE
+    params_wmle = WeightedFitting.fit_weighted_mle(data, weights, dist)
+    
+    # Weighted moments
+    params_wmom = WeightedFitting.fit_weighted_moments(data, weights, dist)
+    
+    print("Comparison:")
+    print(f"Unweighted MLE: {params_unweighted}")
+    print(f"Weighted MLE:   {params_wmle}")
+    print(f"Weighted Mom:   {params_wmom}")
 
 Weighted Statistics
 -------------------
 
-**Comprehensive weighted statistics:**
+**Calculate weighted summary statistics.**
 
 .. code-block:: python
 
     # Weighted statistics
     stats = WeightedFitting.weighted_stats(data, weights)
     
-    print("\nWeighted Statistics:")
+    print("Weighted Statistics:")
     for key, value in stats.items():
-        print(f"  {key:<10}: {value:.4f}")
+        print(f"  {key}: {value:.4f}")
 
 **Output:**
 
 ::
 
     Weighted Statistics:
-      mean      : 10.1234
-      var       : 3.9876
-      std       : 1.9969
-      median    : 10.0123
-      q25       : 8.6789
-      q75       : 11.5432
+      mean: 10.1234
+      var: 3.9876
+      std: 1.9969
+      median: 10.0987
+      q25: 8.6543
+      q75: 11.5432
 
 Weighted Quantiles
 ------------------
 
-**Calculate weighted percentiles:**
-
 .. code-block:: python
 
-    # Weighted median
-    wmedian = WeightedFitting.weighted_quantile(
-        data=data,
-        weights=weights,
-        quantile=0.5
-    )
-    
-    print(f"Weighted median: {wmedian:.4f}")
+    # Calculate weighted median
+    median = WeightedFitting.weighted_quantile(data, weights, 0.5)
+    print(f"Weighted median: {median:.4f}")
     
     # Weighted quartiles
     q25 = WeightedFitting.weighted_quantile(data, weights, 0.25)
     q75 = WeightedFitting.weighted_quantile(data, weights, 0.75)
     
-    print(f"Weighted IQR: [{q25:.4f}, {q75:.4f}]")
+    print(f"IQR: [{q25:.4f}, {q75:.4f}]")
+    
+    # Any quantile
+    q95 = WeightedFitting.weighted_quantile(data, weights, 0.95)
+    print(f"95th percentile: {q95:.4f}")
 
 Effective Sample Size
 ---------------------
 
-**How much information do the weights provide?**
+**Weights reduce effective sample size.**
 
 .. code-block:: python
 
-    # Effective sample size
+    # Calculate effective sample size
+    n = len(data)
     ess = WeightedFitting.effective_sample_size(weights)
     
-    print(f"\nSample sizes:")
-    print(f"  Actual n:    {len(data)}")
-    print(f"  Effective n: {ess:.1f}")
-    print(f"  Efficiency:  {ess/len(data)*100:.1f}%")
+    print(f"Actual sample size: {n}")
+    print(f"Effective sample size: {ess:.1f}")
+    print(f"Efficiency: {ess/n*100:.1f}%")
+
+**Formula:**
+
+.. math::
+
+    ESS = \frac{(\sum w_i)^2}{\sum w_i^2}
 
 **Interpretation:**
 
-- ESS = n → all weights equal (100% efficient)
-- ESS < n → some observations have low weight
-- ESS << n → very unequal weights (inefficient)
+- Equal weights → ESS = n
+- Unequal weights → ESS < n
+- Very unequal → Much smaller ESS
 
-**Example with extreme weights:**
+Practical Examples
+------------------
 
-.. code-block:: python
-
-    # Equal weights
-    weights_equal = np.ones(1000)
-    ess_equal = WeightedFitting.effective_sample_size(weights_equal)
-    print(f"Equal weights ESS: {ess_equal:.1f} (100%)")
-    
-    # Unequal weights
-    weights_unequal = np.random.exponential(1, 1000)
-    ess_unequal = WeightedFitting.effective_sample_size(weights_unequal)
-    print(f"Unequal weights ESS: {ess_unequal:.1f} ({ess_unequal/1000*100:.1f}%)")
-    
-    # Extreme weights (one dominant observation)
-    weights_extreme = np.ones(1000)
-    weights_extreme[0] = 1000
-    ess_extreme = WeightedFitting.effective_sample_size(weights_extreme)
-    print(f"Extreme weights ESS: {ess_extreme:.1f} ({ess_extreme/1000*100:.1f}%)")
-
-Supported Distributions
------------------------
-
-**Weighted fitting works for 14 distributions:**
-
-**Continuous:**
-- Normal
-- Lognormal
-- Exponential
-- Gamma
-- Weibull
-- Beta
-- Uniform
-- Logistic
-- Laplace
-
-**Discrete:**
-- Poisson
-- Binomial
-- Negative Binomial
-- Geometric
-
-**Example with different distributions:**
+Example 1: Survey Data
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-    # Gamma data with weights
-    data_gamma = np.random.gamma(2, 3, 500)
-    weights_gamma = np.random.uniform(0.8, 1.2, 500)
+    # Survey responses with sampling weights
+    np.random.seed(42)
     
-    dist_gamma = get_distribution('gamma')
-    params_gamma = WeightedFitting.fit_weighted_mle(
-        data=data_gamma,
-        weights=weights_gamma,
-        distribution=dist_gamma
-    )
+    # Income data (stratified sample)
+    incomes = np.concatenate([
+        np.random.lognormal(10, 0.5, 300),   # Low income (oversampled)
+        np.random.lognormal(11, 0.7, 500),   # Middle income
+        np.random.lognormal(12, 0.9, 200)    # High income (undersampled)
+    ])
     
-    print("\nGamma (weighted):")
-    print(params_gamma)
+    # Sampling weights (inverse of sampling probability)
+    weights = np.concatenate([
+        np.ones(300) * 0.5,   # Low income: weight down
+        np.ones(500) * 1.0,   # Middle: normal weight
+        np.ones(200) * 2.0    # High income: weight up
+    ])
+    
+    # Fit lognormal distribution
+    dist = get_distribution('lognormal')
+    
+    # Weighted fit (corrects for sampling)
+    params_weighted = WeightedFitting.fit_weighted_mle(incomes, weights, dist)
+    dist.params = params_weighted
+    dist.fitted = True
+    
+    print("Survey-weighted income distribution:")
+    print(f"Median income: ${np.exp(dist.params['scale']):.2f}")
+    print(f"Mean income: ${dist.mean():.2f}")
 
-Real-World Examples
--------------------
-
-Survey Data
-^^^^^^^^^^^
-
-**Sampling weights from stratified survey:**
+Example 2: Frequency Data
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-    # Survey: household income
-    # Strata: Urban (70%), Rural (30%)
-    # Sample: Urban=100, Rural=100 (oversampled rural)
-    
-    # Urban households
-    income_urban = np.random.lognormal(10.5, 0.5, 100)
-    weight_urban = np.ones(100) * 0.7  # 70% of population
-    
-    # Rural households (lower income)
-    income_rural = np.random.lognormal(10.0, 0.6, 100)
-    weight_rural = np.ones(100) * 0.3  # 30% of population
-    
-    # Combine
-    income = np.concatenate([income_urban, income_rural])
-    weights_survey = np.concatenate([weight_urban, weight_rural])
-    
-    # Fit lognormal with weights
-    dist_income = get_distribution('lognormal')
-    params_income = WeightedFitting.fit_weighted_mle(
-        data=income,
-        weights=weights_survey,
-        distribution=dist_income
-    )
-    
-    dist_income.params = params_income
-    dist_income.fitted = True
-    
-    print("\nSurvey-weighted income distribution:")
-    print(dist_income.summary())
-
-Frequency Data
-^^^^^^^^^^^^^^
-
-**Aggregated data with counts:**
-
-.. code-block:: python
-
-    # Grouped data
+    # Aggregated data: value + count
     values = np.array([1, 2, 3, 4, 5, 6])
-    frequencies = np.array([10, 25, 30, 20, 10, 5])
+    counts = np.array([5, 15, 25, 30, 20, 5])  # Frequencies
     
-    # Expand to individual observations
-    data_expanded = np.repeat(values, frequencies)
+    # Expand to full data (inefficient)
+    # data_expanded = np.repeat(values, counts)
     
-    # OR use weights (more efficient)
-    dist_freq = get_distribution('poisson')
-    params_freq = WeightedFitting.fit_weighted_mle(
-        data=values,
-        weights=frequencies,
-        distribution=dist_freq
-    )
+    # Better: use weights = counts
+    dist = get_distribution('poisson')
+    params = WeightedFitting.fit_weighted_mle(values, counts, dist)
     
-    print("\nFrequency-weighted Poisson:")
-    print(params_freq)
+    dist.params = params
+    dist.fitted = True
+    
+    print(f"Fitted Poisson λ: {params['mu']:.4f}")
 
-Reliability Data
-^^^^^^^^^^^^^^^^
-
-**Different measurement precision:**
+Example 3: Reliability-Weighted Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-    # Measurements with different precision
-    # High precision (weight=1.0)
-    data_precise = np.random.normal(100, 0.5, 50)
-    weights_precise = np.ones(50) * 1.0
+    # Measurements with different precisions
+    measurements = np.array([10.2, 9.8, 10.1, 9.9, 10.0])
     
-    # Low precision (weight=0.3)
-    data_imprecise = np.random.normal(100, 2.0, 50)
-    weights_imprecise = np.ones(50) * 0.3
+    # Standard deviations (measurement errors)
+    std_errors = np.array([0.1, 0.3, 0.15, 0.2, 0.1])
     
-    # Combine
-    data_reliability = np.concatenate([data_precise, data_imprecise])
-    weights_reliability = np.concatenate([weights_precise, weights_imprecise])
+    # Weights = 1 / variance
+    weights = 1 / (std_errors ** 2)
     
-    # Weighted fit (gives more weight to precise measurements)
-    dist_rel = get_distribution('normal')
-    params_rel = WeightedFitting.fit_weighted_mle(
-        data=data_reliability,
-        weights=weights_reliability,
-        distribution=dist_rel
-    )
+    dist = get_distribution('normal')
+    params = WeightedFitting.fit_weighted_mle(measurements, weights, dist)
     
-    print("\nReliability-weighted:")
-    print(params_rel)
+    print(f"Precision-weighted mean: {params['loc']:.4f}")
+    print(f"Precision-weighted std: {params['scale']:.4f}")
 
 Weighted Bootstrap
 ------------------
 
-**Combine weights with bootstrap CIs:**
+**Combine weighting with bootstrap for uncertainty.**
 
 .. code-block:: python
 
-    # First fit with weights
-    dist_w = get_distribution('normal')
-    params_w = WeightedFitting.fit_weighted_mle(data, weights, dist_w)
-    dist_w.params = params_w
-    dist_w.fitted = True
-    
-    # Then bootstrap (resamples respect weights)
     from distfit_pro.core.bootstrap import Bootstrap
     
-    # For weighted data, use parametric bootstrap
-    ci_weighted = Bootstrap.parametric(
-        data=data,
-        distribution=dist_w,
-        n_bootstrap=1000
-    )
+    # Weighted fit
+    dist = get_distribution('normal')
+    params = WeightedFitting.fit_weighted_mle(data, weights, dist)
+    dist.params = params
+    dist.fitted = True
     
-    for param, result in ci_weighted.items():
-        print(result)
+    # For bootstrap, resample with weights as probabilities
+    # Normalize weights to probabilities
+    probs = weights / np.sum(weights)
+    
+    # Custom weighted bootstrap
+    n_bootstrap = 1000
+    boot_params = []
+    
+    for i in range(n_bootstrap):
+        # Resample with probability = weight
+        boot_indices = np.random.choice(
+            len(data), 
+            size=len(data), 
+            replace=True,
+            p=probs
+        )
+        
+        boot_data = data[boot_indices]
+        boot_weights = weights[boot_indices]
+        
+        # Fit to bootstrap sample
+        boot_dist = get_distribution('normal')
+        boot_params_i = WeightedFitting.fit_weighted_mle(
+            boot_data, 
+            boot_weights, 
+            boot_dist
+        )
+        boot_params.append(boot_params_i)
+    
+    # Calculate CI
+    loc_samples = [p['loc'] for p in boot_params]
+    ci_loc = np.percentile(loc_samples, [2.5, 97.5])
+    
+    print(f"Weighted estimate: {params['loc']:.4f}")
+    print(f"95% CI: [{ci_loc[0]:.4f}, {ci_loc[1]:.4f}]")
 
 Best Practices
 --------------
 
 1. **Normalize weights**
    
-   Weights are automatically normalized in WeightedFitting
+   WeightedFitting does this automatically, but be aware.
 
 2. **Check effective sample size**
    
    .. code-block:: python
    
        ess = WeightedFitting.effective_sample_size(weights)
-       if ess < len(data) * 0.5:
-           print("Warning: ESS < 50% of sample size")
+       if ess < 30:
+           print("⚠️  Warning: Low effective sample size")
 
-3. **Use MLE for weighted fitting**
-   
-   Generally more accurate than moments
-
-4. **Handle zero weights**
+3. **Handle zero weights**
    
    .. code-block:: python
    
-       # Zero weights are automatically removed
-       weights[weights < 0.01] = 0  # Effectively remove
+       # Remove zero-weight observations
+       mask = weights > 0
+       data_clean = data[mask]
+       weights_clean = weights[mask]
+
+4. **Validate weights**
+   
+   .. code-block:: python
+   
+       # Check for negative weights
+       if np.any(weights < 0):
+           raise ValueError("Weights must be non-negative")
+       
+       # Check for NaN
+       if np.any(np.isnan(weights)):
+           print("⚠️  Warning: NaN weights detected")
 
 5. **Document weighting scheme**
    
-   Always explain how weights were derived!
+   Always explain how weights were calculated!
 
-6. **Compare weighted vs unweighted**
-   
-   .. code-block:: python
-   
-       # Check if weights make a difference
-       diff = abs(params_weighted['loc'] - params_unweighted['loc'])
-       if diff > 0.1 * abs(params_unweighted['loc']):
-           print("Weights have substantial impact!")
-
-Troubleshooting
+Common Pitfalls
 ---------------
 
-**Negative or zero weights:**
+**Pitfall 1: Using counts as weights incorrectly**
 
 .. code-block:: python
 
-    # Weights must be non-negative
-    weights_bad = np.random.normal(1, 0.5, 100)
-    weights_bad[weights_bad < 0] = 0  # Fix negative
+    # WRONG: Don't duplicate data
+    data_wrong = np.repeat(values, counts)  # Memory waste
     
-    # Check for all zeros
-    if np.sum(weights_bad) == 0:
-        raise ValueError("All weights are zero!")
+    # RIGHT: Use counts as weights
+    params = WeightedFitting.fit_weighted_mle(values, counts, dist)
 
-**Very unequal weights:**
-
-.. code-block:: python
-
-    # Check weight distribution
-    print(f"Weight range: [{np.min(weights):.4f}, {np.max(weights):.4f}]")
-    print(f"Weight CV: {np.std(weights)/np.mean(weights):.4f}")
-    
-    # If CV > 1, weights are very unequal
-
-**Fitting failures:**
+**Pitfall 2: Forgetting to normalize**
 
 .. code-block:: python
 
-    try:
-        params = WeightedFitting.fit_weighted_mle(data, weights, dist)
-    except:
-        # Fall back to moments
-        print("MLE failed, using moments")
-        params = WeightedFitting.fit_weighted_moments(data, weights, dist)
+    # If you manually calculate, normalize first
+    weights_norm = weights / np.sum(weights)
+
+**Pitfall 3: Ignoring effective sample size**
+
+.. code-block:: python
+
+    # Very unequal weights reduce power
+    ess = WeightedFitting.effective_sample_size(weights)
+    if ess < 0.5 * len(weights):
+        print("⚠️  Weights are very unequal")
 
 Next Steps
 ----------
 
-- :doc:`08_visualization` - Visual weighted data
-- :doc:`examples/real_world` - Survey data examples
-- :doc:`09_advanced` - Advanced techniques
+- :doc:`08_visualization` - Visualize weighted fits
+- :doc:`09_advanced` - Advanced weighted techniques

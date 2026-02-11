@@ -1,362 +1,338 @@
 Tutorial 8: Visualization
 =========================
 
-Learn how to create publication-quality plots.
+Learn to visualize distributions and diagnostics.
+
+.. note::
+   This tutorial covers the visualization API. For actual plotting,
+   see :doc:`../user_guide/visualization` for complete examples.
 
 Basic Plotting
 --------------
 
-**Plot fitted distribution:**
+**Plot PDF and data histogram:**
 
 .. code-block:: python
 
     from distfit_pro import get_distribution
-    from distfit_pro.plotting import plot_distribution
     import numpy as np
     import matplotlib.pyplot as plt
     
-    # Generate and fit
+    # Generate data
+    np.random.seed(42)
     data = np.random.normal(10, 2, 1000)
+    
+    # Fit distribution
     dist = get_distribution('normal')
     dist.fit(data)
     
-    # Plot
-    fig = plot_distribution(data, dist)
+    # Create figure
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Histogram
+    ax.hist(data, bins=30, density=True, alpha=0.7, 
+            color='skyblue', edgecolor='black', label='Data')
+    
+    # Fitted PDF
+    x = np.linspace(data.min(), data.max(), 200)
+    pdf = dist.pdf(x)
+    ax.plot(x, pdf, 'r-', linewidth=2, label='Fitted PDF')
+    
+    # Labels
+    ax.set_xlabel('Value')
+    ax.set_ylabel('Density')
+    ax.set_title('Normal Distribution Fit')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
     plt.show()
 
-**Components:**
-
-- Histogram of data
-- Fitted PDF/PMF curve
-- Distribution name and parameters
-- GOF statistics
-
-Customizing Plots
------------------
-
-**Matplotlib backend:**
-
-.. code-block:: python
-
-    from distfit_pro.plotting import plot_distribution
-    
-    fig = plot_distribution(
-        data=data,
-        distribution=dist,
-        bins=30,  # Number of bins
-        title="Custom Title",
-        xlabel="Custom X-axis",
-        ylabel="Density"
-    )
-    
-    plt.savefig('distribution_fit.png', dpi=300)
-
-**Plotly backend (interactive):**
-
-.. code-block:: python
-
-    from distfit_pro.plotting import plot_distribution_interactive
-    
-    fig = plot_distribution_interactive(
-        data=data,
-        distribution=dist
-    )
-    
-    fig.show()
-    # Or save
-    fig.write_html('distribution_fit.html')
-
-Diagnostic Plots
-----------------
-
 Q-Q Plot
-^^^^^^^^
+--------
+
+**Quantile-Quantile plot for GOF assessment:**
 
 .. code-block:: python
 
     from distfit_pro.core.diagnostics import Diagnostics
     
+    # Get Q-Q data
     qq_data = Diagnostics.qq_diagnostics(data, dist)
     
-    plt.figure(figsize=(8, 8))
-    plt.scatter(qq_data['theoretical'], qq_data['sample'], 
-                alpha=0.6, s=20)
+    # Plot
+    fig, ax = plt.subplots(figsize=(8, 8))
+    
+    # Q-Q plot
+    ax.scatter(qq_data['theoretical'], qq_data['sample'], 
+               alpha=0.6, s=20, label='Data')
+    
+    # Reference line (perfect fit)
+    lims = [
+        min(qq_data['theoretical'].min(), qq_data['sample'].min()),
+        max(qq_data['theoretical'].max(), qq_data['sample'].max())
+    ]
+    ax.plot(lims, lims, 'r--', linewidth=2, label='Perfect Fit')
+    
+    # Labels
+    ax.set_xlabel('Theoretical Quantiles')
+    ax.set_ylabel('Sample Quantiles')
+    ax.set_title(f'Q-Q Plot (Correlation: {qq_data["correlation"]:.4f})')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    plt.show()
+
+P-P Plot
+--------
+
+**Probability-Probability plot:**
+
+.. code-block:: python
+
+    # Get P-P data
+    pp_data = Diagnostics.pp_diagnostics(data, dist)
+    
+    # Plot
+    fig, ax = plt.subplots(figsize=(8, 8))
+    
+    ax.scatter(pp_data['theoretical'], pp_data['empirical'],
+               alpha=0.6, s=20)
     
     # Reference line
-    min_val = min(qq_data['theoretical'].min(), qq_data['sample'].min())
-    max_val = max(qq_data['theoretical'].max(), qq_data['sample'].max())
-    plt.plot([min_val, max_val], [min_val, max_val], 
-             'r--', lw=2, label='Perfect fit')
+    ax.plot([0, 1], [0, 1], 'r--', linewidth=2, label='Perfect Fit')
     
-    plt.xlabel('Theoretical Quantiles', fontsize=12)
-    plt.ylabel('Sample Quantiles', fontsize=12)
-    plt.title(f'Q-Q Plot (r = {qq_data["correlation"]:.4f})', fontsize=14)
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
+    ax.set_xlabel('Theoretical Probability')
+    ax.set_ylabel('Empirical Probability')
+    ax.set_title(f'P-P Plot (Max Dev: {pp_data["max_deviation"]:.4f})')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
     plt.show()
 
-Residual Plot
-^^^^^^^^^^^^^
+Residual Plots
+--------------
+
+**Visualize residuals:**
 
 .. code-block:: python
 
+    from distfit_pro.core.diagnostics import Diagnostics
+    
+    # Get residuals
     residuals = Diagnostics.residual_analysis(data, dist)
-    qres = residuals.quantile_residuals
     
-    # Residual histogram
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    # Create figure with subplots
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
     
-    # Histogram
-    axes[0].hist(qres, bins=30, density=True, alpha=0.7, 
-                 edgecolor='black')
+    # 1. Quantile residuals histogram
+    axes[0, 0].hist(residuals.quantile_residuals, bins=30, 
+                    density=True, alpha=0.7, edgecolor='black')
+    axes[0, 0].set_title('Quantile Residuals')
+    axes[0, 0].set_xlabel('Residual')
+    axes[0, 0].set_ylabel('Density')
+    axes[0, 0].grid(True, alpha=0.3)
     
-    # Overlay N(0,1)
-    x = np.linspace(qres.min(), qres.max(), 100)
+    # Add normal curve
+    x = np.linspace(-4, 4, 100)
     from scipy import stats
-    axes[0].plot(x, stats.norm.pdf(x), 'r-', lw=2, 
-                 label='N(0,1)')
+    axes[0, 0].plot(x, stats.norm.pdf(x), 'r-', linewidth=2, label='N(0,1)')
+    axes[0, 0].legend()
     
-    axes[0].set_xlabel('Quantile Residuals')
-    axes[0].set_ylabel('Density')
-    axes[0].set_title('Residual Histogram')
-    axes[0].legend()
-    axes[0].grid(True, alpha=0.3)
+    # 2. Residuals vs fitted
+    fitted_values = dist.mean() * np.ones_like(data)
+    axes[0, 1].scatter(fitted_values, residuals.standardized_residuals,
+                       alpha=0.5, s=20)
+    axes[0, 1].axhline(0, color='r', linestyle='--', linewidth=2)
+    axes[0, 1].set_title('Residuals vs Fitted')
+    axes[0, 1].set_xlabel('Fitted Values')
+    axes[0, 1].set_ylabel('Standardized Residuals')
+    axes[0, 1].grid(True, alpha=0.3)
     
-    # Residual scatter
-    axes[1].scatter(range(len(qres)), qres, alpha=0.5)
-    axes[1].axhline(y=0, color='r', linestyle='--')
-    axes[1].axhline(y=2, color='gray', linestyle=':')
-    axes[1].axhline(y=-2, color='gray', linestyle=':')
-    axes[1].set_xlabel('Observation Index')
-    axes[1].set_ylabel('Quantile Residuals')
-    axes[1].set_title('Residual Scatter')
-    axes[1].grid(True, alpha=0.3)
+    # 3. Residuals vs index
+    axes[1, 0].scatter(range(len(data)), residuals.standardized_residuals,
+                       alpha=0.5, s=20)
+    axes[1, 0].axhline(0, color='r', linestyle='--', linewidth=2)
+    axes[1, 0].set_title('Residuals vs Index')
+    axes[1, 0].set_xlabel('Index')
+    axes[1, 0].set_ylabel('Standardized Residuals')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 4. Normal Q-Q of residuals
+    stats.probplot(residuals.quantile_residuals, dist="norm", plot=axes[1, 1])
+    axes[1, 1].set_title('Normal Q-Q Plot of Residuals')
+    axes[1, 1].grid(True, alpha=0.3)
     
     plt.tight_layout()
     plt.show()
 
-Multi-Panel Diagnostic
-^^^^^^^^^^^^^^^^^^^^^^
+CDF Comparison
+--------------
+
+**Compare empirical and theoretical CDFs:**
 
 .. code-block:: python
 
-    def diagnostic_panel(data, dist):
-        """Create 4-panel diagnostic plot"""
-        
-        fig, axes = plt.subplots(2, 2, figsize=(14, 12))
-        
-        # 1. Histogram + PDF
-        axes[0, 0].hist(data, bins=30, density=True, alpha=0.7,
-                       edgecolor='black', label='Data')
-        x = np.linspace(data.min(), data.max(), 200)
-        axes[0, 0].plot(x, dist.pdf(x), 'r-', lw=2, label='Fitted')
-        axes[0, 0].set_xlabel('Value')
-        axes[0, 0].set_ylabel('Density')
-        axes[0, 0].set_title('Histogram + Fitted PDF')
-        axes[0, 0].legend()
-        axes[0, 0].grid(True, alpha=0.3)
-        
-        # 2. Q-Q Plot
-        qq_data = Diagnostics.qq_diagnostics(data, dist)
-        axes[0, 1].scatter(qq_data['theoretical'], qq_data['sample'],
-                          alpha=0.5)
-        lims = [min(qq_data['theoretical'].min(), qq_data['sample'].min()),
-                max(qq_data['theoretical'].max(), qq_data['sample'].max())]
-        axes[0, 1].plot(lims, lims, 'r--', lw=2)
-        axes[0, 1].set_xlabel('Theoretical Quantiles')
-        axes[0, 1].set_ylabel('Sample Quantiles')
-        axes[0, 1].set_title(f'Q-Q Plot (r={qq_data["correlation"]:.3f})')
-        axes[0, 1].grid(True, alpha=0.3)
-        
-        # 3. Residuals
-        residuals = Diagnostics.residual_analysis(data, dist)
-        qres = residuals.quantile_residuals
-        axes[1, 0].hist(qres, bins=30, density=True, alpha=0.7,
-                       edgecolor='black')
-        x = np.linspace(qres.min(), qres.max(), 100)
-        axes[1, 0].plot(x, stats.norm.pdf(x), 'r-', lw=2)
-        axes[1, 0].set_xlabel('Quantile Residuals')
-        axes[1, 0].set_ylabel('Density')
-        axes[1, 0].set_title('Residual Distribution')
-        axes[1, 0].grid(True, alpha=0.3)
-        
-        # 4. P-P Plot
-        pp_data = Diagnostics.pp_diagnostics(data, dist)
-        axes[1, 1].scatter(pp_data['theoretical'], pp_data['empirical'],
-                          alpha=0.5)
-        axes[1, 1].plot([0, 1], [0, 1], 'r--', lw=2)
-        axes[1, 1].set_xlabel('Theoretical Probability')
-        axes[1, 1].set_ylabel('Empirical Probability')
-        axes[1, 1].set_title(f'P-P Plot (dev={pp_data["max_deviation"]:.3f})')
-        axes[1, 1].grid(True, alpha=0.3)
-        
-        plt.suptitle(f'{dist.info.display_name}', fontsize=16, y=1.00)
-        plt.tight_layout()
-        return fig
+    # Empirical CDF
+    data_sorted = np.sort(data)
+    empirical_cdf = np.arange(1, len(data)+1) / len(data)
     
-    # Use it
-    fig = diagnostic_panel(data, dist)
+    # Theoretical CDF
+    theoretical_cdf = dist.cdf(data_sorted)
+    
+    # Plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    ax.plot(data_sorted, empirical_cdf, 
+            'b-', linewidth=2, label='Empirical CDF', alpha=0.7)
+    ax.plot(data_sorted, theoretical_cdf, 
+            'r--', linewidth=2, label='Fitted CDF')
+    
+    ax.set_xlabel('Value')
+    ax.set_ylabel('Cumulative Probability')
+    ax.set_title('CDF Comparison')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
     plt.show()
 
-Comparing Distributions
------------------------
+Multiple Distributions
+----------------------
 
-**Overlay multiple fits:**
+**Compare several fitted distributions:**
 
 .. code-block:: python
 
     # Fit multiple distributions
-    dists = {}
-    for name in ['normal', 'lognormal', 'gamma']:
-        d = get_distribution(name)
+    dist_names = ['normal', 'lognormal', 'gamma', 'weibull']
+    distributions = {}
+    
+    for name in dist_names:
         try:
-            d.fit(data)
-            dists[name] = d
+            dist = get_distribution(name)
+            dist.fit(data)
+            distributions[name] = dist
         except:
             pass
     
-    # Plot all
-    plt.figure(figsize=(10, 6))
-    plt.hist(data, bins=30, density=True, alpha=0.5, 
-             label='Data', edgecolor='black')
+    # Plot comparison
+    fig, ax = plt.subplots(figsize=(12, 6))
     
-    colors = ['red', 'blue', 'green']
+    # Data histogram
+    ax.hist(data, bins=30, density=True, alpha=0.5, 
+            color='gray', edgecolor='black', label='Data')
+    
+    # Fitted PDFs
     x = np.linspace(data.min(), data.max(), 200)
+    colors = ['red', 'blue', 'green', 'orange']
     
-    for (name, dist), color in zip(dists.items(), colors):
-        plt.plot(x, dist.pdf(x), color=color, lw=2, 
-                label=name.capitalize())
+    for (name, dist), color in zip(distributions.items(), colors):
+        pdf = dist.pdf(x)
+        ax.plot(x, pdf, linewidth=2, label=name.capitalize(), color=color)
     
-    plt.xlabel('Value')
-    plt.ylabel('Density')
-    plt.title('Distribution Comparison')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
+    ax.set_xlabel('Value')
+    ax.set_ylabel('Density')
+    ax.set_title('Distribution Comparison')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
     plt.show()
 
-Weighted Data Visualization
-----------------------------
+Influence Diagnostics Plot
+--------------------------
+
+**Visualize influential observations:**
 
 .. code-block:: python
 
-    # Weighted histogram
-    plt.figure(figsize=(10, 6))
+    from distfit_pro.core.diagnostics import Diagnostics
     
-    plt.hist(data, weights=weights, bins=30, density=True,
-             alpha=0.7, label='Weighted data', edgecolor='black')
+    # Get influence diagnostics
+    influence = Diagnostics.influence_diagnostics(data, dist)
     
-    x = np.linspace(data.min(), data.max(), 200)
-    plt.plot(x, dist.pdf(x), 'r-', lw=2, label='Fitted (weighted)')
+    # Plot Cook's distance
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     
-    plt.xlabel('Value')
-    plt.ylabel('Density')
-    plt.title('Weighted Distribution Fit')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
+    # Cook's D
+    threshold = 4 / len(data)
+    axes[0].stem(range(len(data)), influence.cooks_distance, 
+                 basefmt=" ", use_line_collection=True)
+    axes[0].axhline(threshold, color='r', linestyle='--', 
+                    linewidth=2, label=f'Threshold = {threshold:.4f}')
+    axes[0].set_xlabel('Observation Index')
+    axes[0].set_ylabel("Cook's Distance")
+    axes[0].set_title("Cook's Distance Plot")
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # Leverage vs Residuals
+    residuals = Diagnostics.residual_analysis(data, dist)
+    axes[1].scatter(influence.leverage, 
+                    residuals.standardized_residuals,
+                    alpha=0.6, s=50)
+    axes[1].set_xlabel('Leverage')
+    axes[1].set_ylabel('Standardized Residuals')
+    axes[1].set_title('Leverage vs Residuals')
+    axes[1].grid(True, alpha=0.3)
+    
+    # Mark influential points
+    for idx in influence.influential_indices[:5]:  # Top 5
+        axes[1].scatter(influence.leverage[idx],
+                       residuals.standardized_residuals[idx],
+                       color='red', s=100, marker='x')
+    
     plt.tight_layout()
     plt.show()
 
-Bootstrap Visualization
------------------------
+Bootstrap Distribution
+----------------------
 
-**Plot parameter uncertainty:**
+**Visualize bootstrap parameter distribution:**
 
 .. code-block:: python
 
     from distfit_pro.core.bootstrap import Bootstrap
     
-    # Bootstrap
+    # Run bootstrap
     ci_results = Bootstrap.parametric(data, dist, n_bootstrap=1000)
     
-    # Collect bootstrap samples manually for visualization
-    boot_locs = []
-    boot_scales = []
-    
+    # Get bootstrap samples (need to rerun to collect)
+    boot_samples_loc = []
     for i in range(1000):
         boot_data = dist.rvs(size=len(data), random_state=i)
         boot_dist = get_distribution('normal')
         boot_dist.fit(boot_data)
-        boot_locs.append(boot_dist.params['loc'])
-        boot_scales.append(boot_dist.params['scale'])
+        boot_samples_loc.append(boot_dist.params['loc'])
     
-    # Plot bootstrap distributions
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    # Plot
+    fig, ax = plt.subplots(figsize=(10, 6))
     
-    # Mean (loc)
-    axes[0].hist(boot_locs, bins=30, density=True, alpha=0.7,
-                edgecolor='black')
-    axes[0].axvline(dist.params['loc'], color='red', 
-                   linestyle='--', lw=2, label='Estimate')
-    axes[0].axvline(ci_results['loc'].ci_lower, color='green',
-                   linestyle=':', lw=2, label='95% CI')
-    axes[0].axvline(ci_results['loc'].ci_upper, color='green',
-                   linestyle=':', lw=2)
-    axes[0].set_xlabel('Mean')
-    axes[0].set_ylabel('Density')
-    axes[0].set_title('Bootstrap Distribution of Mean')
-    axes[0].legend()
-    axes[0].grid(True, alpha=0.3)
+    # Histogram of bootstrap estimates
+    ax.hist(boot_samples_loc, bins=30, density=True, 
+            alpha=0.7, edgecolor='black', label='Bootstrap Distribution')
     
-    # Std (scale)
-    axes[1].hist(boot_scales, bins=30, density=True, alpha=0.7,
-                edgecolor='black')
-    axes[1].axvline(dist.params['scale'], color='red',
-                   linestyle='--', lw=2, label='Estimate')
-    axes[1].axvline(ci_results['scale'].ci_lower, color='green',
-                   linestyle=':', lw=2, label='95% CI')
-    axes[1].axvline(ci_results['scale'].ci_upper, color='green',
-                   linestyle=':', lw=2)
-    axes[1].set_xlabel('Std Deviation')
-    axes[1].set_ylabel('Density')
-    axes[1].set_title('Bootstrap Distribution of Std')
-    axes[1].legend()
-    axes[1].grid(True, alpha=0.3)
+    # Original estimate
+    ax.axvline(dist.params['loc'], color='red', 
+               linestyle='--', linewidth=2, label='Original Estimate')
     
-    plt.tight_layout()
-    plt.show()
-
-Publication-Quality Styling
----------------------------
-
-**Use seaborn or custom styles:**
-
-.. code-block:: python
-
-    import matplotlib.pyplot as plt
-    import seaborn as sns
+    # Confidence interval
+    result = ci_results['loc']
+    ax.axvline(result.ci_lower, color='green', 
+               linestyle=':', linewidth=2, label='95% CI')
+    ax.axvline(result.ci_upper, color='green', 
+               linestyle=':', linewidth=2)
     
-    # Seaborn style
-    sns.set_style('whitegrid')
-    sns.set_context('paper', font_scale=1.5)
+    ax.set_xlabel('Parameter Value')
+    ax.set_ylabel('Density')
+    ax.set_title('Bootstrap Distribution of Location Parameter')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
     
-    # Or matplotlib style
-    plt.style.use('seaborn-v0_8-paper')
-    
-    # High-res figure
-    fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
-    
-    ax.hist(data, bins=30, density=True, alpha=0.7,
-            color='steelblue', edgecolor='black', linewidth=1.5)
-    
-    x = np.linspace(data.min(), data.max(), 200)
-    ax.plot(x, dist.pdf(x), 'r-', lw=3, label='Fitted PDF')
-    
-    ax.set_xlabel('Value', fontsize=14, fontweight='bold')
-    ax.set_ylabel('Density', fontsize=14, fontweight='bold')
-    ax.set_title('Distribution Fit', fontsize=16, fontweight='bold')
-    ax.legend(fontsize=12, frameon=True, shadow=True)
-    ax.grid(True, alpha=0.3, linestyle='--')
-    
-    plt.tight_layout()
-    plt.savefig('publication_plot.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 Interactive Plotly
 ------------------
 
-**Create interactive plots:**
+**Create interactive plots with Plotly:**
 
 .. code-block:: python
 
@@ -366,79 +342,111 @@ Interactive Plotly
     # Create subplots
     fig = make_subplots(
         rows=2, cols=2,
-        subplot_titles=('Histogram + PDF', 'Q-Q Plot', 
-                       'Residuals', 'CDF')
+        subplot_titles=('PDF Fit', 'CDF Comparison', 
+                       'Q-Q Plot', 'Residuals')
     )
     
-    # 1. Histogram + PDF
-    fig.add_trace(
-        go.Histogram(x=data, histnorm='probability density',
-                    name='Data', opacity=0.7),
-        row=1, col=1
+    # 1. PDF fit
+    hist_data = go.Histogram(
+        x=data, 
+        histnorm='probability density',
+        name='Data',
+        opacity=0.7
     )
     
-    x = np.linspace(data.min(), data.max(), 200)
-    fig.add_trace(
-        go.Scatter(x=x, y=dist.pdf(x), mode='lines',
-                  name='Fitted PDF', line=dict(color='red', width=2)),
-        row=1, col=1
+    x_range = np.linspace(data.min(), data.max(), 200)
+    pdf_line = go.Scatter(
+        x=x_range,
+        y=dist.pdf(x_range),
+        mode='lines',
+        name='Fitted PDF',
+        line=dict(color='red', width=2)
     )
     
-    # 2. Q-Q Plot
+    fig.add_trace(hist_data, row=1, col=1)
+    fig.add_trace(pdf_line, row=1, col=1)
+    
+    # 2. CDF comparison
+    data_sorted = np.sort(data)
+    empirical = np.arange(1, len(data)+1) / len(data)
+    
+    fig.add_trace(go.Scatter(
+        x=data_sorted, y=empirical,
+        mode='lines', name='Empirical CDF'
+    ), row=1, col=2)
+    
+    fig.add_trace(go.Scatter(
+        x=data_sorted, y=dist.cdf(data_sorted),
+        mode='lines', name='Fitted CDF',
+        line=dict(dash='dash')
+    ), row=1, col=2)
+    
+    # 3. Q-Q plot
     qq_data = Diagnostics.qq_diagnostics(data, dist)
-    fig.add_trace(
-        go.Scatter(x=qq_data['theoretical'], y=qq_data['sample'],
-                  mode='markers', name='Q-Q', opacity=0.6),
-        row=1, col=2
-    )
+    
+    fig.add_trace(go.Scatter(
+        x=qq_data['theoretical'],
+        y=qq_data['sample'],
+        mode='markers',
+        name='Q-Q'
+    ), row=2, col=1)
     
     # Reference line
-    lims = [min(qq_data['theoretical'].min(), qq_data['sample'].min()),
-            max(qq_data['theoretical'].max(), qq_data['sample'].max())]
-    fig.add_trace(
-        go.Scatter(x=lims, y=lims, mode='lines',
-                  name='Reference', line=dict(color='red', dash='dash')),
-        row=1, col=2
-    )
+    lims = [qq_data['theoretical'].min(), qq_data['theoretical'].max()]
+    fig.add_trace(go.Scatter(
+        x=lims, y=lims,
+        mode='lines',
+        line=dict(color='red', dash='dash'),
+        name='Reference'
+    ), row=2, col=1)
     
-    # 3. Residuals
+    # 4. Residuals
     residuals = Diagnostics.residual_analysis(data, dist)
-    fig.add_trace(
-        go.Histogram(x=residuals.quantile_residuals, 
-                    histnorm='probability density',
-                    name='Residuals', opacity=0.7),
-        row=2, col=1
-    )
     
-    # 4. CDF
-    x_sorted = np.sort(data)
-    empirical_cdf = np.arange(1, len(data)+1) / len(data)
-    
-    fig.add_trace(
-        go.Scatter(x=x_sorted, y=empirical_cdf, mode='markers',
-                  name='Empirical CDF', opacity=0.5),
-        row=2, col=2
-    )
-    
-    x = np.linspace(data.min(), data.max(), 200)
-    fig.add_trace(
-        go.Scatter(x=x, y=dist.cdf(x), mode='lines',
-                  name='Fitted CDF', line=dict(color='red', width=2)),
-        row=2, col=2
-    )
+    fig.add_trace(go.Scatter(
+        x=list(range(len(data))),
+        y=residuals.standardized_residuals,
+        mode='markers',
+        name='Residuals'
+    ), row=2, col=2)
     
     # Update layout
     fig.update_layout(
         height=800,
-        title_text=f"{dist.info.display_name} - Diagnostic Plots",
-        showlegend=True
+        showlegend=True,
+        title_text="Comprehensive Distribution Fit Diagnostics"
     )
     
     fig.show()
 
+Best Practices
+--------------
+
+1. **Always visualize**
+   
+   Don't rely on statistics alone.
+
+2. **Use multiple plots**
+   
+   Different plots reveal different issues.
+
+3. **Check residuals**
+   
+   Should be random, no patterns.
+
+4. **Save high-quality figures**
+   
+   .. code-block:: python
+   
+       plt.savefig('distribution_fit.png', dpi=300, bbox_inches='tight')
+
+5. **Label everything**
+   
+   Titles, axes, legends - make it self-explanatory.
+
 Next Steps
 ----------
 
-- :doc:`09_advanced` - Advanced techniques
-- :doc:`../examples/basic` - More plot examples
-- :doc:`../api/plotting` - Plotting API reference
+- :doc:`09_advanced` - Advanced topics
+- :doc:`../user_guide/visualization` - Complete visualization guide
+- :doc:`../examples/real_world` - Real-world plotting examples
