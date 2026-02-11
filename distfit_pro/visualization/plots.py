@@ -43,7 +43,7 @@ except ImportError:
     warnings.warn("Plotly not installed. Interactive plots will not be available.")
 
 
-def fix_rtl_text(text: str, prefix: str = "") -> str:
+def fix_rtl_text(text: str) -> str:
     """
     Fix RTL (Right-to-Left) text rendering for Persian/Arabic in matplotlib
     
@@ -51,9 +51,6 @@ def fix_rtl_text(text: str, prefix: str = "") -> str:
     -----------
     text : str
         Input text (may contain Persian/Arabic)
-    prefix : str
-        Prefix to add AFTER RTL processing (e.g., emoji)
-        This prevents emoji from interfering with RTL algorithm
         
     Returns:
     --------
@@ -63,23 +60,22 @@ def fix_rtl_text(text: str, prefix: str = "") -> str:
     Example:
     --------
     >>> text = "نمودار مقایسه"
-    >>> fixed = fix_rtl_text(text, prefix="📊 ")
+    >>> fixed = fix_rtl_text(text)
     >>> plt.title(fixed)  # Now renders correctly!
     """
     # Only apply RTL fix for Persian language
     if get_language() != 'fa' or not RTL_AVAILABLE:
-        return prefix + text
+        return text
     
     try:
         # Reshape Arabic/Persian characters
         reshaped = arabic_reshaper.reshape(text)
         # Apply bidi algorithm
         bidi_text = get_display(reshaped)
-        # Add prefix AFTER RTL processing
-        return prefix + bidi_text
+        return bidi_text
     except Exception as e:
         warnings.warn(f"RTL text processing failed: {e}. Using original text.")
-        return prefix + text
+        return text
 
 
 class DistributionPlotter:
@@ -130,7 +126,7 @@ class DistributionPlotter:
         
         ax1.set_xlabel(fix_rtl_text(t('value')), fontsize=11)
         ax1.set_ylabel(fix_rtl_text(t('density')), fontsize=11)
-        ax1.set_title(fix_rtl_text(t('pdf_comparison'), prefix="📊 "), fontsize=13, fontweight='bold')
+        ax1.set_title(fix_rtl_text(t('pdf_comparison')), fontsize=13, fontweight='bold')
         ax1.legend(loc='best', fontsize=9)
         ax1.grid(alpha=0.3)
         
@@ -148,7 +144,7 @@ class DistributionPlotter:
         
         ax2.set_xlabel(fix_rtl_text(t('value')), fontsize=11)
         ax2.set_ylabel(fix_rtl_text(t('cumulative_probability')), fontsize=11)
-        ax2.set_title(fix_rtl_text(t('cdf_comparison'), prefix="📈 "), fontsize=13, fontweight='bold')
+        ax2.set_title(fix_rtl_text(t('cdf_comparison')), fontsize=13, fontweight='bold')
         ax2.legend(loc='best', fontsize=9)
         ax2.grid(alpha=0.3)
         
@@ -168,7 +164,7 @@ class DistributionPlotter:
         ax3.set_ylabel(fix_rtl_text(t('empirical_quantiles')), fontsize=11)
         # Q-Q plot title with model name
         title_text = f"{t('qq_plot')} ({self.best_model.info.display_name})"
-        ax3.set_title(fix_rtl_text(title_text, prefix="📐 "), fontsize=13, fontweight='bold')
+        ax3.set_title(fix_rtl_text(title_text), fontsize=13, fontweight='bold')
         ax3.legend(fontsize=9)
         ax3.grid(alpha=0.3)
         
@@ -184,7 +180,7 @@ class DistributionPlotter:
         ax4.set_ylabel(fix_rtl_text(t('empirical_probabilities')), fontsize=11)
         # P-P plot title with model name
         title_text = f"{t('pp_plot')} ({self.best_model.info.display_name})"
-        ax4.set_title(fix_rtl_text(title_text, prefix="📉 "), fontsize=13, fontweight='bold')
+        ax4.set_title(fix_rtl_text(title_text), fontsize=13, fontweight='bold')
         ax4.legend(fontsize=9)
         ax4.grid(alpha=0.3)
         
@@ -213,7 +209,7 @@ class DistributionPlotter:
         
         ax1.set_xlabel(fix_rtl_text(t('theoretical_quantiles')), fontsize=11)
         ax1.set_ylabel(fix_rtl_text(t('residuals')), fontsize=11)
-        ax1.set_title(fix_rtl_text(t('residual_plot'), prefix="🔍 "), fontsize=13, fontweight='bold')
+        ax1.set_title(fix_rtl_text(t('residual_plot')), fontsize=13, fontweight='bold')
         ax1.legend(fontsize=9)
         ax1.grid(alpha=0.3)
         
@@ -228,7 +224,7 @@ class DistributionPlotter:
         
         ax2.set_xlabel(fix_rtl_text(t('standardized_residuals')), fontsize=11)
         ax2.set_ylabel(fix_rtl_text(t('density')), fontsize=11)
-        ax2.set_title(fix_rtl_text(t('residual_distribution'), prefix="📊 "), fontsize=13, fontweight='bold')
+        ax2.set_title(fix_rtl_text(t('residual_distribution')), fontsize=13, fontweight='bold')
         ax2.legend(fontsize=9)
         ax2.grid(alpha=0.3)
         
@@ -245,7 +241,7 @@ class DistributionPlotter:
         
         ax3.set_xlabel(fix_rtl_text(t('value')), fontsize=11)
         ax3.set_ylabel('P(X > x) [log scale]', fontsize=11)
-        ax3.set_title(fix_rtl_text(t('tail_behavior'), prefix="📉 "), fontsize=13, fontweight='bold')
+        ax3.set_title(fix_rtl_text(t('tail_behavior')), fontsize=13, fontweight='bold')
         ax3.legend(fontsize=9)
         ax3.grid(alpha=0.3, which='both')
         
@@ -266,7 +262,7 @@ class DistributionPlotter:
         
         ax4.set_xlabel(fix_rtl_text(t('theoretical_quantiles')), fontsize=11)
         ax4.set_ylabel(fix_rtl_text(t('influence')), fontsize=11)
-        ax4.set_title(fix_rtl_text(t('influence_plot'), prefix="⚠️ "), fontsize=13, fontweight='bold')
+        ax4.set_title(fix_rtl_text(t('influence_plot')), fontsize=13, fontweight='bold')
         ax4.legend(fontsize=9)
         ax4.grid(alpha=0.3)
         
