@@ -470,15 +470,27 @@ class BaseDistribution(ABC):
         
         explanation += f"\n💡 {t('practical_applications')}:\n"
         for use_case in self.info.use_cases:
-            explanation += f"   • {use_case}\n"
+            if use_case.startswith('use_'):
+                translated = t(use_case)
+            else:
+                translated = use_case
+            explanation += f"   • {translated}\n"
         
         explanation += f"\n🔍 {t('characteristics')}:\n"
         for char in self.info.characteristics:
-            explanation += f"   • {char}\n"
+            if char.startswith('char_'):
+                translated = t(char)
+            else:
+                translated = char
+            explanation += f"   • {translated}\n"
         
         if self.info.warning:
-            explanation += f"\n⚠️  {t('warning')}: {self.info.warning}\n"
-        
+            if isinstance(self.info.warning, str) and self.info.warning.startswith('warn_'):
+                warning_text = t(self.info.warning)
+            else:
+                warning_text = self.info.warning
+            explanation += f"\n⚠️  {t('warning')}: {warning_text}\n"
+
         explanation += f"\n📈 {t('for_statistics')}\n"
         return explanation
     
