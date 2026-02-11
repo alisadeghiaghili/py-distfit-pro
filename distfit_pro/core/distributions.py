@@ -19,6 +19,7 @@ import numpy as np
 from scipy import stats
 from scipy.optimize import minimize, brentq
 from scipy.special import gamma as gamma_func
+from ..locales import t
 
 
 @dataclass
@@ -327,13 +328,13 @@ class BaseDistribution(ABC):
         >>> print(dist.summary())
         """
         if not self.fitted:
-            return f"⚠️  {self.info.display_name} has not been fitted yet."
+            return f"⚠️  {t('warning')}: {self.info.display_name} {t('not_fitted')}"
         
         summary = f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║  {self.info.display_name:^60}  ║
 ╠══════════════════════════════════════════════════════════════╣
-║  📊 ESTIMATED PARAMETERS                                     ║
+║  📊 {t('estimated_parameters'):<58} ║
 ╚══════════════════════════════════════════════════════════════╝
 """
         # Parameters
@@ -344,93 +345,94 @@ class BaseDistribution(ABC):
         # Location Statistics
         summary += f"""
 ╔══════════════════════════════════════════════════════════════╗
-║  📍 LOCATION STATISTICS                                      ║
+║  📍 {t('location_statistics'):<58} ║
 ╚══════════════════════════════════════════════════════════════╝
 """
         try:
             mean_val = self.mean()
             if not np.isnan(mean_val):
-                summary += f"   {'Mean (μ)':<35} = {mean_val:>15.6f}\n"
+                summary += f"   {t('mean'):<35} = {mean_val:>15.6f}\n"
             else:
-                summary += f"   {'Mean (μ)':<35} = {'Undefined':>15}\n"
+                summary += f"   {t('mean'):<35} = {t('undefined'):>15}\n"
         except:
-            summary += f"   {'Mean (μ)':<35} = {'N/A':>15}\n"
+            summary += f"   {t('mean'):<35} = {t('na'):>15}\n"
         
         try:
-            summary += f"   {'Median':<35} = {self.median():>15.6f}\n"
+            summary += f"   {t('median'):<35} = {self.median():>15.6f}\n"
         except:
-            summary += f"   {'Median':<35} = {'N/A':>15}\n"
+            summary += f"   {t('median'):<35} = {t('na'):>15}\n"
         
         try:
-            summary += f"   {'Mode':<35} = {self.mode():>15.6f}\n"
+            summary += f"   {t('mode'):<35} = {self.mode():>15.6f}\n"
         except:
-            summary += f"   {'Mode':<35} = {'N/A':>15}\n"
+            summary += f"   {t('mode'):<35} = {t('na'):>15}\n"
         
         # Spread Statistics
         summary += f"""
 ╔══════════════════════════════════════════════════════════════╗
-║  📏 SPREAD STATISTICS                                        ║
+║  📏 {t('spread_statistics'):<58} ║
 ╚══════════════════════════════════════════════════════════════╝
 """
         try:
             var_val = self.var()
             if not np.isnan(var_val):
-                summary += f"   {'Variance (σ²)':<35} = {var_val:>15.6f}\n"
-                summary += f"   {'Std Deviation (σ)':<35} = {np.sqrt(var_val):>15.6f}\n"
+                summary += f"   {t('variance'):<35} = {var_val:>15.6f}\n"
+                summary += f"   {t('std_deviation'):<35} = {np.sqrt(var_val):>15.6f}\n"
             else:
-                summary += f"   {'Variance (σ²)':<35} = {'Undefined':>15}\n"
-                summary += f"   {'Std Deviation (σ)':<35} = {'Undefined':>15}\n"
+                summary += f"   {t('variance'):<35} = {t('undefined'):>15}\n"
+                summary += f"   {t('std_deviation'):<35} = {t('undefined'):>15}\n"
         except:
-            summary += f"   {'Variance (σ²)':<35} = {'N/A':>15}\n"
-            summary += f"   {'Std Deviation (σ)':<35} = {'N/A':>15}\n"
+            summary += f"   {t('variance'):<35} = {t('na'):>15}\n"
+            summary += f"   {t('std_deviation'):<35} = {t('na'):>15}\n"
         
         # Shape Statistics
         summary += f"""
 ╔══════════════════════════════════════════════════════════════╗
-║  📐 SHAPE STATISTICS                                         ║
+║  📐 {t('shape_statistics'):<58} ║
 ╚══════════════════════════════════════════════════════════════╝
 """
         try:
             skew = self.skewness()
-            summary += f"   {'Skewness (asymmetry)':<35} = {skew:>15.6f}\n"
+            summary += f"   {t('skewness'):<35} = {skew:>15.6f}\n"
             if skew > 0.5:
-                summary += f"   {'  → Right-skewed (positive)':<35}\n"
+                summary += f"      {t('right_skewed'):<35}\n"
             elif skew < -0.5:
-                summary += f"   {'  → Left-skewed (negative)':<35}\n"
+                summary += f"      {t('left_skewed'):<35}\n"
             else:
-                summary += f"   {'  → Approximately symmetric':<35}\n"
+                summary += f"      {t('symmetric'):<35}\n"
         except:
-            summary += f"   {'Skewness':<35} = {'N/A':>15}\n"
+            summary += f"   {t('skewness'):<35} = {t('na'):>15}\n"
         
         try:
             kurt = self.kurtosis()
-            summary += f"   {'Kurtosis (tail weight)':<35} = {kurt:>15.6f}\n"
+            summary += f"   {t('kurtosis'):<35} = {kurt:>15.6f}\n"
             if kurt > 1:
-                summary += f"   {'  → Heavy tails (leptokurtic)':<35}\n"
+                summary += f"      {t('heavy_tails'):<35}\n"
             elif kurt < -1:
-                summary += f"   {'  → Light tails (platykurtic)':<35}\n"
+                summary += f"      {t('light_tails'):<35}\n"
             else:
-                summary += f"   {'  → Normal-like tails':<35}\n"
+                summary += f"      {t('normal_tails'):<35}\n"
         except:
-            summary += f"   {'Kurtosis':<35} = {'N/A':>15}\n"
+            summary += f"   {t('kurtosis'):<35} = {t('na'):>15}\n"
         
         # Quantiles
         summary += f"""
 ╔══════════════════════════════════════════════════════════════╗
-║  📊 KEY QUANTILES                                            ║
+║  📊 {t('key_quantiles'):<58} ║
 ╚══════════════════════════════════════════════════════════════╝
 """
         quantiles = [0.01, 0.05, 0.25, 0.50, 0.75, 0.95, 0.99]
         for q in quantiles:
             try:
                 q_val = self.ppf(q)
-                summary += f"   {f'{q*100:.0f}th percentile':<35} = {q_val:>15.6f}\n"
+                p = int(q * 100)
+                summary += f"   {t('percentile', p=p):<35} = {q_val:>15.6f}\n"
             except:
                 pass
         
         summary += f"""
 ╔══════════════════════════════════════════════════════════════╗
-║  ℹ️  For conceptual explanation, use .explain()              ║
+║  ℹ️  {t('for_explanation'):<58} ║
 ╚══════════════════════════════════════════════════════════════╝
 """
         return summary
@@ -453,31 +455,31 @@ class BaseDistribution(ABC):
             Formatted explanation text
         """
         if not self.fitted:
-            return f"⚠️  {self.info.display_name} هنوز فیت نشده است."
+            return f"⚠️  {t('warning')}: {self.info.display_name} {t('not_fitted')}"
         
         explanation = f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║  {self.info.display_name:^60}  ║
 ╚══════════════════════════════════════════════════════════════╝
 
-📊 پارامترهای برآورد شده:
+📊 {t('estimated_parameters')}:
 """
         for param_name, param_value in self.params.items():
             param_desc = self.info.parameters.get(param_name, param_name)
             explanation += f"   • {param_desc}: {param_value:.4f}\n"
         
-        explanation += f"\n💡 کاربردهای عملی:\n"
+        explanation += f"\n💡 {t('practical_applications')}:\n"
         for use_case in self.info.use_cases:
             explanation += f"   • {use_case}\n"
         
-        explanation += f"\n🔍 ویژگی‌های این توزیع:\n"
+        explanation += f"\n🔍 {t('characteristics')}:\n"
         for char in self.info.characteristics:
             explanation += f"   • {char}\n"
         
         if self.info.warning:
-            explanation += f"\n⚠️  هشدار: {self.info.warning}\n"
+            explanation += f"\n⚠️  {t('warning')}: {self.info.warning}\n"
         
-        explanation += f"\n📈 برای آمارهای کامل: dist.summary()\n"
+        explanation += f"\n📈 {t('for_statistics')}\n"
         return explanation
     
     def __repr__(self) -> str:
