@@ -1,12 +1,12 @@
 """
-Distribution Fitter - موتور اصلی فیت
-====================================
+Distribution Fitter - Main Fitting Engine
+==========================================
 
-این کلاس همه‌چیز را کنار هم می‌آورد:
-- فیت چند توزیع
-- مقایسه با معیارهای مختلف
-- تشخیص خودکار
-- توضیحات جامع
+This class brings everything together:
+- Fit multiple distributions
+- Compare with different criteria
+- Automatic detection
+- Comprehensive explanations
 """
 
 import warnings
@@ -21,12 +21,13 @@ from tqdm import tqdm
 from ..core.distributions import get_distribution, list_distributions, BaseDistribution
 from ..core.model_selection import ModelSelection, DeltaComparison, ModelScore
 from ..visualization.plots import DistributionPlotter
+from ..locales import t
 
 
 @dataclass
 class FitResults:
     """
-    نتایج فیت با توضیحات کامل
+    Fitting results with complete explanations
     """
     data_summary: Dict
     fitted_models: List[BaseDistribution]
@@ -34,55 +35,55 @@ class FitResults:
     best_model: BaseDistribution
     diagnostics: Dict
     recommendations: List[str]
-    _data: np.ndarray = None  # داده اصلی برای plot
+    _data: np.ndarray = None
     
     def summary(self) -> str:
         """
-        خلاصه کامل و self-explanatory از نتایج
+        Complete self-explanatory summary of results
         """
         output = []
         output.append("\n" + "="*70)
-        output.append("🔍 نتایج فیت توزیع‌های آماری")
+        output.append(f"🔍 {t('fit_results')}")
         output.append("="*70)
         
-        # خلاصه داده
-        output.append("\n📊 خلاصه داده:")
+        # Data summary
+        output.append(f"\n📊 {t('data_summary')}:")
         ds = self.data_summary
-        output.append(f"   • تعداد: {ds['n']}")
-        output.append(f"   • میانگین: {ds['mean']:.4f} (CI 95%: [{ds['mean_ci'][0]:.4f}, {ds['mean_ci'][1]:.4f}])")
-        output.append(f"   • انحراف معیار: {ds['std']:.4f}")
-        output.append(f"   • چولگی: {ds['skewness']:.4f} → {ds['skewness_interp']}")
-        output.append(f"   • کشیدگی: {ds['kurtosis']:.4f} → {ds['kurtosis_interp']}")
+        output.append(f"   • {t('sample_size')}: {ds['n']}")
+        output.append(f"   • {t('mean')}: {ds['mean']:.4f} ({t('ci_95')}: [{ds['mean_ci'][0]:.4f}, {ds['mean_ci'][1]:.4f}])")
+        output.append(f"   • {t('std_dev')}: {ds['std']:.4f}")
+        output.append(f"   • {t('skewness')}: {ds['skewness']:.4f} → {ds['skewness_interp']}")
+        output.append(f"   • {t('kurtosis')}: {ds['kurtosis']:.4f} → {ds['kurtosis_interp']}")
         
         if ds['n_outliers'] > 0:
-            output.append(f"   • ⚠️  Outliers: {ds['n_outliers']} ({ds['outlier_pct']:.1f}%) detected")
+            output.append(f"   • ⚠️  {t('outliers')}: {ds['n_outliers']} ({ds['outlier_pct']:.1f}%) detected")
         
-        # رتبه‌بندی مدل‌ها
-        output.append("\n🏆 رتبه‌بندی مدل‌ها:")
+        # Model ranking
+        output.append(f"\n🏆 {t('model_ranking')}:")
         output.append("\n" + self._create_ranking_table())
         
-        # بهترین مدل
-        output.append(f"\n✨ مدل برتر: {self.best_model.info.display_name}")
+        # Best model
+        output.append(f"\n✨ {t('best_model')}: {self.best_model.info.display_name}")
         output.append(self.best_model.explain())
         
-        # تشخیص‌ها
+        # Diagnostics
         if self.diagnostics.get('notes'):
-            output.append("\n⚠️  یادداشت‌های تشخیصی:")
+            output.append(f"\n⚠️  {t('diagnostic_notes')}:")
             for note in self.diagnostics['notes']:
                 output.append(f"   • {note}")
         
-        # پیشنهادات
+        # Recommendations
         if self.recommendations:
-            output.append("\n💡 پیشنهادات:")
+            output.append(f"\n💡 {t('recommendations')}:")
             for rec in self.recommendations:
                 output.append(f"   • {rec}")
         
         return "\n".join(output)
     
     def _create_ranking_table(self) -> str:
-        """ساخت جدول رتبه‌بندی"""
+        """Create ranking table"""
         rows = []
-        header = f"{'رتبه':<6} {'توزیع':<15} {self.model_scores[0].criterion:<10} {'Δ':<10} {'وضعیت'}"
+        header = f"{t('rank'):<6} {t('distribution'):<15} {self.model_scores[0].criterion:<10} {t('delta'):<10} {t('status')}"
         rows.append(header)
         rows.append("-" * 70)
         
@@ -103,7 +104,7 @@ class FitResults:
         return "\n".join(rows)
     
     def get_best(self, criterion: Optional[str] = None) -> BaseDistribution:
-        """دریافت بهترین مدل"""
+        """Get best model"""
         return self.best_model
     
     def plot(
@@ -114,36 +115,28 @@ class FitResults:
         show: bool = True
     ):
         """
-        رسم نمودارهای تشخیصی و مقایسه‌ای
+        Plot diagnostic and comparison plots
         
         Parameters:
         -----------
         kind : str
-            نوع نمودار:
+            Plot type:
             - 'comparison': PDF, CDF, P-P, Q-Q plots
             - 'diagnostics': Residual analysis, tail behavior
             - 'interactive': Interactive Plotly dashboard
         figsize : tuple, optional
-            اندازه figure (فقط برای matplotlib)
+            Figure size (matplotlib only)
         show_top_n : int
-            تعداد بهترین مدل‌ها برای نمایش
+            Number of best models to show
         show : bool
-            نمایش نمودار (برای matplotlib)
+            Show plot (for matplotlib)
         
         Returns:
         --------
-        fig : matplotlib Figure یا plotly Figure
-        
-        Examples:
-        ---------
-        >>> results.plot(kind='comparison')  # P-P, Q-Q, PDF, CDF
-        >>> results.plot(kind='diagnostics')  # Residuals, tail behavior
-        >>> results.plot(kind='interactive')  # Interactive Plotly
+        fig : matplotlib Figure or plotly Figure
         """
         if self._data is None:
-            raise ValueError(
-                "داده اصلی در دسترس نیست. این اتفاق نباید بیفتد - لطفاً bug report کنید!"
-            )
+            raise ValueError(t('error_no_data'))
         
         plotter = DistributionPlotter(
             data=self._data,
@@ -174,29 +167,19 @@ class FitResults:
             return fig
         
         else:
-            raise ValueError(
-                f"نوع نمودار '{kind}' نامعتبر است. "
-                "گزینه‌های معتبر: 'comparison', 'diagnostics', 'interactive'"
-            )
+            raise ValueError(t('error_invalid_plot_kind', kind=kind))
 
 
 class DistributionFitter:
     """
-    کلاس اصلی برای فیت توزیع‌ها
+    Main class for distribution fitting
     
-    این کلاس:
-    1. داده را آنالیز می‌کند
-    2. توزیع‌های مناسب را انتخاب می‌کند (یا شما انتخاب کنید)
-    3. هر توزیع را فیت می‌کند
-    4. مدل‌ها را مقایسه می‌کند
-    5. نتایج را به صورت self-explanatory ارائه می‌دهد
-    
-    Example:
-    --------
-    >>> fitter = DistributionFitter(data)
-    >>> results = fitter.fit(distributions=['normal', 'lognormal', 'weibull'])
-    >>> print(results.summary())
-    >>> results.plot(kind='comparison')
+    This class:
+    1. Analyzes the data
+    2. Selects appropriate distributions (or you choose)
+    3. Fits each distribution
+    4. Compares models
+    5. Presents results in a self-explanatory manner
     """
     
     def __init__(
@@ -207,18 +190,18 @@ class DistributionFitter:
         weights: Optional[np.ndarray] = None
     ):
         """
-        ساخت fitter
+        Create fitter
         
         Parameters:
         -----------
         data : array-like
-            داده‌ی مشاهده‌شده
+            Observed data
         censoring : array-like, optional
-            اندیکاتور censoring (1=مشاهده شده, 0=سانسور)
+            Censoring indicator (1=observed, 0=censored)
         censoring_type : str, optional
             'left', 'right', 'interval'
         weights : array-like, optional
-            وزن هر مشاهده
+            Weight of each observation
         """
         self.data = np.asarray(data).flatten()
         self.data = self.data[~np.isnan(self.data)]
@@ -227,22 +210,22 @@ class DistributionFitter:
         self.censoring_type = censoring_type
         self.weights = weights
         
-        # آنالیز اولیه داده
+        # Initial data analysis
         self.data_summary = self._analyze_data()
         
-        # نتایج فیت
+        # Fitting results
         self.fitted_models = []
         self.results: Optional[FitResults] = None
     
     def _analyze_data(self) -> Dict:
         """
-        آنالیز اولیه داده
+        Initial data analysis
         
-        این تابع:
-        - آمارها را محاسبه می‌کند
-        - outliers را شناسایی می‌کند
-        - شکل توزیع را تشخیص می‌دهد
-        - توضیح می‌دهد داده چه ویژگی‌هایی دارد
+        This function:
+        - Calculates statistics
+        - Identifies outliers
+        - Detects distribution shape
+        - Explains data characteristics
         """
         n = len(self.data)
         mean = np.mean(self.data)
@@ -255,7 +238,7 @@ class DistributionFitter:
         
         # Shape statistics
         skewness = stats.skew(self.data)
-        kurtosis = stats.kurtosis(self.data)  # excess kurtosis
+        kurtosis = stats.kurtosis(self.data)
         
         # Outlier detection (IQR method)
         q1 = np.percentile(self.data, 25)
@@ -266,21 +249,21 @@ class DistributionFitter:
         outliers = (self.data < lower_bound) | (self.data > upper_bound)
         n_outliers = np.sum(outliers)
         
-        # تفسیر چولگی
+        # Skewness interpretation
         if abs(skewness) < 0.5:
-            skew_interp = "تقریباً متقارن"
+            skew_interp = t('data_approximately_symmetric')
         elif skewness > 0:
-            skew_interp = f"راست‌چوله (دنباله سمت راست بلند)"
+            skew_interp = t('data_right_skewed')
         else:
-            skew_interp = f"چپ‌چوله (دنباله سمت چپ بلند)"
+            skew_interp = t('data_left_skewed')
         
-        # تفسیر کشیدگی
+        # Kurtosis interpretation
         if abs(kurtosis) < 0.5:
-            kurt_interp = "نزدیک به نرمال"
+            kurt_interp = t('data_near_normal')
         elif kurtosis > 0:
-            kurt_interp = "دنباله‌های سنگین‌تر از نرمال (heavy-tailed)"
+            kurt_interp = t('data_heavy_tailed')
         else:
-            kurt_interp = "دنباله‌های سبک‌تر از نرمال (light-tailed)"
+            kurt_interp = t('data_light_tailed')
         
         summary = {
             'n': n,
@@ -304,9 +287,7 @@ class DistributionFitter:
     
     def suggest_distributions(self) -> List[str]:
         """
-        پیشنهاد توزیع‌های مناسب بر اساس ویژگی‌های داده
-        
-        این تابع توضیح می‌دهد چرا این توزیع‌ها پیشنهاد می‌شوند.
+        Suggest appropriate distributions based on data characteristics
         """
         suggestions = []
         reasons = []
@@ -316,35 +297,35 @@ class DistributionFitter:
         is_skewed = abs(ds['skewness']) > 0.5
         is_heavy_tailed = ds['kurtosis'] > 1
         
-        # همیشه Normal را امتحان کن (baseline)
+        # Always try Normal (baseline)
         suggestions.append('normal')
-        reasons.append("Normal: به عنوان baseline همیشه امتحان می‌شود")
+        reasons.append(t('suggest_reason_normal'))
         
-        # اگر همه مثبت
+        # If all positive
         if all_positive:
             suggestions.append('lognormal')
-            reasons.append("Lognormal: داده فقط مثبت است")
+            reasons.append(t('suggest_reason_lognormal'))
             
             suggestions.append('gamma')
-            reasons.append("Gamma: مناسب برای داده‌های مثبت و راست‌چوله")
+            reasons.append(t('suggest_reason_gamma'))
             
             suggestions.append('weibull')
-            reasons.append("Weibull: مناسب برای lifetime و reliability")
+            reasons.append(t('suggest_reason_weibull'))
             
             suggestions.append('exponential')
-            reasons.append("Exponential: ساده‌ترین توزیع برای داده‌های مثبت")
+            reasons.append(t('suggest_reason_exponential'))
         
-        # اگر چوله
+        # If skewed
         if is_skewed and ds['skewness'] > 0 and all_positive:
             if 'lognormal' not in suggestions:
                 suggestions.append('lognormal')
-                reasons.append("Lognormal: داده راست‌چوله است")
+                reasons.append(t('suggest_reason_skewed'))
         
-        # اگر دنباله سنگین
+        # If heavy-tailed
         if is_heavy_tailed:
-            reasons.append("⚠️  داده دنباله سنگین دارد - توزیع‌های Student-t یا Cauchy را در نظر بگیرید")
+            reasons.append(t('suggest_reason_heavy_tailed'))
         
-        print("\n💡 توزیع‌های پیشنهادی:")
+        print(f"\n💡 {t('suggested_distributions')}:")
         for reason in reasons:
             print(f"   • {reason}")
         
@@ -359,37 +340,37 @@ class DistributionFitter:
         verbose: bool = True
     ) -> FitResults:
         """
-        فیت توزیع‌ها به داده
+        Fit distributions to data
         
         Parameters:
         -----------
         distributions : list of str, optional
-            نام توزیع‌ها. اگر None باشد، خودکار پیشنهاد می‌شود
+            Distribution names. If None, automatically suggested
         method : str
-            روش تخمین: 'mle', 'moments', 'quantile'
+            Estimation method: 'mle', 'moments', 'quantile'
         criterion : str
-            معیار انتخاب مدل: 'aic', 'bic', 'loo_cv'
+            Model selection criterion: 'aic', 'bic', 'loo_cv'
         n_jobs : int
-            تعداد کورهای موازی (-1 = همه)
+            Number of parallel cores (-1 = all)
         verbose : bool
-            نمایش پیشرفت
+            Show progress
         
         Returns:
         --------
         results : FitResults
-            نتایج کامل با توضیحات
+            Complete results with explanations
         """
-        # اگر توزیع مشخص نشده، پیشنهاد بده
+        # If no distributions specified, suggest
         if distributions is None:
             distributions = self.suggest_distributions()
         
         if verbose:
-            print(f"\n🚀 شروع فیت {len(distributions)} توزیع...")
-            print(f"   • روش تخمین: {method.upper()}")
-            print(f"   • معیار انتخاب: {criterion.upper()}")
-            print(f"   • تعداد کور: {n_jobs if n_jobs > 0 else 'همه'}\n")
+            print(f"\n🚀 {t('fitting', n=len(distributions))} {len(distributions)} {t('distributions')}...")
+            print(f"   • {t('estimation_method')}: {method.upper()}")
+            print(f"   • {t('selection_criterion')}: {criterion.upper()}")
+            print(f"   • {t('num_cores')}: {n_jobs if n_jobs > 0 else t('all')}\n")
         
-        # فیت موازی
+        # Parallel fitting
         if n_jobs != 1:
             fitted = Parallel(n_jobs=n_jobs)(
                 delayed(self._fit_single)(dist_name, method, verbose)
@@ -397,24 +378,24 @@ class DistributionFitter:
             )
         else:
             fitted = []
-            iterator = tqdm(distributions, desc="فیت توزیع‌ها") if verbose else distributions
+            iterator = tqdm(distributions, desc=t('fitting', n=0)) if verbose else distributions
             for dist_name in iterator:
                 if verbose and not isinstance(iterator, tqdm):
-                    print(f"   فیت {dist_name}...", end=" ")
+                    print(f"   {t('fitting', n=0)} {dist_name}...", end=" ")
                 result = self._fit_single(dist_name, method, verbose=False)
                 fitted.append(result)
                 if verbose and not isinstance(iterator, tqdm):
                     print("✓")
         
-        # حذف مدل‌هایی که فیت نشدند
+        # Remove models that failed to fit
         self.fitted_models = [f for f in fitted if f is not None]
         
         if len(self.fitted_models) == 0:
-            raise RuntimeError("هیچ مدلی فیت نشد. لطفاً داده و توزیع‌ها را بررسی کنید.")
+            raise RuntimeError(t('error_no_models_fitted'))
         
-        # مقایسه مدل‌ها
+        # Compare models
         if verbose:
-            print("\n📊 مقایسه مدل‌ها...")
+            print(f"\n📊 {t('comparing_models')}...")
         
         model_scores = ModelSelection.compare_models(
             self.data,
@@ -426,13 +407,13 @@ class DistributionFitter:
             [m.info.name for m in self.fitted_models].index(model_scores[0].distribution_name)
         ]
         
-        # تشخیص‌ها
+        # Diagnostics
         diagnostics = self._run_diagnostics(best_model)
         
-        # پیشنهادات
+        # Recommendations
         recommendations = self._generate_recommendations(model_scores, diagnostics)
         
-        # ساخت نتایج
+        # Build results
         self.results = FitResults(
             data_summary=self.data_summary,
             fitted_models=self.fitted_models,
@@ -440,11 +421,11 @@ class DistributionFitter:
             best_model=best_model,
             diagnostics=diagnostics,
             recommendations=recommendations,
-            _data=self.data.copy()  # ذخیره داده برای plot
+            _data=self.data.copy()
         )
         
         if verbose:
-            print("\n✅ فیت کامل شد!\n")
+            print(f"\n✅ {t('fit_complete')}!\n")
         
         return self.results
     
@@ -454,36 +435,32 @@ class DistributionFitter:
         method: str,
         verbose: bool = False
     ) -> Optional[BaseDistribution]:
-        """
-        فیت یک توزیع
-        """
+        """Fit a single distribution"""
         try:
             dist = get_distribution(dist_name)
             dist.fit(self.data, method=method)
             return dist
         except Exception as e:
             if verbose:
-                warnings.warn(f"فیت {dist_name} ناموفق بود: {str(e)}")
+                warnings.warn(f"Fitting {dist_name} failed: {str(e)}")
             return None
     
     def _run_diagnostics(self, model: BaseDistribution) -> Dict:
-        """
-        تشخیص‌های پایه
-        """
+        """Run basic diagnostics"""
         notes = []
         
         # KS test
         ks_stat, ks_pval = stats.kstest(self.data, model.cdf)
         if ks_pval < 0.05:
-            notes.append(f"⚠️  آزمون KS معنی‌دار است (p={ks_pval:.4f}) - مدل شاید کاملاً مناسب نباشد")
+            notes.append(t('diagnostics_warning_ks', p=ks_pval))
         
-        # Residual analysis (ساده)
+        # Residual analysis
         theoretical_quantiles = model.ppf(np.linspace(0.01, 0.99, len(self.data)))
         empirical_quantiles = np.sort(self.data)
         residuals = empirical_quantiles - theoretical_quantiles
         
         if np.max(np.abs(residuals)) > 2 * self.data_summary['std']:
-            notes.append("⚠️  انحراف زیاد در دم‌های توزیع - بررسی Q-Q plot توصیه می‌شود")
+            notes.append(t('diagnostics_warning_residuals'))
         
         return {
             'ks_stat': ks_stat,
@@ -496,29 +473,22 @@ class DistributionFitter:
         scores: List[ModelScore],
         diagnostics: Dict
     ) -> List[str]:
-        """
-        تولید پیشنهادات
-        """
+        """Generate recommendations"""
         recs = []
         
-        # اگر چند مدل نزدیک به هم
+        # If multiple models are close
         if len(scores) > 1 and scores[1].score - scores[0].score < 2:
             recs.append(
-                f"مدل‌های {scores[0].distribution_name} و {scores[1].distribution_name} "
-                "تقریباً یکسان هستند. برای حساسیت‌سنجی هر دو را امتحان کنید."
+                t('recommendation_close_models', 
+                  model1=scores[0].distribution_name, 
+                  model2=scores[1].distribution_name)
             )
         
-        # اگر KS معنی‌دار
+        # If KS is significant
         if diagnostics['ks_pval'] < 0.05:
-            recs.append(
-                "آزمون KS نشان می‌دهد fit کامل نیست. "
-                "نمودارهای تشخیصی (Q-Q plot) را بررسی کنید."
-            )
+            recs.append(t('recommendation_ks_significant'))
         
-        # پیشنهاد bootstrap
-        recs.append(
-            "برای اطمینان از پارامترها، bootstrap CI را محاسبه کنید: "
-            "results.best_model.bootstrap_ci()"
-        )
+        # Suggest bootstrap
+        recs.append(t('recommendation_bootstrap'))
         
         return recs
