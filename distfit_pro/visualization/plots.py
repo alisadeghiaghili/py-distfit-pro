@@ -1,14 +1,15 @@
 """
-Visualization Module
-====================
+Visualization Module with i18n Support
+=======================================
 
-نمودارهای تشخیصی و مقایسه‌ای برای توزیع‌ها
+نمودارهای تشخیصی و مقایسه‌ای برای توزیع‌ها با پشتیبانی چندزبانه
 
-این ماژول شامل:
-- P-P و Q-Q plots
-- مقایسه PDF و CDF
+This module includes:
+- P-P and Q-Q plots
+- PDF and CDF comparison
 - Residual analysis
-- نمودارهای interactive با Plotly
+- Interactive plots with Plotly
+- Full multilingual support (en/fa/de)
 """
 
 import warnings
@@ -17,6 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
+from ..locales import t
 
 try:
     import plotly.graph_objects as go
@@ -29,12 +31,15 @@ except ImportError:
 
 class DistributionPlotter:
     """
-    کلاس اصلی برای رسم نمودارها
+    Professional plotting class with multilingual support
     
-    این کلاس همه انواع نمودارهای تشخیصی را رسم می‌کند:
+    Supports all standard diagnostic plots:
     - Comparison plots (PDF, CDF, P-P, Q-Q)
     - Diagnostic plots (residuals, tail behavior)
-    - Interactive dashboards
+    - Interactive dashboards (Plotly)
+    
+    All plot labels and titles are automatically translated based on
+    the current language setting (set via set_language()).
     """
     
     def __init__(self, data: np.ndarray, fitted_models: List, best_model=None):
@@ -42,11 +47,11 @@ class DistributionPlotter:
         Parameters:
         -----------
         data : array-like
-            داده اصلی
+            Original data
         fitted_models : list
-            لیست مدل‌های فیت‌شده
+            List of fitted distribution models
         best_model : BaseDistribution, optional
-            بهترین مدل (اگر مشخص باشد)
+            Best fitting model (defaults to first in list)
         """
         self.data = np.asarray(data)
         self.fitted_models = fitted_models
@@ -63,14 +68,14 @@ class DistributionPlotter:
         show_top_n: int = 3
     ) -> Figure:
         """
-        رسم نمودار مقایسه‌ای شامل PDF, CDF, P-P, Q-Q
+        Plot comparison charts (PDF, CDF, P-P, Q-Q) with i18n
         
         Parameters:
         -----------
         figsize : tuple
-            اندازه figure
+            Figure size
         show_top_n : int
-            تعداد بهترین مدل‌ها برای نمایش
+            Number of best models to show
         
         Returns:
         --------
@@ -79,19 +84,19 @@ class DistributionPlotter:
         fig = plt.figure(figsize=figsize)
         gs = GridSpec(2, 2, figure=fig, hspace=0.3, wspace=0.3)
         
-        # محدوده x برای نمودارها
+        # X range for plots
         x_min, x_max = self.data.min(), self.data.max()
         x_range = x_max - x_min
         x = np.linspace(x_min - 0.1*x_range, x_max + 0.1*x_range, 200)
         
-        # انتخاب مدل‌ها برای نمایش
+        # Select models to plot
         models_to_plot = self.fitted_models[:show_top_n]
         colors = plt.cm.Set2(np.linspace(0, 1, len(models_to_plot)))
         
         # 1. Histogram + PDF
         ax1 = fig.add_subplot(gs[0, 0])
         ax1.hist(self.data, bins=30, density=True, alpha=0.6, 
-                 color='skyblue', edgecolor='black', label='Data')
+                 color='skyblue', edgecolor='black', label=t('data'))
         
         for i, (model, color) in enumerate(zip(models_to_plot, colors)):
             label = f"{model.info.display_name} (#{i+1})"
@@ -100,16 +105,16 @@ class DistributionPlotter:
             ax1.plot(x, model.pdf(x), color=color, linewidth=linewidth,
                     linestyle=linestyle, label=label)
         
-        ax1.set_xlabel('Value', fontsize=11)
-        ax1.set_ylabel('Density', fontsize=11)
-        ax1.set_title('📊 PDF Comparison', fontsize=13, fontweight='bold')
+        ax1.set_xlabel(t('value'), fontsize=11)
+        ax1.set_ylabel(t('density'), fontsize=11)
+        ax1.set_title(f"📊 {t('pdf_comparison')}", fontsize=13, fontweight='bold')
         ax1.legend(loc='best', fontsize=9)
         ax1.grid(alpha=0.3)
         
         # 2. CDF Comparison
         ax2 = fig.add_subplot(gs[0, 1])
         ax2.plot(self.sorted_data, self.empirical_cdf, 'o', 
-                 color='steelblue', alpha=0.4, markersize=4, label='Empirical CDF')
+                 color='steelblue', alpha=0.4, markersize=4, label=t('empirical_cdf'))
         
         for i, (model, color) in enumerate(zip(models_to_plot, colors)):
             label = f"{model.info.display_name} (#{i+1})"
@@ -118,13 +123,13 @@ class DistributionPlotter:
             ax2.plot(self.sorted_data, model.cdf(self.sorted_data), 
                     color=color, linewidth=linewidth, linestyle=linestyle, label=label)
         
-        ax2.set_xlabel('Value', fontsize=11)
-        ax2.set_ylabel('Cumulative Probability', fontsize=11)
-        ax2.set_title('📈 CDF Comparison', fontsize=13, fontweight='bold')
+        ax2.set_xlabel(t('value'), fontsize=11)
+        ax2.set_ylabel(t('cumulative_probability'), fontsize=11)
+        ax2.set_title(f"📈 {t('cdf_comparison')}", fontsize=13, fontweight='bold')
         ax2.legend(loc='best', fontsize=9)
         ax2.grid(alpha=0.3)
         
-        # 3. Q-Q Plot (فقط بهترین مدل)
+        # 3. Q-Q Plot (best model only)
         ax3 = fig.add_subplot(gs[1, 0])
         theoretical_quantiles = self.best_model.ppf(
             np.linspace(0.01, 0.99, self.n)
@@ -133,35 +138,35 @@ class DistributionPlotter:
         ax3.scatter(theoretical_quantiles, self.sorted_data, 
                    alpha=0.6, s=30, color='darkorange', edgecolors='black', linewidth=0.5)
         
-        # خط 45 درجه
+        # 45-degree line
         min_val = min(theoretical_quantiles.min(), self.sorted_data.min())
         max_val = max(theoretical_quantiles.max(), self.sorted_data.max())
         ax3.plot([min_val, max_val], [min_val, max_val], 
-                'r--', linewidth=2, label='Perfect fit')
+                'r--', linewidth=2, label=t('perfect_fit'))
         
-        ax3.set_xlabel('Theoretical Quantiles', fontsize=11)
-        ax3.set_ylabel('Empirical Quantiles', fontsize=11)
-        ax3.set_title(f'📐 Q-Q Plot ({self.best_model.info.display_name})', 
+        ax3.set_xlabel(t('theoretical_quantiles'), fontsize=11)
+        ax3.set_ylabel(t('empirical_quantiles'), fontsize=11)
+        ax3.set_title(f"📐 {t('qq_plot')} ({self.best_model.info.display_name})", 
                      fontsize=13, fontweight='bold')
         ax3.legend(fontsize=9)
         ax3.grid(alpha=0.3)
         
-        # 4. P-P Plot (فقط بهترین مدل)
+        # 4. P-P Plot (best model only)
         ax4 = fig.add_subplot(gs[1, 1])
         theoretical_probs = self.best_model.cdf(self.sorted_data)
         
         ax4.scatter(theoretical_probs, self.empirical_cdf,
                    alpha=0.6, s=30, color='mediumseagreen', edgecolors='black', linewidth=0.5)
-        ax4.plot([0, 1], [0, 1], 'r--', linewidth=2, label='Perfect fit')
+        ax4.plot([0, 1], [0, 1], 'r--', linewidth=2, label=t('perfect_fit'))
         
-        ax4.set_xlabel('Theoretical Probabilities', fontsize=11)
-        ax4.set_ylabel('Empirical Probabilities', fontsize=11)
-        ax4.set_title(f'📉 P-P Plot ({self.best_model.info.display_name})', 
+        ax4.set_xlabel(t('theoretical_probabilities'), fontsize=11)
+        ax4.set_ylabel(t('empirical_probabilities'), fontsize=11)
+        ax4.set_title(f"📉 {t('pp_plot')} ({self.best_model.info.display_name})", 
                      fontsize=13, fontweight='bold')
         ax4.legend(fontsize=9)
         ax4.grid(alpha=0.3)
         
-        fig.suptitle('Distribution Fitting - Comparison Plots', 
+        fig.suptitle(t('comparison_plots'), 
                     fontsize=16, fontweight='bold', y=0.995)
         
         return fig
@@ -171,12 +176,12 @@ class DistributionPlotter:
         figsize: Tuple[int, int] = (14, 10)
     ) -> Figure:
         """
-        رسم نمودارهای تشخیصی: residuals, tail behavior, etc.
+        Plot diagnostic charts with i18n support
         
         Parameters:
         -----------
         figsize : tuple
-            اندازه figure
+            Figure size
         
         Returns:
         --------
@@ -187,7 +192,7 @@ class DistributionPlotter:
         
         model = self.best_model
         
-        # محاسبه residuals
+        # Calculate residuals
         theoretical_quantiles = model.ppf(np.linspace(0.01, 0.99, self.n))
         residuals = self.sorted_data - theoretical_quantiles
         standardized_residuals = residuals / np.std(residuals)
@@ -196,16 +201,16 @@ class DistributionPlotter:
         ax1 = fig.add_subplot(gs[0, 0])
         ax1.scatter(theoretical_quantiles, residuals, alpha=0.6, s=30,
                    color='steelblue', edgecolors='black', linewidth=0.5)
-        ax1.axhline(0, color='red', linestyle='--', linewidth=2, label='Zero line')
+        ax1.axhline(0, color='red', linestyle='--', linewidth=2, label=t('zero_line'))
         
-        # خطوط ±2σ
+        # ±2σ lines
         std_res = np.std(residuals)
         ax1.axhline(2*std_res, color='orange', linestyle=':', linewidth=1.5, label='±2σ')
         ax1.axhline(-2*std_res, color='orange', linestyle=':', linewidth=1.5)
         
-        ax1.set_xlabel('Theoretical Quantiles', fontsize=11)
-        ax1.set_ylabel('Residuals', fontsize=11)
-        ax1.set_title('🔍 Residual Plot', fontsize=13, fontweight='bold')
+        ax1.set_xlabel(t('theoretical_quantiles'), fontsize=11)
+        ax1.set_ylabel(t('residuals'), fontsize=11)
+        ax1.set_title(f"🔍 {t('residual_plot')}", fontsize=13, fontweight='bold')
         ax1.legend(fontsize=9)
         ax1.grid(alpha=0.3)
         
@@ -214,14 +219,14 @@ class DistributionPlotter:
         ax2.hist(standardized_residuals, bins=20, density=True, 
                 alpha=0.6, color='lightcoral', edgecolor='black')
         
-        # نرمال استاندارد برای مقایسه
+        # Standard normal for comparison
         x_norm = np.linspace(-3, 3, 100)
         from scipy.stats import norm
         ax2.plot(x_norm, norm.pdf(x_norm), 'r-', linewidth=2, label='N(0,1)')
         
-        ax2.set_xlabel('Standardized Residuals', fontsize=11)
-        ax2.set_ylabel('Density', fontsize=11)
-        ax2.set_title('📊 Residual Distribution', fontsize=13, fontweight='bold')
+        ax2.set_xlabel(t('standardized_residuals'), fontsize=11)
+        ax2.set_ylabel(t('density'), fontsize=11)
+        ax2.set_title(f"📊 {t('residual_distribution')}", fontsize=13, fontweight='bold')
         ax2.legend(fontsize=9)
         ax2.grid(alpha=0.3)
         
@@ -232,47 +237,47 @@ class DistributionPlotter:
         empirical_survival = 1 - self.empirical_cdf
         theoretical_survival = 1 - model.cdf(self.sorted_data)
         
-        # حذف صفرها برای log
+        # Remove zeros for log
         mask = (empirical_survival > 1e-10) & (theoretical_survival > 1e-10)
         
         ax3.semilogy(self.sorted_data[mask], empirical_survival[mask], 
-                    'o', alpha=0.5, markersize=5, label='Empirical', color='navy')
+                    'o', alpha=0.5, markersize=5, label=t('empirical'), color='navy')
         ax3.semilogy(self.sorted_data[mask], theoretical_survival[mask],
-                    '-', linewidth=2, label='Fitted', color='red')
+                    '-', linewidth=2, label=t('fitted'), color='red')
         
-        ax3.set_xlabel('Value', fontsize=11)
+        ax3.set_xlabel(t('value'), fontsize=11)
         ax3.set_ylabel('P(X > x) [log scale]', fontsize=11)
-        ax3.set_title('📉 Tail Behavior (Survival Function)', fontsize=13, fontweight='bold')
+        ax3.set_title(f"📉 {t('tail_behavior')}", fontsize=13, fontweight='bold')
         ax3.legend(fontsize=9)
         ax3.grid(alpha=0.3, which='both')
         
-        # 4. Leverage plot (Cook's distance style)
+        # 4. Leverage plot
         ax4 = fig.add_subplot(gs[1, 1])
         
-        # محاسبه "influence" ساده: residual × probability density
+        # Simple "influence": residual × probability density
         pdf_values = model.pdf(self.sorted_data)
         influence = np.abs(residuals) * pdf_values
         
         ax4.scatter(theoretical_quantiles, influence, alpha=0.6, s=30,
                    color='purple', edgecolors='black', linewidth=0.5)
         
-        # شناسایی نقاط پرنفوذ
+        # Identify high-influence points
         threshold = np.percentile(influence, 95)
         high_influence = influence > threshold
         ax4.scatter(theoretical_quantiles[high_influence], 
                    influence[high_influence],
                    s=100, color='red', alpha=0.7, marker='x', linewidth=2,
-                   label=f'High influence (>{threshold:.3f})')
+                   label=t('high_influence', threshold=threshold))
         
         ax4.axhline(threshold, color='red', linestyle='--', linewidth=1.5)
         
-        ax4.set_xlabel('Theoretical Quantiles', fontsize=11)
-        ax4.set_ylabel('Influence', fontsize=11)
-        ax4.set_title('⚠️ Influence Plot', fontsize=13, fontweight='bold')
+        ax4.set_xlabel(t('theoretical_quantiles'), fontsize=11)
+        ax4.set_ylabel(t('influence'), fontsize=11)
+        ax4.set_title(f"⚠️ {t('influence_plot')}", fontsize=13, fontweight='bold')
         ax4.legend(fontsize=9)
         ax4.grid(alpha=0.3)
         
-        fig.suptitle(f'Diagnostic Plots - {model.info.display_name}', 
+        fig.suptitle(f"{t('diagnostic_plots')} - {model.info.display_name}", 
                     fontsize=16, fontweight='bold', y=0.995)
         
         return fig
@@ -282,12 +287,12 @@ class DistributionPlotter:
         show_top_n: int = 3
     ):
         """
-        رسم نمودار interactive با Plotly
+        Create interactive plot with Plotly and i18n
         
         Parameters:
         -----------
         show_top_n : int
-            تعداد بهترین مدل‌ها
+            Number of best models
         
         Returns:
         --------
@@ -298,11 +303,11 @@ class DistributionPlotter:
                 "Plotly is not installed. Install with: pip install plotly"
             )
         
-        # ساخت subplots
+        # Create subplots
         fig = make_subplots(
             rows=2, cols=2,
-            subplot_titles=('PDF Comparison', 'CDF Comparison', 
-                          'Q-Q Plot', 'P-P Plot'),
+            subplot_titles=(t('pdf_comparison'), t('cdf_comparison'), 
+                          t('qq_plot'), t('pp_plot')),
             specs=[[{}, {}], [{}, {}]]
         )
         
@@ -315,7 +320,7 @@ class DistributionPlotter:
         # 1. Histogram + PDF
         fig.add_trace(
             go.Histogram(x=self.data, histnorm='probability density',
-                        name='Data', opacity=0.6, marker_color='lightblue'),
+                        name=t('data'), opacity=0.6, marker_color='lightblue'),
             row=1, col=1
         )
         
@@ -330,7 +335,7 @@ class DistributionPlotter:
         # 2. CDF
         fig.add_trace(
             go.Scatter(x=self.sorted_data, y=self.empirical_cdf,
-                      mode='markers', name='Empirical CDF',
+                      mode='markers', name=t('empirical_cdf'),
                       marker=dict(size=5, opacity=0.5)),
             row=1, col=2
         )
@@ -348,7 +353,7 @@ class DistributionPlotter:
         
         fig.add_trace(
             go.Scatter(x=theoretical_q, y=self.sorted_data,
-                      mode='markers', name='Data points',
+                      mode='markers', name=t('data_points'),
                       marker=dict(size=6, color='orange')),
             row=2, col=1
         )
@@ -357,7 +362,7 @@ class DistributionPlotter:
         max_val = max(theoretical_q.max(), self.sorted_data.max())
         fig.add_trace(
             go.Scatter(x=[min_val, max_val], y=[min_val, max_val],
-                      mode='lines', name='Perfect fit',
+                      mode='lines', name=t('perfect_fit'),
                       line=dict(dash='dash', color='red', width=2)),
             row=2, col=1
         )
@@ -367,14 +372,14 @@ class DistributionPlotter:
         
         fig.add_trace(
             go.Scatter(x=theoretical_p, y=self.empirical_cdf,
-                      mode='markers', name='Data points',
+                      mode='markers', name=t('data_points'),
                       marker=dict(size=6, color='green')),
             row=2, col=2
         )
         
         fig.add_trace(
             go.Scatter(x=[0, 1], y=[0, 1],
-                      mode='lines', name='Perfect fit',
+                      mode='lines', name=t('perfect_fit'),
                       line=dict(dash='dash', color='red', width=2)),
             row=2, col=2
         )
@@ -383,18 +388,18 @@ class DistributionPlotter:
         fig.update_layout(
             height=800,
             showlegend=True,
-            title_text=f"Interactive Distribution Fitting Dashboard - Best: {self.best_model.info.display_name}",
+            title_text=t('interactive_dashboard', model=self.best_model.info.display_name),
             title_font_size=16
         )
         
-        fig.update_xaxes(title_text="Value", row=1, col=1)
-        fig.update_xaxes(title_text="Value", row=1, col=2)
-        fig.update_xaxes(title_text="Theoretical Quantiles", row=2, col=1)
-        fig.update_xaxes(title_text="Theoretical Probabilities", row=2, col=2)
+        fig.update_xaxes(title_text=t('value'), row=1, col=1)
+        fig.update_xaxes(title_text=t('value'), row=1, col=2)
+        fig.update_xaxes(title_text=t('theoretical_quantiles'), row=2, col=1)
+        fig.update_xaxes(title_text=t('theoretical_probabilities'), row=2, col=2)
         
-        fig.update_yaxes(title_text="Density", row=1, col=1)
-        fig.update_yaxes(title_text="CDF", row=1, col=2)
-        fig.update_yaxes(title_text="Empirical Quantiles", row=2, col=1)
-        fig.update_yaxes(title_text="Empirical Probabilities", row=2, col=2)
+        fig.update_yaxes(title_text=t('density'), row=1, col=1)
+        fig.update_yaxes(title_text='CDF', row=1, col=2)
+        fig.update_yaxes(title_text=t('empirical_quantiles'), row=2, col=1)
+        fig.update_yaxes(title_text=t('empirical_probabilities'), row=2, col=2)
         
         return fig
