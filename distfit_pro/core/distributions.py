@@ -2,14 +2,14 @@
 Distribution Classes with Self-Explanatory Behavior
 ===================================================
 
-این ماژول شامل کلاس‌های توزیع‌های آماری است که هر کدام:
-- پارامترها را واضح توضیح می‌دهند
-- محدوده‌ی مناسب برای داده را می‌گویند
-- کاربردهای عملی را نشان می‌دهند
+This module contains statistical distribution classes where each:
+- Clearly explains parameters
+- Specifies appropriate data ranges
+- Demonstrates practical applications
 
-**30 توزیع آماری:**
-- 25 توزیع پیوسته (Continuous)
-- 5 توزیع گسسته (Discrete)
+**30 Statistical Distributions:**
+- 25 Continuous Distributions
+- 5 Discrete Distributions
 """
 
 from abc import ABC, abstractmethod
@@ -23,7 +23,7 @@ from scipy.special import gamma as gamma_func
 
 @dataclass
 class DistributionInfo:
-    """اطلاعات توضیحی هر توزیع"""
+    """Information about a distribution"""
     name: str
     display_name: str
     parameters: Dict[str, str]
@@ -35,15 +35,33 @@ class DistributionInfo:
 
 class BaseDistribution(ABC):
     """
-    کلاس پایه برای همه‌ی توزیع‌ها
+    Base class for all distributions
     
-    هر توزیع باید:
-    - pdf/pmf: چگالی احتمال
-    - cdf: تابع توزیع تجمعی
-    - ppf: تابع معکوس CDF (کوانتایل)
-    - fit: برآورد پارامترها از داده
-    - explain: توضیح نتایج
-    را پیاده کند
+    Each distribution must implement:
+    - pdf/pmf: probability density/mass function
+    - cdf: cumulative distribution function
+    - ppf: percent point function (inverse CDF)
+    - fit: parameter estimation from data
+    - explain: conceptual explanation
+    
+    Example:
+    --------
+    >>> from distfit_pro.core.distributions import get_distribution
+    >>> import numpy as np
+    >>> 
+    >>> # Generate sample data
+    >>> data = np.random.normal(loc=10, scale=2, size=1000)
+    >>> 
+    >>> # Fit distribution
+    >>> dist = get_distribution('normal')
+    >>> dist.fit(data, method='mle')
+    >>> 
+    >>> # View summary
+    >>> print(dist.summary())
+    >>> 
+    >>> # Get statistics
+    >>> print(f"Mean: {dist.mean():.2f}")
+    >>> print(f"Std: {dist.std():.2f}")
     """
     
     def __init__(self):
@@ -55,7 +73,7 @@ class BaseDistribution(ABC):
     @property
     @abstractmethod
     def info(self) -> DistributionInfo:
-        """اطلاعات توضیحی توزیع"""
+        """Distribution information"""
         pass
     
     @abstractmethod
@@ -90,7 +108,27 @@ class BaseDistribution(ABC):
         return self.ppf(1.0 - q)
     
     def rvs(self, size: int = 1, random_state: Optional[int] = None) -> np.ndarray:
-        """Generate random samples"""
+        """
+        Generate random samples from the fitted distribution
+        
+        Parameters:
+        -----------
+        size : int
+            Number of random samples to generate
+        random_state : int, optional
+            Seed for reproducibility
+            
+        Returns:
+        --------
+        samples : np.ndarray
+            Random samples from the distribution
+            
+        Example:
+        --------
+        >>> dist = get_distribution('normal')
+        >>> dist.fit(data)
+        >>> samples = dist.rvs(size=100, random_state=42)
+        """
         if random_state is not None:
             np.random.seed(random_state)
         if self._scipy_dist and self.params:
@@ -98,33 +136,41 @@ class BaseDistribution(ABC):
         u = np.random.uniform(0, 1, size)
         return self.ppf(u)
     
-    # ========== آمارهای توزیع ==========
+    # ========== Distribution Statistics ==========
     
     def mean(self) -> float:
-        """میانگین توزیع"""
+        """Distribution mean"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.mean(**self.params)
         raise NotImplementedError(f"Mean not implemented for {self.info.name}")
     
     def var(self) -> float:
-        """واریانس توزیع"""
+        """Distribution variance"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.var(**self.params)
         raise NotImplementedError(f"Variance not implemented for {self.info.name}")
     
     def variance(self) -> float:
+        """Alias for var()"""
         return self.var()
     
     def std(self) -> float:
-        """انحراف معیار"""
+        """Distribution standard deviation"""
         return np.sqrt(self.var())
     
     def median(self) -> float:
-        """میانه"""
+        """Distribution median (50th percentile)"""
         return self.ppf(0.5)
     
     def mode(self) -> float:
-        """مد (بیشترین چگالی)"""
+        """
+        Distribution mode (value with highest density)
+        
+        Returns:
+        --------
+        mode : float
+            Value where PDF/PMF is maximum
+        """
         if hasattr(self, '_mode_at_zero') and self._mode_at_zero:
             return 0.0
         if hasattr(self, '_mode_value'):
@@ -140,19 +186,23 @@ class BaseDistribution(ABC):
             return self.median()
     
     def skewness(self) -> float:
-        """چولگی"""
+        """Distribution skewness (asymmetry)"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.stats(**self.params, moments='s')
         raise NotImplementedError(f"Skewness not implemented for {self.info.name}")
     
     def kurtosis(self) -> float:
-        """کشیدگی"""
+        """Distribution kurtosis (tail heaviness)"""
         if self._scipy_dist and self.params:
             return self._scipy_dist.stats(**self.params, moments='k')
         raise NotImplementedError(f"Kurtosis not implemented for {self.info.name}")
     
     def hazard_rate(self, t: float) -> float:
-        """نرخ خطر"""
+        """
+        Hazard rate (failure rate) at time t
+        
+        h(t) = f(t) / S(t) = pdf(t) / (1 - cdf(t))
+        """
         pdf_t = self.pdf(np.array([t]))[0]
         sf_t = self.sf(np.array([t]))[0]
         if sf_t < 1e-10:
@@ -160,27 +210,60 @@ class BaseDistribution(ABC):
         return pdf_t / sf_t
     
     def reliability(self, t: float) -> float:
-        """قابلیت اطمینان"""
+        """
+        Reliability function at time t
+        
+        R(t) = P(T > t) = 1 - F(t)
+        """
         return self.sf(np.array([t]))[0]
     
     def mean_time_to_failure(self) -> float:
-        """MTTF"""
+        """Mean Time To Failure (MTTF) = E[T]"""
         return self.mean()
     
     def conditional_var(self, alpha: float) -> float:
-        """CVaR"""
+        """
+        Conditional Value at Risk (CVaR) / Expected Shortfall
+        
+        CVaR_α = E[X | X ≤ VaR_α]
+        """
         quantiles = np.linspace(0.0001, alpha, 100)
         return np.mean(self.ppf(quantiles))
     
+    # ========== Fitting Methods ==========
+    
     @abstractmethod
     def fit_mle(self, data: np.ndarray, **kwargs) -> Dict[str, float]:
+        """Maximum Likelihood Estimation"""
         pass
     
     @abstractmethod
     def fit_moments(self, data: np.ndarray) -> Dict[str, float]:
+        """Method of Moments"""
         pass
     
     def fit(self, data: np.ndarray, method: str = 'mle', **kwargs) -> 'BaseDistribution':
+        """
+        Fit distribution to data
+        
+        Parameters:
+        -----------
+        data : array-like
+            Observed data
+        method : str
+            Estimation method: 'mle', 'moments', 'quantile'
+            
+        Returns:
+        --------
+        self : BaseDistribution
+            Fitted distribution (for method chaining)
+            
+        Example:
+        --------
+        >>> dist = get_distribution('weibull')
+        >>> dist.fit(data, method='mle')
+        >>> print(dist.summary())
+        """
         data = np.asarray(data).flatten()
         data = data[~np.isnan(data)]
         
@@ -197,6 +280,7 @@ class BaseDistribution(ABC):
         return self
     
     def fit_quantile(self, data: np.ndarray, quantiles: Optional[List[float]] = None) -> Dict[str, float]:
+        """Quantile matching estimation"""
         if quantiles is None:
             quantiles = [0.25, 0.5, 0.75]
         empirical_quantiles = np.quantile(data, quantiles)
@@ -218,7 +302,156 @@ class BaseDistribution(ABC):
         keys = list(self.info.parameters.keys())
         return dict(zip(keys, array))
     
+    # ========== Summary & Explanation ==========
+    
+    def summary(self) -> str:
+        """
+        Complete statistical summary of the fitted distribution
+        
+        Shows:
+        - Estimated parameters
+        - Location statistics (mean, median, mode)
+        - Spread statistics (variance, std)
+        - Shape statistics (skewness, kurtosis)
+        - Key quantiles
+        
+        Returns:
+        --------
+        summary : str
+            Formatted summary text
+            
+        Example:
+        --------
+        >>> dist = get_distribution('normal')
+        >>> dist.fit(data)
+        >>> print(dist.summary())
+        """
+        if not self.fitted:
+            return f"⚠️  {self.info.display_name} has not been fitted yet."
+        
+        summary = f"""
+╔══════════════════════════════════════════════════════════════╗
+║  {self.info.display_name:^60}  ║
+╠══════════════════════════════════════════════════════════════╣
+║  📊 ESTIMATED PARAMETERS                                     ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+        # Parameters
+        for param_name, param_value in self.params.items():
+            param_desc = self.info.parameters.get(param_name, param_name)
+            summary += f"   {param_desc:<35} = {param_value:>15.6f}\n"
+        
+        # Location Statistics
+        summary += f"""
+╔══════════════════════════════════════════════════════════════╗
+║  📍 LOCATION STATISTICS                                      ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+        try:
+            mean_val = self.mean()
+            if not np.isnan(mean_val):
+                summary += f"   {'Mean (μ)':<35} = {mean_val:>15.6f}\n"
+            else:
+                summary += f"   {'Mean (μ)':<35} = {'Undefined':>15}\n"
+        except:
+            summary += f"   {'Mean (μ)':<35} = {'N/A':>15}\n"
+        
+        try:
+            summary += f"   {'Median':<35} = {self.median():>15.6f}\n"
+        except:
+            summary += f"   {'Median':<35} = {'N/A':>15}\n"
+        
+        try:
+            summary += f"   {'Mode':<35} = {self.mode():>15.6f}\n"
+        except:
+            summary += f"   {'Mode':<35} = {'N/A':>15}\n"
+        
+        # Spread Statistics
+        summary += f"""
+╔══════════════════════════════════════════════════════════════╗
+║  📏 SPREAD STATISTICS                                        ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+        try:
+            var_val = self.var()
+            if not np.isnan(var_val):
+                summary += f"   {'Variance (σ²)':<35} = {var_val:>15.6f}\n"
+                summary += f"   {'Std Deviation (σ)':<35} = {np.sqrt(var_val):>15.6f}\n"
+            else:
+                summary += f"   {'Variance (σ²)':<35} = {'Undefined':>15}\n"
+                summary += f"   {'Std Deviation (σ)':<35} = {'Undefined':>15}\n"
+        except:
+            summary += f"   {'Variance (σ²)':<35} = {'N/A':>15}\n"
+            summary += f"   {'Std Deviation (σ)':<35} = {'N/A':>15}\n"
+        
+        # Shape Statistics
+        summary += f"""
+╔══════════════════════════════════════════════════════════════╗
+║  📐 SHAPE STATISTICS                                         ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+        try:
+            skew = self.skewness()
+            summary += f"   {'Skewness (asymmetry)':<35} = {skew:>15.6f}\n"
+            if skew > 0.5:
+                summary += f"   {'  → Right-skewed (positive)':<35}\n"
+            elif skew < -0.5:
+                summary += f"   {'  → Left-skewed (negative)':<35}\n"
+            else:
+                summary += f"   {'  → Approximately symmetric':<35}\n"
+        except:
+            summary += f"   {'Skewness':<35} = {'N/A':>15}\n"
+        
+        try:
+            kurt = self.kurtosis()
+            summary += f"   {'Kurtosis (tail weight)':<35} = {kurt:>15.6f}\n"
+            if kurt > 1:
+                summary += f"   {'  → Heavy tails (leptokurtic)':<35}\n"
+            elif kurt < -1:
+                summary += f"   {'  → Light tails (platykurtic)':<35}\n"
+            else:
+                summary += f"   {'  → Normal-like tails':<35}\n"
+        except:
+            summary += f"   {'Kurtosis':<35} = {'N/A':>15}\n"
+        
+        # Quantiles
+        summary += f"""
+╔══════════════════════════════════════════════════════════════╗
+║  📊 KEY QUANTILES                                            ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+        quantiles = [0.01, 0.05, 0.25, 0.50, 0.75, 0.95, 0.99]
+        for q in quantiles:
+            try:
+                q_val = self.ppf(q)
+                summary += f"   {f'{q*100:.0f}th percentile':<35} = {q_val:>15.6f}\n"
+            except:
+                pass
+        
+        summary += f"""
+╔══════════════════════════════════════════════════════════════╗
+║  ℹ️  For conceptual explanation, use .explain()              ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+        return summary
+    
     def explain(self) -> str:
+        """
+        Conceptual explanation of the distribution
+        
+        Focus on:
+        - Estimated parameters and their meaning
+        - Practical use cases
+        - Distribution characteristics
+        - Warnings and caveats
+        
+        For statistical summary, use .summary()
+        
+        Returns:
+        --------
+        explanation : str
+            Formatted explanation text
+        """
         if not self.fitted:
             return f"⚠️  {self.info.display_name} هنوز فیت نشده است."
         
@@ -244,7 +477,7 @@ class BaseDistribution(ABC):
         if self.info.warning:
             explanation += f"\n⚠️  هشدار: {self.info.warning}\n"
         
-        explanation += f"\n📈 برای آمارها و تشخیص: results.summary() را ببینید\n"
+        explanation += f"\n📈 برای آمارهای کامل: dist.summary()\n"
         return explanation
     
     def __repr__(self) -> str:
@@ -255,7 +488,7 @@ class BaseDistribution(ABC):
 
 
 # ═══════════════════════════════════════════════════════════════
-# توزیع‌های پیوسته (CONTINUOUS DISTRIBUTIONS)
+# CONTINUOUS DISTRIBUTIONS
 # ═══════════════════════════════════════════════════════════════
 
 class NormalDistribution(BaseDistribution):
@@ -492,7 +725,6 @@ class TriangularDistribution(BaseDistribution):
         return self._scipy_dist.ppf(q, self.params['c'], self.params['loc'], self.params['scale'])
     def fit_mle(self, data, **kwargs):
         a, b = np.min(data), np.max(data)
-        # Simple estimate: mode near mean
         c = (np.mean(data) - a) / (b - a) if b > a else 0.5
         return {"c": c, "loc": a, "scale": b - a}
     def fit_moments(self, data):
@@ -648,9 +880,9 @@ class CauchyDistribution(BaseDistribution):
         return self.fit_mle(data)
     
     def mean(self):
-        return np.nan  # Undefined
+        return np.nan
     def var(self):
-        return np.nan  # Undefined
+        return np.nan
 
 
 class StudentTDistribution(BaseDistribution):
@@ -733,7 +965,6 @@ class FDistribution(BaseDistribution):
     def ppf(self, q):
         return self._scipy_dist.ppf(q, self.params['dfn'], self.params['dfd'])
     def fit_mle(self, data, **kwargs):
-        # Rough estimate
         return {"dfn": 5, "dfd": 10}
     def fit_moments(self, data):
         return self.fit_mle(data)
@@ -857,7 +1088,7 @@ class LogLogisticDistribution(BaseDistribution):
 
 
 # ═══════════════════════════════════════════════════════════════
-# توزیع‌های گسسته (DISCRETE DISTRIBUTIONS)
+# DISCRETE DISTRIBUTIONS
 # ═══════════════════════════════════════════════════════════════
 
 class PoissonDistribution(BaseDistribution):
@@ -1008,7 +1239,6 @@ class HypergeometricDistribution(BaseDistribution):
     def ppf(self, q):
         return self._scipy_dist.ppf(q, self.params['M'], self.params['n'], self.params['N'])
     def fit_mle(self, data, **kwargs):
-        # Simplified - needs population info
         N = int(np.max(data)) + 10
         return {"M": N, "n": N // 2, "N": int(np.mean(data))}
     def fit_moments(self, data):
@@ -1020,7 +1250,6 @@ class HypergeometricDistribution(BaseDistribution):
 # ═══════════════════════════════════════════════════════════════
 
 DISTRIBUTION_REGISTRY = {
-    # Continuous
     'normal': NormalDistribution,
     'lognormal': LognormalDistribution,
     'weibull': WeibullDistribution,
@@ -1041,7 +1270,6 @@ DISTRIBUTION_REGISTRY = {
     'laplace': LaplaceDistribution,
     'invgamma': InverseGammaDistribution,
     'loglogistic': LogLogisticDistribution,
-    # Discrete
     'poisson': PoissonDistribution,
     'binomial': BinomialDistribution,
     'nbinom': NegativeBinomialDistribution,
@@ -1052,12 +1280,23 @@ DISTRIBUTION_REGISTRY = {
 
 def get_distribution(name: str) -> BaseDistribution:
     """
-    دریافت توزیع بر اساس نام
+    Get distribution by name
     
+    Parameters:
+    -----------
+    name : str
+        Distribution name (case-insensitive)
+        
+    Returns:
+    --------
+    dist : BaseDistribution
+        Distribution instance
+        
     Example:
     --------
     >>> dist = get_distribution('normal')
     >>> dist.fit(data)
+    >>> print(dist.summary())
     """
     name = name.lower()
     if name not in DISTRIBUTION_REGISTRY:
@@ -1067,15 +1306,15 @@ def get_distribution(name: str) -> BaseDistribution:
 
 
 def list_distributions() -> List[str]:
-    """لیست تمام توزیع‌های موجود (30 توزیع)"""
+    """List all available distributions (30 total)"""
     return sorted(list(DISTRIBUTION_REGISTRY.keys()))
 
 
 def list_continuous_distributions() -> List[str]:
-    """لیست توزیع‌های پیوسته (20 توزیع)"""
+    """List continuous distributions (20 total)"""
     return [k for k, v in DISTRIBUTION_REGISTRY.items() if not get_distribution(k)._is_discrete]
 
 
 def list_discrete_distributions() -> List[str]:
-    """لیست توزیع‌های گسسته (5 توزیع)"""
+    """List discrete distributions (5 total)"""
     return [k for k, v in DISTRIBUTION_REGISTRY.items() if get_distribution(k)._is_discrete]
