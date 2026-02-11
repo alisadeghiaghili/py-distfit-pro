@@ -2,40 +2,51 @@
 DistFit Pro - Professional Distribution Fitting for Python
 ===========================================================
 
-A comprehensive package for statistical distribution fitting with:
-- 30 distributions (25 continuous, 5 discrete)
-- Goodness-of-fit tests (KS, AD, Chi-Square, CvM)
-- Bootstrap confidence intervals
-- Enhanced diagnostics
-- Weighted data support
-- Multilingual support (EN/FA/DE)
+A comprehensive library for statistical distribution fitting that surpasses
+EasyFit and R's fitdistrplus.
 
-Quick Start
------------
+Features:
+---------
+- 30 statistical distributions (25 continuous + 5 discrete)
+- Multiple estimation methods (MLE, Moments, Quantile)
+- Goodness-of-fit tests (KS, AD, Chi-Square, Cramér-von Mises)
+- Bootstrap confidence intervals (Parametric & Non-parametric)
+- Enhanced diagnostics (Residuals, Influence, Outliers)
+- Weighted data support
+- Multilingual (English, فارسی, Deutsch)
+
+Quick Start:
+------------
 >>> from distfit_pro import get_distribution
 >>> import numpy as np
->>> 
+>>>
 >>> data = np.random.normal(10, 2, 1000)
 >>> dist = get_distribution('normal')
 >>> dist.fit(data)
 >>> print(dist.summary())
 
-Modules
--------
-- core.distributions: Distribution classes
-- core.gof_tests: Goodness-of-fit tests
-- core.bootstrap: Bootstrap confidence intervals
-- core.diagnostics: Enhanced diagnostics
-- core.weighted: Weighted data support
-- plotting: Visualization tools
-- locales: Multilingual support
+See Also:
+---------
+- Documentation: https://github.com/alisadeghiaghili/py-distfit-pro/docs
+- Tutorials: docs/source/tutorial/
+- Examples: docs/source/examples/
+
+Author: Ali Sadeghi Aghili
+License: MIT
+Version: 1.0.0
 """
 
 __version__ = "1.0.0"
 __author__ = "Ali Sadeghi Aghili"
-__email__ = ""
 __license__ = "MIT"
-__url__ = "https://github.com/alisadeghiaghili/py-distfit-pro"
+__all__ = [
+    "get_distribution",
+    "list_distributions",
+    "list_continuous_distributions",
+    "list_discrete_distributions",
+    "set_language",
+    "get_language",
+]
 
 from .core.distributions import (
     get_distribution,
@@ -44,20 +55,7 @@ from .core.distributions import (
     list_discrete_distributions,
 )
 
-from .locales import set_language, get_language, t
+from .locales import set_language, get_language
 
-__all__ = [
-    # Version
-    "__version__",
-    
-    # Distribution functions
-    "get_distribution",
-    "list_distributions",
-    "list_continuous_distributions",
-    "list_discrete_distributions",
-    
-    # Localization
-    "set_language",
-    "get_language",
-    "t",
-]
+# Version info
+version_info = (1, 0, 0)
