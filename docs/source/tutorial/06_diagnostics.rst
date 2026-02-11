@@ -1,22 +1,25 @@
-Tutorial 6: Diagnostics
-=======================
+Tutorial 6: Enhanced Diagnostics
+=================================
 
-Learn to diagnose problems with fitted distributions.
+Learn how to diagnose problems with fitted distributions.
 
 Why Diagnostics?
 ----------------
 
-**Fitting is not enough - you need to check:**
+**GOF tests tell you IF the fit is bad.**
+**Diagnostics tell you WHY and WHERE.**
 
-- Are there systematic deviations?
-- Which observations are influential?
+**Questions Diagnostics Answer:**
+
+- Where does the fit fail?
+- Which observations are problematic?
 - Are there outliers?
-- Does the model fit well everywhere?
+- Is the model systematically wrong?
 
 Residual Analysis
 -----------------
 
-**Residuals show deviations from the fitted model.**
+**Residuals = difference between observed and expected.**
 
 Types of Residuals
 ^^^^^^^^^^^^^^^^^^
@@ -37,7 +40,6 @@ Types of Residuals
     
     # Compute residuals
     residuals = Diagnostics.residual_analysis(data, dist)
-    
     print(residuals.summary())
 
 **Output:**
@@ -47,88 +49,60 @@ Types of Residuals
     Residual Analysis Summary
     ==================================================
     Quantile Residuals:
-      Mean: 0.001234
-      Std: 1.003456
-      Range: [-3.245, 3.198]
+      Mean: -0.001234
+      Std: 0.998765
+      Range: [-3.456, 3.234]
     
     Pearson Residuals:
       Mean: 0.000987
-      Std: 0.998765
+      Std: 1.002341
       
     Deviance Residuals:
-      Mean: 0.001456
-      Std: 1.002345
+      Mean: -0.000543
+      Std: 0.997654
 
-**Ideal residuals:**
+**4 Types of Residuals:**
+
+1. **Quantile Residuals** - most useful, should be ~N(0,1)
+2. **Pearson Residuals** - (observed - expected) / std
+3. **Deviance Residuals** - based on log-likelihood
+4. **Standardized Residuals** - normalized residuals
+
+Interpreting Residuals
+^^^^^^^^^^^^^^^^^^^^^^
+
+**Good fit:**
 
 - Mean ≈ 0
 - Std ≈ 1
-- Symmetric distribution
 - No patterns
-
-Plotting Residuals
-^^^^^^^^^^^^^^^^^^
+- Roughly normal
 
 .. code-block:: python
 
+    # Check residuals
+    qres = residuals.quantile_residuals
+    
+    print(f"Mean: {np.mean(qres):.4f} (should be ≈ 0)")
+    print(f"Std: {np.std(qres):.4f} (should be ≈ 1)")
+    
+    # Plot histogram (if using matplotlib)
     import matplotlib.pyplot as plt
-    
-    # Get residuals
-    residuals = Diagnostics.residual_analysis(data, dist)
-    
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    
-    # 1. Quantile residuals histogram
-    axes[0, 0].hist(residuals.quantile_residuals, bins=50, 
-                    alpha=0.7, edgecolor='black')
-    axes[0, 0].set_xlabel('Quantile Residuals')
-    axes[0, 0].set_ylabel('Frequency')
-    axes[0, 0].set_title('Histogram of Quantile Residuals')
-    axes[0, 0].axvline(0, color='red', linestyle='--')
-    
-    # 2. Q-Q plot of residuals
-    from scipy import stats
-    stats.probplot(residuals.quantile_residuals, dist="norm", plot=axes[0, 1])
-    axes[0, 1].set_title('Q-Q Plot of Residuals')
-    
-    # 3. Residuals vs fitted values
-    fitted_values = dist.cdf(data)
-    axes[1, 0].scatter(fitted_values, residuals.quantile_residuals, 
-                       alpha=0.5, s=10)
-    axes[1, 0].axhline(0, color='red', linestyle='--')
-    axes[1, 0].set_xlabel('Fitted CDF')
-    axes[1, 0].set_ylabel('Quantile Residuals')
-    axes[1, 0].set_title('Residuals vs Fitted')
-    
-    # 4. Residuals vs index (time series check)
-    axes[1, 1].scatter(range(len(data)), residuals.quantile_residuals, 
-                       alpha=0.5, s=10)
-    axes[1, 1].axhline(0, color='red', linestyle='--')
-    axes[1, 1].set_xlabel('Observation Index')
-    axes[1, 1].set_ylabel('Quantile Residuals')
-    axes[1, 1].set_title('Residuals vs Order')
-    
-    plt.tight_layout()
-    plt.savefig('residuals_diagnostic.png', dpi=150)
+    plt.hist(qres, bins=30, density=True, alpha=0.7)
+    plt.title('Quantile Residuals')
+    plt.xlabel('Residual')
+    plt.ylabel('Density')
     plt.show()
-
-**What to look for:**
-
-- ✅ Random scatter around zero
-- ❌ Patterns (curved, fan-shaped)
-- ❌ Outliers
-- ❌ Non-normal Q-Q plot
 
 Influence Diagnostics
 ---------------------
 
-**Find observations that strongly affect parameter estimates.**
+**Which observations have large influence on parameter estimates?**
 
 .. code-block:: python
 
-    # Compute influence diagnostics
+    # Influence diagnostics
     influence = Diagnostics.influence_diagnostics(data, dist)
-    
     print(influence.summary())
 
 **Output:**
@@ -142,71 +116,55 @@ Influence Diagnostics
       Threshold: 0.004000
       Influential: 23 observations
     
-    Influential Indices: [15, 42, 87, 156, 234, 345, 456, 567, 678, 789]
+    Influential Indices: [45, 123, 234, 456, 567, 678, 789, 890, 901, 912]
     ... and 13 more
 
-**Cook's Distance:**
+**Metrics:**
 
-- Measures influence of each observation
-- Threshold: 4/n
-- Large values indicate influential points
+1. **Cook's Distance** - overall influence
+   
+   - > 4/n → influential
+   - > 1 → very influential
 
-Plotting Influence
-^^^^^^^^^^^^^^^^^^
+2. **Leverage** - how "unusual" the observation is
+
+3. **DFFITS** - change in fitted value if observation removed
+
+**Examining Influential Points:**
 
 .. code-block:: python
 
-    influence = Diagnostics.influence_diagnostics(data, dist)
+    # Get influential observations
+    influential_idx = influence.influential_indices
+    influential_values = data[influential_idx]
     
-    plt.figure(figsize=(12, 5))
+    print(f"\nInfluential observations:")
+    print(f"  Indices: {influential_idx[:10]}...")
+    print(f"  Values: {influential_values[:10]}")
+    print(f"  Mean: {np.mean(influential_values):.4f}")
+    print(f"  Std: {np.std(influential_values):.4f}")
     
-    # Cook's distance plot
-    plt.subplot(1, 2, 1)
-    plt.stem(range(len(data)), influence.cooks_distance, 
-             markerfmt=' ', basefmt=' ')
-    threshold = 4 / len(data)
-    plt.axhline(threshold, color='red', linestyle='--', 
-                label=f'Threshold ({threshold:.4f})')
-    plt.xlabel('Observation Index')
-    plt.ylabel("Cook's Distance")
-    plt.title("Cook's Distance Plot")
-    plt.legend()
-    
-    # Highlight influential points
-    influential_mask = influence.cooks_distance > threshold
-    plt.scatter(np.where(influential_mask)[0],
-                influence.cooks_distance[influential_mask],
-                color='red', s=50, zorder=5, label='Influential')
-    
-    # Leverage vs residuals
-    plt.subplot(1, 2, 2)
-    residuals = Diagnostics.residual_analysis(data, dist)
-    plt.scatter(influence.leverage, 
-                residuals.standardized_residuals,
-                alpha=0.5)
-    plt.xlabel('Leverage')
-    plt.ylabel('Standardized Residuals')
-    plt.title('Leverage vs Residuals')
-    plt.axhline(0, color='red', linestyle='--')
-    
-    plt.tight_layout()
-    plt.savefig('influence_diagnostic.png', dpi=150)
-    plt.show()
+    # Compare to overall data
+    print(f"\nAll data:")
+    print(f"  Mean: {np.mean(data):.4f}")
+    print(f"  Std: {np.std(data):.4f}")
 
 Outlier Detection
 -----------------
 
-**Four methods to detect outliers:**
+**4 Methods for Detecting Outliers**
 
-1. Z-Score Method
-^^^^^^^^^^^^^^^^^
+Z-Score Method
+^^^^^^^^^^^^^^
+
+**Most common method.**
 
 .. code-block:: python
 
-    # Detect outliers using z-scores
+    # Z-score outliers (|z| > 3)
     outliers_z = Diagnostics.detect_outliers(
-        data, 
-        dist, 
+        data=data,
+        distribution=dist,
         method='zscore',
         threshold=3.0
     )
@@ -221,196 +179,204 @@ Outlier Detection
     ==================================================
     Method: zscore
     Threshold: 3.000000
-    Outliers Detected: 7
+    Outliers Detected: 3
     
-    Outlier Indices: [23, 156, 342, 567, 678, 823, 945]
+    Outlier Indices: [234, 567, 891]
     
-    Score Range: [0.012, 4.567]
+    Score Range: [0.012, 3.456]
 
-2. IQR Method
-^^^^^^^^^^^^^
+**Interpretation:**
+
+- Threshold = 3 → observations > 3 std from mean
+- Very strict: only extreme outliers
+- Threshold = 2 → more outliers detected
+
+IQR Method
+^^^^^^^^^^
+
+**Interquartile Range method (Tukey's rule).**
 
 .. code-block:: python
 
-    # Interquartile range method
+    # IQR outliers
     outliers_iqr = Diagnostics.detect_outliers(
-        data,
-        dist,
+        data=data,
+        distribution=dist,
         method='iqr',
-        threshold=1.5  # Standard: 1.5 * IQR
+        threshold=1.5  # Standard Tukey multiplier
     )
     
-    print(f"Outliers detected: {len(outliers_iqr.outlier_indices)}")
+    print(f"Outliers: {len(outliers_iqr.outlier_indices)}")
 
-3. Likelihood Method
-^^^^^^^^^^^^^^^^^^^^
+**Thresholds:**
+
+- 1.5 → standard (mild outliers)
+- 3.0 → extreme outliers only
+
+Likelihood Method
+^^^^^^^^^^^^^^^^^
+
+**Based on log-likelihood.**
 
 .. code-block:: python
 
-    # Low-likelihood outliers
+    # Likelihood-based outliers
     outliers_lik = Diagnostics.detect_outliers(
-        data,
-        dist,
+        data=data,
+        distribution=dist,
         method='likelihood'
     )
     
-    print(outliers_lik.summary())
+    print(f"Outliers: {len(outliers_lik.outlier_indices)}")
 
-4. Mahalanobis Distance
-^^^^^^^^^^^^^^^^^^^^^^^
+**Advantages:**
+
+- Distribution-specific
+- Considers full model
+- Sensitive to tail behavior
+
+Mahalanobis Distance
+^^^^^^^^^^^^^^^^^^^^
+
+**Multivariate-inspired (univariate version).**
 
 .. code-block:: python
 
-    # Mahalanobis distance
+    # Mahalanobis outliers
     outliers_maha = Diagnostics.detect_outliers(
-        data,
-        dist,
-        method='mahalanobis'
+        data=data,
+        distribution=dist,
+        method='mahalanobis',
+        threshold=3.84  # Chi-square(1, 0.95)
     )
-    
-    print(outliers_maha.summary())
 
-Comparing Outlier Methods
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Comparing Methods
+^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
     methods = ['zscore', 'iqr', 'likelihood', 'mahalanobis']
     
-    results = {}
+    print("\nOutlier Detection Comparison:")
+    print(f"{'Method':<15} {'Count':<10} {'Indices (first 5)'}")
+    print("-" * 50)
+    
     for method in methods:
-        outliers = Diagnostics.detect_outliers(data, dist, method=method)
-        results[method] = {
-            'n_outliers': len(outliers.outlier_indices),
-            'indices': set(outliers.outlier_indices)
-        }
-    
-    # Print comparison
-    print("Outlier Detection Comparison:")
-    print(f"{'Method':<15} {'Count':<10}")
-    print("-" * 25)
-    for method, result in results.items():
-        print(f"{method:<15} {result['n_outliers']:<10}")
-    
-    # Find consensus outliers (detected by all methods)
-    consensus = results['zscore']['indices']
-    for method in methods[1:]:
-        consensus = consensus.intersection(results[method]['indices'])
-    
-    print(f"\nConsensus outliers: {sorted(list(consensus))}")
+        result = Diagnostics.detect_outliers(data, dist, method=method)
+        indices = result.outlier_indices[:5]
+        print(f"{method:<15} {len(result.outlier_indices):<10} {indices}")
 
 Q-Q Plot Diagnostics
 --------------------
 
-**Quantile-Quantile plot data:**
+**Quantile-Quantile plot data.**
 
 .. code-block:: python
 
-    # Get Q-Q data
+    # Q-Q diagnostics
     qq_data = Diagnostics.qq_diagnostics(data, dist)
     
     print(f"Q-Q Correlation: {qq_data['correlation']:.6f}")
+    print(f"(Should be close to 1.0 for good fit)")
     
-    # Plot Q-Q
-    plt.figure(figsize=(8, 8))
-    plt.scatter(qq_data['theoretical'], qq_data['sample'], 
-                alpha=0.5, s=20)
+    # Get Q-Q plot data
+    theoretical = qq_data['theoretical']
+    sample = qq_data['sample']
+    residuals = qq_data['residuals']
+
+**Plotting Q-Q (if using matplotlib):**
+
+.. code-block:: python
+
+    import matplotlib.pyplot as plt
     
-    # Add 45-degree line
-    min_val = min(qq_data['theoretical'].min(), qq_data['sample'].min())
-    max_val = max(qq_data['theoretical'].max(), qq_data['sample'].max())
-    plt.plot([min_val, max_val], [min_val, max_val], 
-             'r--', lw=2, label='Perfect fit')
-    
+    plt.figure(figsize=(8, 6))
+    plt.scatter(theoretical, sample, alpha=0.5)
+    plt.plot([theoretical.min(), theoretical.max()], 
+             [theoretical.min(), theoretical.max()], 
+             'r--', lw=2)
     plt.xlabel('Theoretical Quantiles')
     plt.ylabel('Sample Quantiles')
-    plt.title(f'Q-Q Plot (correlation = {qq_data["correlation"]:.4f})')
-    plt.legend()
+    plt.title(f'Q-Q Plot (r = {qq_data["correlation"]:.4f})')
     plt.grid(True, alpha=0.3)
-    plt.axis('equal')
-    
-    plt.savefig('qq_plot.png', dpi=150)
     plt.show()
 
-**Interpretation:**
+**Interpreting Q-Q Plots:**
 
-- Points on line → good fit
-- Systematic deviation → wrong distribution
-- Correlation close to 1 → excellent fit
+- **Points on line** → good fit ✓
+- **S-shape** → distribution too light-tailed
+- **Reverse S** → distribution too heavy-tailed
+- **Points above line (right)** → right tail too heavy
+- **Points below line (left)** → left tail too light
 
 P-P Plot Diagnostics
 --------------------
 
-**Probability-Probability plot:**
+**Probability-Probability plot.**
 
 .. code-block:: python
 
-    # Get P-P data
+    # P-P diagnostics
     pp_data = Diagnostics.pp_diagnostics(data, dist)
     
-    print(f"Max deviation: {pp_data['max_deviation']:.6f}")
+    print(f"Max Deviation: {pp_data['max_deviation']:.6f}")
     
-    # Plot P-P
-    plt.figure(figsize=(8, 8))
-    plt.scatter(pp_data['theoretical'], pp_data['empirical'],
-                alpha=0.5, s=20)
-    plt.plot([0, 1], [0, 1], 'r--', lw=2, label='Perfect fit')
-    
-    plt.xlabel('Theoretical Probabilities')
-    plt.ylabel('Empirical Probabilities')
-    plt.title(f'P-P Plot (max dev = {pp_data["max_deviation"]:.4f})')
-    plt.legend()
+    # Plot
+    plt.figure(figsize=(8, 6))
+    plt.scatter(pp_data['theoretical'], pp_data['empirical'], alpha=0.5)
+    plt.plot([0, 1], [0, 1], 'r--', lw=2)
+    plt.xlabel('Theoretical Probability')
+    plt.ylabel('Empirical Probability')
+    plt.title('P-P Plot')
     plt.grid(True, alpha=0.3)
-    plt.axis('equal')
-    
-    plt.savefig('pp_plot.png', dpi=150)
     plt.show()
+
+**P-P vs Q-Q:**
+
+- **P-P** → better for overall fit
+- **Q-Q** → better for tail behavior
+- **Use both** for complete picture
 
 Worm Plot
 ---------
 
-**Detrended Q-Q plot - easier to see deviations:**
+**Detrended Q-Q plot (easier to see deviations).**
 
 .. code-block:: python
 
-    # Get worm plot data
+    # Worm plot data
     worm_data = Diagnostics.worm_plot_data(data, dist)
     
     # Plot
-    plt.figure(figsize=(10, 5))
-    plt.scatter(worm_data['theoretical'], 
-                worm_data['worm_residuals'],
-                alpha=0.5, s=20)
-    plt.axhline(0, color='red', linestyle='--', lw=2)
-    plt.axhline(2, color='orange', linestyle=':', alpha=0.5)
-    plt.axhline(-2, color='orange', linestyle=':', alpha=0.5)
-    
+    plt.figure(figsize=(10, 4))
+    plt.scatter(worm_data['theoretical'], worm_data['worm_residuals'], alpha=0.5)
+    plt.axhline(y=0, color='r', linestyle='--', lw=2)
+    plt.axhline(y=2, color='gray', linestyle=':', alpha=0.5)
+    plt.axhline(y=-2, color='gray', linestyle=':', alpha=0.5)
     plt.xlabel('Theoretical Quantiles')
-    plt.ylabel('Standardized Deviations')
+    plt.ylabel('Detrended Residuals')
     plt.title('Worm Plot')
     plt.grid(True, alpha=0.3)
-    
-    plt.savefig('worm_plot.png', dpi=150)
     plt.show()
 
 **Interpretation:**
 
-- Points around zero → good fit
-- Outside ±2 band → poor fit
-- Systematic pattern → wrong distribution
+- Points around 0 line → good fit
+- Points outside ±2 bands → poor fit
+- Patterns indicate systematic problems
 
-Complete Diagnostic Report
---------------------------
+Complete Diagnostic Workflow
+-----------------------------
 
-**Generate a full diagnostic report:**
+**Comprehensive analysis:**
 
 .. code-block:: python
 
-    def diagnostic_report(data, dist):
-        """Generate comprehensive diagnostic report"""
+    def complete_diagnostics(data, dist):
+        """Run all diagnostic checks"""
         
         print("="*60)
-        print("COMPREHENSIVE DIAGNOSTIC REPORT")
+        print("COMPLETE DIAGNOSTIC REPORT")
         print("="*60)
         
         # 1. Residual Analysis
@@ -425,60 +391,138 @@ Complete Diagnostic Report
         influence = Diagnostics.influence_diagnostics(data, dist)
         print(influence.summary())
         
-        # 3. Outlier Detection
+        # 3. Outlier Detection (all methods)
         print("\n3. OUTLIER DETECTION")
         print("-"*60)
-        for method in ['zscore', 'iqr', 'likelihood']:
+        methods = ['zscore', 'iqr', 'likelihood']
+        for method in methods:
             outliers = Diagnostics.detect_outliers(data, dist, method=method)
-            print(f"\n{method.upper()}: {len(outliers.outlier_indices)} outliers")
+            print(f"\n{method.upper()}:")
+            print(f"  Detected: {len(outliers.outlier_indices)} outliers")
+            if len(outliers.outlier_indices) > 0:
+                print(f"  Indices: {outliers.outlier_indices[:10]}")
         
         # 4. Q-Q Diagnostics
         print("\n4. Q-Q DIAGNOSTICS")
         print("-"*60)
         qq_data = Diagnostics.qq_diagnostics(data, dist)
-        print(f"Q-Q Correlation: {qq_data['correlation']:.6f}")
+        print(f"Correlation: {qq_data['correlation']:.6f}")
+        if qq_data['correlation'] > 0.99:
+            print("✓ Excellent fit")
+        elif qq_data['correlation'] > 0.95:
+            print("✓ Good fit")
+        else:
+            print("✗ Poor fit")
         
-        # 5. P-P Diagnostics
-        print("\n5. P-P DIAGNOSTICS")
+        # 5. Summary
+        print("\n5. SUMMARY")
         print("-"*60)
-        pp_data = Diagnostics.pp_diagnostics(data, dist)
-        print(f"Max Deviation: {pp_data['max_deviation']:.6f}")
-        
-        # 6. Overall Assessment
-        print("\n6. OVERALL ASSESSMENT")
-        print("-"*60)
-        
-        issues = []
         
         # Check residuals
-        if abs(np.mean(residuals.quantile_residuals)) > 0.1:
-            issues.append("⚠️  Residual mean not close to zero")
-        if abs(np.std(residuals.quantile_residuals) - 1.0) > 0.1:
-            issues.append("⚠️  Residual std not close to 1")
+        qres_mean = np.mean(residuals.quantile_residuals)
+        qres_std = np.std(residuals.quantile_residuals)
         
-        # Check Q-Q correlation
-        if qq_data['correlation'] < 0.98:
-            issues.append(f"⚠️  Low Q-Q correlation ({qq_data['correlation']:.4f})")
+        print(f"Residuals: mean={qres_mean:.4f}, std={qres_std:.4f}")
+        
+        if abs(qres_mean) < 0.1 and abs(qres_std - 1) < 0.1:
+            print("✓ Residuals look good")
+        else:
+            print("✗ Residuals suggest problems")
         
         # Check influential points
-        if len(influence.influential_indices) > len(data) * 0.05:
-            issues.append(f"⚠️  Many influential points ({len(influence.influential_indices)})")
+        n_influential = len(influence.influential_indices)
+        pct_influential = 100 * n_influential / len(data)
         
-        if issues:
-            print("Issues detected:")
-            for issue in issues:
-                print(f"  {issue}")
+        print(f"Influential points: {n_influential} ({pct_influential:.1f}%)")
+        
+        if pct_influential < 5:
+            print("✓ Few influential points")
         else:
-            print("✅ No major issues detected!")
-            print("Distribution fits well.")
+            print("⚠ Many influential points - investigate")
         
         print("\n" + "="*60)
     
-    # Run report
-    diagnostic_report(data, dist)
+    # Run complete diagnostics
+    complete_diagnostics(data, dist)
+
+Example: Detecting Problems
+---------------------------
+
+**Wrong distribution fitted:**
+
+.. code-block:: python
+
+    # Generate gamma data
+    data_gamma = np.random.gamma(2, 3, 1000)
+    
+    # Fit WRONG distribution
+    dist_wrong = get_distribution('normal')
+    dist_wrong.fit(data_gamma)
+    
+    # Diagnostics will reveal problems
+    residuals = Diagnostics.residual_analysis(data_gamma, dist_wrong)
+    print(residuals.summary())
+    
+    # Residuals won't be N(0,1)
+    # Q-Q correlation will be low
+    # Many outliers detected
+
+**Contaminated data:**
+
+.. code-block:: python
+
+    # 95% normal + 5% outliers
+    data_contaminated = np.concatenate([
+        np.random.normal(10, 2, 950),
+        np.random.uniform(30, 40, 50)
+    ])
+    
+    dist_cont = get_distribution('normal')
+    dist_cont.fit(data_contaminated)
+    
+    # Outlier detection
+    outliers = Diagnostics.detect_outliers(
+        data_contaminated, 
+        dist_cont, 
+        method='zscore',
+        threshold=3
+    )
+    
+    print(f"Outliers detected: {len(outliers.outlier_indices)}")
+    # Should detect ~50 outliers
+
+Best Practices
+--------------
+
+1. **Always run diagnostics after fitting**
+   
+   Don't trust fit blindly!
+
+2. **Use multiple diagnostic methods**
+   
+   - Residuals
+   - Q-Q plot
+   - Outlier detection
+
+3. **Visual inspection is crucial**
+   
+   Numbers + plots = best understanding
+
+4. **Investigate influential points**
+   
+   .. code-block:: python
+   
+       influence = Diagnostics.influence_diagnostics(data, dist)
+       if len(influence.influential_indices) > 0:
+           print("Investigate these points!")
+
+5. **Compare with GOF tests**
+   
+   Diagnostics + GOF tests = complete picture
 
 Next Steps
 ----------
 
-- :doc:`07_weighted_data` - Weighted diagnostics
+- :doc:`07_weighted_data` - Handle weighted observations
 - :doc:`08_visualization` - Visual diagnostics
+- :doc:`examples/real_world` - Real data examples
