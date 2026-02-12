@@ -14,6 +14,14 @@ from typing import Dict, Any, Optional, List, Union, Callable
 import numpy as np
 from scipy import stats
 
+# Import verbose logger
+try:
+    from ..utils.verbose import logger
+    from ..core.config import config
+    VERBOSE_AVAILABLE = True
+except ImportError:
+    VERBOSE_AVAILABLE = False
+
 
 class FittingMethod(Enum):
     """Enumeration of supported fitting methods"""
@@ -42,7 +50,7 @@ class BaseDistribution(ABC):
     Abstract base class for all probability distributions.
     
     This class provides a unified interface for working with distributions,
-    wrapping scipy.stats with additional functionality.
+    wrapping scipy.stats with additional functionality and verbose explanations.
     """
     
     def __init__(self):
@@ -82,12 +90,12 @@ class BaseDistribution(ABC):
         return self._data
     
     # ========================================================================
-    # FITTING METHODS
+    # FITTING METHODS (WITH VERBOSE SUPPORT)
     # ========================================================================
     
-    def fit(self, data: np.ndarray, method: str = 'mle', **kwargs) -> 'BaseDistribution':
+    def fit(self, data: np.ndarray, method: str = 'mle', verbose: Optional[bool] = None, **kwargs) -> 'BaseDistribution':
         """
-        Fit distribution to data.
+        Fit distribution to data with optional verbose explanations.
         
         Parameters
         ----------
@@ -95,6 +103,8 @@ class BaseDistribution(ABC):
             Data to fit
         method : str, default='mle'
             Fitting method: 'mle' or 'mom'
+        verbose : bool, optional
+            Override global verbosity setting
         **kwargs : dict
             Additional parameters for fitting
             
@@ -102,19 +112,54 @@ class BaseDistribution(ABC):
         -------
         self : BaseDistribution
             Fitted distribution instance
+            
+        Examples
+        --------
+        >>> dist = NormalDistribution()
+        >>> dist.fit(data, method='mle', verbose=True)
+        >>> print(dist.summary())
         """
+        # Validate data
         data = self._validate_data(data)
         self._data = data
         
-        if method.lower() == 'mle':
-            self._fit_mle(data, **kwargs)
-        elif method.lower() == 'mom':
-            self._fit_mom(data, **kwargs)
+        # Determine if we should be verbose
+        if VERBOSE_AVAILABLE:
+            use_verbose = verbose if verbose is not None else config.is_verbose()
+            
+            if use_verbose:
+                logger.subsection(f"Fitting {self.info.display_name}")
+                logger.explain_data_characteristics(data)
+                logger.explain_fitting_process(self.info.display_name, method, len(data))
         else:
-            raise ValueError(f"Unknown fitting method: {method}")
+            use_verbose = False
         
-        self._fitted = True
-        return self
+        # Perform fitting
+        try:
+            if method.lower() == 'mle':
+                self._fit_mle(data, **kwargs)
+                if use_verbose:
+                    logger.success(f"MLE fitting completed successfully")
+            elif method.lower() == 'mom':
+                self._fit_mom(data, **kwargs)
+                if use_verbose:
+                    logger.success(f"Method of Moments fitting completed successfully")
+            else:
+                raise ValueError(f"Unknown fitting method: {method}")
+            
+            self._fitted = True
+            
+            # Verbose parameter explanation
+            if use_verbose:
+                self._explain_fitted_parameters()
+                self._explain_statistics()
+            
+            return self
+            
+        except Exception as e:
+            if VERBOSE_AVAILABLE and not config.is_silent():
+                logger.error(f"Fitting failed: {str(e)}")
+            raise
     
     @abstractmethod
     def _fit_mle(self, data: np.ndarray, **kwargs):
@@ -125,6 +170,101 @@ class BaseDistribution(ABC):
     def _fit_mom(self, data: np.ndarray, **kwargs):
         """Method of Moments (to be implemented by subclasses)"""
         pass
+    
+    def _explain_fitted_parameters(self):
+        """Explain fitted parameters in plain language (verbose mode)."""
+        if not VERBOSE_AVAILABLE or not config.is_verbose():
+            return
+        
+        logger.subsection("Fitted Parameters")
+        
+        for param_name, param_value in self._params.items():
+            # Get parameter meaning
+            meaning = self._get_parameter_meaning(param_name)
+            impact = self._get_parameter_impact(param_name, param_value)
+            
+            logger.explain_parameter(param_name, param_value, meaning, impact)
+    
+    def _get_parameter_meaning(self, param_name: str) -> str:
+        """Get meaning of parameter (can be overridden by subclasses)."""
+        meanings = {
+            'loc': 'Location parameter (center of distribution)',
+            'scale': 'Scale parameter (spread of distribution)',
+            'shape': 'Shape parameter (controls distribution shape)',
+            'mu': 'Mean parameter',
+            'sigma': 'Standard deviation parameter',
+            'alpha': 'First shape parameter',
+            'beta': 'Second shape parameter',
+            'df': 'Degrees of freedom',
+            'p': 'Probability parameter',
+            'n': 'Number of trials',
+        }
+        return meanings.get(param_name, f'{param_name} parameter')
+    
+    def _get_parameter_impact(self, param_name: str, value: float) -> str:
+        """Get practical interpretation of parameter value."""
+        if param_name in ['scale', 'sigma']:
+            if value < 1:
+                return "Low variability - data points clustered tightly"
+            elif value > 5:
+                return "High variability - data points spread widely"
+            else:
+                return "Moderate variability"
+        
+        if param_name == 'shape':
+            if value < 1:
+                return "Distribution has decreasing hazard rate"
+            elif value > 1:
+                return "Distribution has increasing hazard rate"
+            else:
+                return "Constant hazard rate (exponential)"
+        
+        return "See documentation for interpretation"
+    
+    def _explain_statistics(self):
+        """Explain key statistics (verbose mode)."""
+        if not VERBOSE_AVAILABLE or not config.is_verbose():
+            return
+        
+        logger.subsection("Distribution Statistics")
+        
+        try:
+            mean_val = self.mean()
+            logger.explain_statistic("Mean", mean_val, f"Expected value: {mean_val:.4f}")
+            
+            std_val = self.std()
+            logger.explain_statistic("Std Dev", std_val, f"Typical deviation from mean: {std_val:.4f}")
+            
+            median_val = self.median()
+            logger.explain_statistic("Median", median_val, "50% of data below this value")
+            
+            try:
+                skew_val = self.skewness()
+                if abs(skew_val) < 0.5:
+                    skew_interp = "Approximately symmetric"
+                elif skew_val > 0:
+                    skew_interp = "Right-skewed (long tail to the right)"
+                else:
+                    skew_interp = "Left-skewed (long tail to the left)"
+                logger.explain_statistic("Skewness", skew_val, skew_interp)
+            except:
+                pass
+            
+            try:
+                kurt_val = self.kurtosis()
+                if abs(kurt_val) < 0.5:
+                    kurt_interp = "Normal tail behavior"
+                elif kurt_val > 0:
+                    kurt_interp = "Heavy tails (more extreme values)"
+                else:
+                    kurt_interp = "Light tails (fewer extreme values)"
+                logger.explain_statistic("Kurtosis", kurt_val, kurt_interp)
+            except:
+                pass
+                
+        except Exception as e:
+            if VERBOSE_AVAILABLE and config.is_debug():
+                logger.debug(f"Could not calculate statistics: {e}")
     
     # ========================================================================
     # PROBABILITY FUNCTIONS
@@ -217,7 +357,7 @@ class BaseDistribution(ABC):
         """Inverse survival function"""
         if not self._fitted:
             raise ValueError("Distribution not fitted yet")
-        q = np.asarray(q)
+        q = np.asarray(x)
         return self._scipy_dist.isf(q, **self._get_scipy_params())
     
     # ========================================================================
