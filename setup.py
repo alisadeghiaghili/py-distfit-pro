@@ -1,37 +1,29 @@
-"""
-DistFit Pro - Professional Distribution Fitting Package
-========================================================
-
-A comprehensive, production-ready Python package for statistical distribution fitting
-that combines the best features of EasyFit and fitdistrplus with modern improvements.
-
-Author: Ali Sadeghi Aghili (https://linktr.ee/aliaghili)
-"""
-
 from setuptools import setup, find_packages
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-with open("requirements.txt", "r", encoding="utf-8") as fh:
-    requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
-
 setup(
     name="distfit-pro",
-    version="0.1.0",
+    version="1.0.0",
     author="Ali Sadeghi Aghili",
-    author_email="alisadeghiaghili@gmail.com",
-    description="Professional distribution fitting with model selection, diagnostics, and explanations",
+    author_email="",
+    description="Professional distribution fitting for Python - better than EasyFit and fitdistrplus",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/alisadeghiaghili/py-distfit-pro",
-    packages=find_packages(),
+    project_urls={
+        "Documentation": "https://github.com/alisadeghiaghili/py-distfit-pro/docs",
+        "Source": "https://github.com/alisadeghiaghili/py-distfit-pro",
+        "Tracker": "https://github.com/alisadeghiaghili/py-distfit-pro/issues",
+    },
+    packages=find_packages(exclude=["tests", "tests.*", "docs", "examples"]),
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
         "Topic :: Scientific/Engineering :: Mathematics",
-        "Topic :: Scientific/Engineering :: Information Analysis",
+        "Topic :: Scientific/Engineering :: Statistics",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
@@ -39,22 +31,45 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Operating System :: OS Independent",
+        "Typing :: Typed",
     ],
     python_requires=">=3.8",
-    install_requires=requirements,
+    install_requires=[
+        "numpy>=1.20.0",
+        "scipy>=1.7.0",
+        "matplotlib>=3.3.0",
+        "plotly>=5.0.0",
+        "joblib>=1.0.0",
+        "tqdm>=4.60.0",
+    ],
     extras_require={
         "dev": [
-            "pytest>=7.0",
-            "pytest-cov>=4.0",
-            "black>=22.0",
-            "flake8>=5.0",
-            "mypy>=0.990",
-        ],
-        "docs": [
-            "sphinx>=5.0",
-            "sphinx-rtd-theme>=1.0",
+            "pytest>=7.0.0",
+            "pytest-cov>=3.0.0",
+            "black>=22.0.0",
+            "flake8>=4.0.0",
+            "mypy>=0.950",
+            "sphinx>=4.0.0",
+            "sphinx_rtd_theme>=1.0.0",
+            "myst-parser>=0.18.0",
         ],
     },
     include_package_data=True,
+    package_data={
+        "distfit_pro": ["locales/*.json"],
+    },
+    keywords=[
+        "statistics",
+        "distribution fitting",
+        "goodness of fit",
+        "bootstrap",
+        "confidence intervals",
+        "diagnostics",
+        "weighted data",
+        "multilingual",
+        "data science",
+        "statistical analysis",
+    ],
     zip_safe=False,
 )
