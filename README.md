@@ -591,7 +591,7 @@ Free for commercial and personal use.
 ## 📞 Contact
 
 **Ali Sadeghi Aghili**  
-📧 Data Scientist | Statistical Software Engineer  
+🦄 Data Unicorn  
 
 🌐 [zil.ink/thedatascientist](https://zil.ink/thedatascientist)  
 🔗 [linktr.ee/aliaghili](https://linktr.ee/aliaghili)  
