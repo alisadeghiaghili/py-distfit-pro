@@ -584,7 +584,7 @@ print(f"میانه بقا: {median_survival:.1f} ماه")
 ## 📞 تماس
 
 **علی صادقی عقیلی**  
-📧 دانشمند داده | مهندس نرم‌افزار آماری  
+🦄 Data Unicorn  
 
 🌐 [zil.ink/thedatascientist](https://zil.ink/thedatascientist)  
 🔗 [linktr.ee/aliaghili](https://linktr.ee/aliaghili)  
