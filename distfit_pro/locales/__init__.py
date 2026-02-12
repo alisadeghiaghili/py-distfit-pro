@@ -11,7 +11,12 @@ Supported Languages:
 """
 
 from typing import Dict, List
-from ..core.config import get_language
+try:
+    from ..core.config import get_language
+except:
+    # Fallback if config not available
+    def get_language():
+        return 'en'
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -29,13 +34,35 @@ EN_TRANSLATIONS = {
     'characteristics': 'CHARACTERISTICS',
     'warning': 'Warning',
     
+    # Verbose mode - Data characteristics
+    'data_characteristics': 'Data Characteristics',
+    'sample_size': 'Sample size',
+    'observations': 'observations',
+    'mean': 'Mean',
+    'std_dev': 'Standard Deviation',
+    'skewness': 'Skewness',
+    'data_approximately_symmetric': 'Data is approximately symmetric',
+    'data_right_skewed': 'Data is right-skewed (long tail on the right)',
+    'data_left_skewed': 'Data is left-skewed (long tail on the left)',
+    
+    # Verbose mode - Fitting process
+    'fitting_process': 'Fitting Process',
+    'distribution': 'Distribution',
+    'method': 'Method',
+    'about_method': 'About this method',
+    'mle_explanation': 'Maximum Likelihood Estimation finds parameters that maximize the probability of observing your data.',
+    'moments_explanation': 'Method of Moments matches theoretical moments (mean, variance) with sample moments.',
+    'method_explanation': 'This method fits the distribution to your data.',
+    
+    # Verbose mode - Parameter explanations
+    'meaning': 'Meaning',
+    'impact': 'Practical Impact',
+    
     # Statistics
-    'mean': 'Mean (μ)',
     'median': 'Median',
     'mode': 'Mode',
     'variance': 'Variance (σ²)',
     'std_deviation': 'Std Deviation (σ)',
-    'skewness': 'Skewness (asymmetry)',
     'kurtosis': 'Kurtosis (tail weight)',
     'percentile': '{p}th percentile',
     
@@ -147,13 +174,10 @@ EN_TRANSLATIONS = {
     # Fitter and Results
     'fit_results': 'Distribution Fitting Results',
     'data_summary': 'Data Summary',
-    'sample_size': 'Sample size',
     'ci_95': '95% CI',
-    'std_dev': 'Std. deviation',
     'outliers': 'Outliers',
     'model_ranking': 'Model Ranking',
     'rank': 'Rank',
-    'distribution': 'Distribution',
     'delta': 'Δ',
     'status': 'Status',
     'best_model': 'Best Model',
@@ -217,13 +241,35 @@ FA_TRANSLATIONS = {
     'characteristics': 'ویژگی‌های این توزیع',
     'warning': 'هشدار',
     
+    # Verbose mode - Data characteristics
+    'data_characteristics': 'ویژگی‌های داده',
+    'sample_size': 'تعداد نمونه',
+    'observations': 'مشاهده',
+    'mean': 'میانگین',
+    'std_dev': 'انحراف معیار',
+    'skewness': 'چولگی',
+    'data_approximately_symmetric': 'داده تقریباً متقارن است',
+    'data_right_skewed': 'داده راست‌چوله است (دنباله بلند سمت راست)',
+    'data_left_skewed': 'داده چپ‌چوله است (دنباله بلند سمت چپ)',
+    
+    # Verbose mode - Fitting process
+    'fitting_process': 'فرآیند فیت کردن',
+    'distribution': 'توزیع',
+    'method': 'روش',
+    'about_method': 'درباره این روش',
+    'mle_explanation': 'برآورد حداکثر درستنمایی پارامترهایی را پیدا می‌کند که احتمال مشاهده داده شما را حداکثر می‌کنند.',
+    'moments_explanation': 'روش گشتاورها، گشتاورهای نظری (میانگین، واریانس) را با گشتاورهای نمونه برابر قرار می‌دهد.',
+    'method_explanation': 'این روش توزیع را با داده شما فیت می‌کند.',
+    
+    # Verbose mode - Parameter explanations
+    'meaning': 'معنی',
+    'impact': 'تأثیر عملی',
+    
     # Statistics
-    'mean': 'میانگین (μ)',
     'median': 'میانه',
     'mode': 'مد (نما)',
     'variance': 'واریانس (σ²)',
     'std_deviation': 'انحراف معیار (σ)',
-    'skewness': 'چولگی (عدم تقارن)',
     'kurtosis': 'کشیدگی (سنگینی دنباله)',
     'percentile': 'صدک {p}',
     
@@ -244,7 +290,20 @@ FA_TRANSLATIONS = {
     'undefined': 'نامعلوم',
     'na': 'ندارد',
     
-    # Distribution characteristics and use cases
+    # (Rest of FA translations same as before - keeping for brevity)
+    **{k: v for k, v in FA_TRANSLATIONS.items() if k not in [
+        'estimated_parameters', 'location_statistics', 'spread_statistics',
+        'shape_statistics', 'key_quantiles', 'practical_applications',
+        'characteristics', 'warning', 'mean', 'median', 'mode', 'variance',
+        'std_deviation', 'skewness', 'kurtosis', 'percentile',
+        'right_skewed', 'left_skewed', 'symmetric', 'heavy_tails',
+        'light_tails', 'normal_tails', 'not_fitted', 'for_explanation',
+        'for_statistics', 'undefined', 'na'
+    ]}
+}
+
+FA_TRANSLATIONS.update({
+    # (Keep all existing FA translations)
     'use_measurement_errors': 'خطاهای اندازه‌گیری',
     'use_height_weight': 'قد و وزن',
     'use_test_scores': 'نمرات تست',
@@ -335,13 +394,10 @@ FA_TRANSLATIONS = {
     # Fitter and Results
     'fit_results': 'نتایج فیت توزیع‌های آماری',
     'data_summary': 'خلاصه داده',
-    'sample_size': 'تعداد نمونه',
     'ci_95': 'فاصله اطمینان ۹۵٪',
-    'std_dev': 'انحراف معیار',
     'outliers': 'نقاط پرت',
     'model_ranking': 'رتبه‌بندی مدل‌ها',
     'rank': 'رتبه',
-    'distribution': 'توزیع',
     'delta': 'Δ',
     'status': 'وضعیت',
     'best_model': 'مدل برتر',
@@ -349,7 +405,6 @@ FA_TRANSLATIONS = {
     'recommendations': 'پیشنهادات',
     'suggested_distributions': 'توزیع‌های پیشنهادی',
     'fitting': 'در حال فیت',
-    'distributions': 'توزیع',
     'estimation_method': 'روش تخمین',
     'selection_criterion': 'معیار انتخاب',
     'num_cores': 'تعداد کور',
@@ -387,16 +442,16 @@ FA_TRANSLATIONS = {
     'high_influence': 'نفوذ بالا (>{threshold:.3f})',
     'data_points': 'نقاط داده',
     'interactive_dashboard': 'داشبورد تعاملی فیت توزیع - بهترین: {model}',
-}
+})
 
 
 # ═══════════════════════════════════════════════════════════════
-# GERMAN TRANSLATIONS (Partial - extend as needed)
+# GERMAN TRANSLATIONS
 # ═══════════════════════════════════════════════════════════════
 
 DE_TRANSLATIONS = {
-    # (Keep existing DE translations and add new ones following the same pattern as EN/FA)
     **EN_TRANSLATIONS  # Fallback to English for now
+    # TODO: Add German translations
 }
 
 
