@@ -1,35 +1,32 @@
 Tutorial 5: Bootstrap Confidence Intervals
 ===========================================
 
-Learn how to quantify uncertainty in parameter estimates using bootstrap methods.
+Learn how to quantify uncertainty in parameter estimates.
 
 Why Bootstrap?
 --------------
 
-**Problem:** You fit a distribution and get parameter estimates, but how confident are you?
+**Point estimates aren't enough!**
 
-**Solution:** Bootstrap resampling provides confidence intervals without assumptions about sampling distributions.
+When you fit a distribution, you get parameter estimates. But how confident are you in those values?
 
-**Benefits:**
+.. code-block:: python
 
-- No need for mathematical formulas
-- Works for any statistic
-- Accounts for sample variability
-- Easy to understand and implement
+    dist.fit(data)
+    print(f"μ = {dist.params['loc']:.4f}")  # Point estimate
+    
+    # But what's the uncertainty? 🤔
+
+**Bootstrap answers:**
+
+- What's the range of plausible parameter values?
+- How stable are the estimates?
+- What's the standard error?
 
 Parametric Bootstrap
 --------------------
 
-**Idea:** Resample from the fitted distribution.
-
-**Steps:**
-
-1. Fit distribution to data → get θ̂
-2. Generate B bootstrap samples from f(x; θ̂)
-3. Refit distribution to each bootstrap sample → get θ̂*₁, θ̂*₂, ..., θ̂*ᵦ
-4. Calculate percentiles of {θ̂*ᵢ} for CI
-
-**Code:**
+**Resamples from the fitted distribution.**
 
 .. code-block:: python
 
@@ -47,8 +44,8 @@ Parametric Bootstrap
     
     # Parametric bootstrap
     ci_results = Bootstrap.parametric(
-        data=data,
-        distribution=dist,
+        data, 
+        dist, 
         n_bootstrap=1000,
         confidence_level=0.95,
         n_jobs=-1,  # Use all CPU cores
@@ -66,44 +63,37 @@ Parametric Bootstrap
     Bootstrap CI for loc
     ==================================================
     Point Estimate: 10.017342
-    95% CI: [9.894521, 10.138976]
+    95% CI: [9.895234, 10.139451]
     Method: Parametric Bootstrap
     Bootstrap Samples: 1000
     
     Bootstrap CI for scale
     ==================================================
     Point Estimate: 1.991847
-    95% CI: [1.948132, 2.036543]
+    95% CI: [1.930123, 2.053571]
     Method: Parametric Bootstrap
     Bootstrap Samples: 1000
 
-**Interpretation:**
+**How it works:**
 
-- We're 95% confident the true mean is between 9.89 and 10.14
-- We're 95% confident the true std is between 1.95 and 2.04
+1. Generate synthetic data from fitted distribution
+2. Refit distribution to synthetic data
+3. Repeat 1000 times
+4. Calculate percentiles of bootstrap estimates
 
-Non-parametric Bootstrap
+Non-Parametric Bootstrap
 ------------------------
 
-**Idea:** Resample from the observed data (with replacement).
+**Resamples from the original data.**
 
-**Steps:**
-
-1. Fit distribution to data → get θ̂
-2. Generate B bootstrap samples by resampling data
-3. Refit distribution to each bootstrap sample
-4. Calculate percentiles for CI
-
-**More conservative** than parametric (doesn't assume fitted distribution is correct).
-
-**Code:**
+More conservative, makes fewer assumptions.
 
 .. code-block:: python
 
     # Non-parametric bootstrap
     ci_nonparam = Bootstrap.nonparametric(
-        data=data,
-        distribution=dist,
+        data, 
+        dist, 
         n_bootstrap=1000,
         confidence_level=0.95,
         n_jobs=-1
@@ -112,294 +102,325 @@ Non-parametric Bootstrap
     for param, result in ci_nonparam.items():
         print(result)
 
-**When to use:**
+**Differences from Parametric:**
 
-- Not confident about distribution choice
-- Want more conservative estimates
-- Data may have unusual features
+- ✅ More robust (doesn't assume distribution is correct)
+- ✅ Better for small samples
+- ❌ Wider intervals (more conservative)
+- ❌ Slower for large datasets
 
-Comparing Methods
------------------
+Choosing Bootstrap Type
+-----------------------
+
+**Use Parametric when:**
+
+- Confident in distribution choice
+- GOF tests passed
+- Need precise intervals
+- Large dataset available
+
+**Use Non-Parametric when:**
+
+- Uncertain about distribution
+- Small sample
+- Want conservative estimates
+- Robustness is priority
+
+**Example comparison:**
 
 .. code-block:: python
 
-    print("Parametric Bootstrap:")
-    for p, r in ci_param.items():
-        print(f"  {p}: [{r.ci_lower:.4f}, {r.ci_upper:.4f}]")
+    # Fit distribution
+    dist = get_distribution('normal')
+    dist.fit(data)
     
-    print("\nNon-parametric Bootstrap:")
-    for p, r in ci_nonparam.items():
-        print(f"  {p}: [{r.ci_lower:.4f}, {r.ci_upper:.4f}]")
-
-**Typical pattern:**
-
-- Non-parametric CIs are usually **wider** (more conservative)
-- If CIs are very different, distribution may not fit well
+    # Both methods
+    ci_param = Bootstrap.parametric(data, dist, n_bootstrap=1000)
+    ci_nonparam = Bootstrap.nonparametric(data, dist, n_bootstrap=1000)
+    
+    # Compare for 'loc' parameter
+    print("Parametric CI:")
+    print(f"  [{ci_param['loc'].ci_lower:.4f}, {ci_param['loc'].ci_upper:.4f}]")
+    
+    print("\nNon-parametric CI:")
+    print(f"  [{ci_nonparam['loc'].ci_lower:.4f}, {ci_nonparam['loc'].ci_upper:.4f}]")
 
 Bias-Corrected Accelerated (BCa)
 ---------------------------------
 
-**Most accurate bootstrap CI method.**
+**Most accurate bootstrap method.**
 
-Corrects for:
-
-1. **Bias** - when bootstrap distribution is shifted
-2. **Skewness** - when bootstrap distribution is asymmetric
-
-**Code:**
+Adjusts for bias and skewness in bootstrap distribution.
 
 .. code-block:: python
 
-    # BCa requires manual implementation for each parameter
-    # Example for mean
-    def estimate_mean(sample):
-        d = get_distribution('normal')
-        d.fit(sample)
-        return d.params['loc']
+    # BCa requires custom estimator function
+    def estimate_mean(data):
+        """Estimator function for BCa"""
+        dist_temp = get_distribution('normal')
+        dist_temp.fit(data)
+        return dist_temp.params['loc']
     
-    # Get bootstrap samples for loc
-    boot_samples_loc = []
+    # Generate bootstrap samples first
+    boot_samples = []
     for i in range(1000):
-        boot_data = dist.rvs(size=len(data), random_state=i)
-        d = get_distribution('normal')
-        d.fit(boot_data)
-        boot_samples_loc.append(d.params['loc'])
+        boot_data = np.random.choice(data, size=len(data), replace=True)
+        boot_estimate = estimate_mean(boot_data)
+        boot_samples.append(boot_estimate)
     
-    boot_samples_loc = np.array(boot_samples_loc)
+    boot_samples = np.array(boot_samples)
     
     # BCa CI
-    bca_ci = Bootstrap.bca_ci(
-        bootstrap_samples=boot_samples_loc,
-        original_estimate=dist.params['loc'],
-        data=data,
-        estimator_func=estimate_mean,
+    original_estimate = dist.params['loc']
+    ci_lower, ci_upper = Bootstrap.bca_ci(
+        boot_samples,
+        original_estimate,
+        data,
+        estimate_mean,
         confidence_level=0.95
     )
     
-    print(f"BCa CI: [{bca_ci[0]:.4f}, {bca_ci[1]:.4f}]")
+    print(f"BCa 95% CI: [{ci_lower:.4f}, {ci_upper:.4f}]")
 
-**When to use:**
+**When to use BCa:**
 
-- Need most accurate CIs
-- Parameter distribution is skewed
-- Have computational resources
+- Small samples (n < 100)
+- Skewed bootstrap distribution
+- Maximum accuracy needed
+- Academic/research settings
 
-Practical Examples
-------------------
+Confidence Levels
+-----------------
 
-Example 1: Small Sample
-^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: python
-
-    # Only 30 observations
-    small_data = np.random.gamma(2, 3, 30)
-    
-    dist = get_distribution('gamma')
-    dist.fit(small_data)
-    
-    # Bootstrap CI (more reliable with small n)
-    ci = Bootstrap.parametric(
-        small_data, dist,
-        n_bootstrap=2000,  # More samples for small data
-        n_jobs=-1
-    )
-    
-    for param, result in ci.items():
-        width = result.ci_upper - result.ci_lower
-        print(f"{param}: {result.estimate:.3f} ± {width/2:.3f}")
-
-Example 2: Reliability Metric
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**Default is 95%, but you can change it:**
 
 .. code-block:: python
 
-    # Component lifetimes
-    lifetimes = np.random.weibull(1.5, 500) * 1000
+    # 90% CI (narrower)
+    ci_90 = Bootstrap.parametric(data, dist, confidence_level=0.90)
     
-    dist = get_distribution('weibull')
-    dist.fit(lifetimes)
+    # 99% CI (wider)
+    ci_99 = Bootstrap.parametric(data, dist, confidence_level=0.99)
     
-    # Bootstrap
-    ci = Bootstrap.parametric(lifetimes, dist, n_bootstrap=1000)
-    
-    # Now calculate derived metric with uncertainty
-    # MTTF = scale * Gamma(1 + 1/k)
-    from scipy.special import gamma as gamma_func
-    
-    def mttf_from_params(params):
-        k = params['c']
-        lam = params['scale']
-        return lam * gamma_func(1 + 1/k)
-    
-    # Bootstrap MTTF
-    boot_mttfs = []
-    for i in range(1000):
-        boot_sample = dist.rvs(size=len(lifetimes), random_state=i)
-        d = get_distribution('weibull')
-        d.fit(boot_sample)
-        boot_mttfs.append(mttf_from_params(d.params))
-    
-    mttf_ci = Bootstrap.percentile_ci(np.array(boot_mttfs), 0.95)
-    print(f"MTTF: {mttf_from_params(dist.params):.1f}")
-    print(f"95% CI: [{mttf_ci[0]:.1f}, {mttf_ci[1]:.1f}]")
+    # Compare widths
+    for level, ci in [(0.90, ci_90), (0.95, ci_results), (0.99, ci_99)]:
+        width = ci['loc'].ci_upper - ci['loc'].ci_lower
+        print(f"{int(level*100)}% CI width: {width:.4f}")
 
-Example 3: Quantile CI
-^^^^^^^^^^^^^^^^^^^^^^
+**Output:**
 
-.. code-block:: python
+::
 
-    # CI for 99th percentile (VaR)
-    returns = np.random.standard_t(df=5, size=1000) * 0.02
-    
-    dist = get_distribution('studentt')
-    dist.fit(returns)
-    
-    # Bootstrap 99th percentile
-    boot_q99 = []
-    for i in range(1000):
-        boot_sample = dist.rvs(size=len(returns), random_state=i)
-        d = get_distribution('studentt')
-        d.fit(boot_sample)
-        boot_q99.append(d.ppf(0.99))
-    
-    q99_ci = Bootstrap.percentile_ci(np.array(boot_q99), 0.95)
-    
-    print(f"99th percentile: {dist.ppf(0.99):.4f}")
-    print(f"95% CI: [{q99_ci[0]:.4f}, {q99_ci[1]:.4f}]")
-
-Choosing Bootstrap Parameters
-------------------------------
-
-**Number of Bootstrap Samples (B)**
-
-.. code-block:: python
-
-    # Quick check
-    B = 100  # Fast but less stable
-    
-    # Standard
-    B = 1000  # Good balance
-    
-    # High precision
-    B = 10000  # Slow but very stable
-    
-    # Publication quality
-    B = 50000  # For important results
-
-**Rule of thumb:** B = 1000 is usually enough.
-
-**Confidence Level**
-
-.. code-block:: python
-
-    # Standard
-    confidence_level = 0.95  # 95% CI
-    
-    # Stricter
-    confidence_level = 0.99  # 99% CI
-    
-    # More lenient
-    confidence_level = 0.90  # 90% CI
+    90% CI width: 0.2043
+    95% CI width: 0.2442
+    99% CI width: 0.3215
 
 Parallel Processing
 -------------------
 
-**Speed up bootstrap with multiple cores:**
+**Bootstrap is embarrassingly parallel!**
+
+Speed up with multiple CPU cores:
 
 .. code-block:: python
 
-    # Use all cores
-    ci = Bootstrap.parametric(data, dist, n_jobs=-1)
+    import time
     
-    # Use 4 cores
-    ci = Bootstrap.parametric(data, dist, n_jobs=4)
+    # Serial (1 core)
+    start = time.time()
+    ci_serial = Bootstrap.parametric(data, dist, n_bootstrap=1000, n_jobs=1)
+    time_serial = time.time() - start
     
-    # No parallelization
-    ci = Bootstrap.parametric(data, dist, n_jobs=1)
+    # Parallel (all cores)
+    start = time.time()
+    ci_parallel = Bootstrap.parametric(data, dist, n_bootstrap=1000, n_jobs=-1)
+    time_parallel = time.time() - start
+    
+    print(f"Serial: {time_serial:.2f}s")
+    print(f"Parallel: {time_parallel:.2f}s")
+    print(f"Speedup: {time_serial/time_parallel:.1f}x")
 
-**Speedup example:**
+**Typical speedup:** 4-6x on 8-core CPU
+
+Progress Bars
+-------------
+
+**Track bootstrap progress with tqdm:**
+
+.. code-block:: python
+
+    # Automatically shows progress bar
+    ci = Bootstrap.parametric(data, dist, n_bootstrap=5000)
+
+**Output:**
 
 ::
 
-    1000 samples, 10000 data points
-    n_jobs=1:  45 seconds
-    n_jobs=4:  13 seconds (3.5x faster)
-    n_jobs=-1: 8 seconds (5.6x faster on 8-core CPU)
+    Parametric Bootstrap: 100%|██████████| 5000/5000 [00:12<00:00, 412.34it/s]
 
-Limitations
------------
+Interpreting Results
+--------------------
 
-**1. Assumes IID data**
-
-Bootstrap assumes independent, identically distributed observations.
-
-**Not suitable for:**
-- Time series (autocorrelation)
-- Spatial data (spatial correlation)
-- Clustered data
-
-**2. Computational cost**
+**What do confidence intervals tell you?**
 
 .. code-block:: python
 
-    # Can be slow for large data/many samples
-    # 1M data points × 10k bootstrap = 10 billion fits!
+    result = ci_results['loc']
+    print(result)
 
-**3. Model misspecification**
+**Interpretation:**
 
-Parametric bootstrap assumes the fitted model is correct.
+1. **Point Estimate:** Best guess for parameter
+2. **CI Lower/Upper:** Plausible range
+3. **Confidence Level:** How often CI contains true value
 
-**Solution:** Use non-parametric or check GOF tests first.
+**Example:**
+
+::
+
+    95% CI: [9.895, 10.139]
+
+- We're 95% confident the true μ is between 9.895 and 10.139
+- If we repeated this experiment 100 times, ~95 CIs would contain true μ
+- Narrower CI = more precise estimate
+
+Practical Examples
+------------------
+
+**Example 1: Small Sample Uncertainty**
+
+.. code-block:: python
+
+    # Only 30 observations
+    small_data = np.random.normal(10, 2, 30)
+    
+    dist = get_distribution('normal')
+    dist.fit(small_data)
+    
+    # Bootstrap shows high uncertainty
+    ci = Bootstrap.nonparametric(small_data, dist, n_bootstrap=1000)
+    
+    width = ci['loc'].ci_upper - ci['loc'].ci_lower
+    print(f"CI width: {width:.4f}")  # Wide interval!
+
+**Example 2: Reliability Analysis**
+
+.. code-block:: python
+
+    # Component lifetimes
+    lifetimes = np.random.weibull(2, 100) * 1000
+    
+    dist = get_distribution('weibull')
+    dist.fit(lifetimes)
+    
+    # Bootstrap CI for Weibull parameters
+    ci = Bootstrap.parametric(lifetimes, dist, n_bootstrap=2000)
+    
+    # Reliability at t=500 with uncertainty
+    # (would need additional bootstrapping of reliability function)
+
+**Example 3: Comparing Estimators**
+
+.. code-block:: python
+
+    # Compare MLE vs Moments
+    dist_mle = get_distribution('gamma')
+    dist_mle.fit(data, method='mle')
+    
+    dist_mom = get_distribution('gamma')
+    dist_mom.fit(data, method='moments')
+    
+    # Bootstrap both
+    ci_mle = Bootstrap.parametric(data, dist_mle, n_bootstrap=1000)
+    ci_mom = Bootstrap.parametric(data, dist_mom, n_bootstrap=1000)
+    
+    # Compare widths (narrower = more efficient)
+    for param in ci_mle.keys():
+        width_mle = ci_mle[param].ci_upper - ci_mle[param].ci_lower
+        width_mom = ci_mom[param].ci_upper - ci_mom[param].ci_lower
+        print(f"{param}: MLE width={width_mle:.4f}, Moments width={width_mom:.4f}")
+
+Bootstrap Diagnostics
+---------------------
+
+**Check bootstrap distribution:**
+
+.. code-block:: python
+
+    import matplotlib.pyplot as plt
+    
+    # Collect bootstrap estimates
+    boot_estimates = []
+    for i in range(1000):
+        boot_sample = dist.rvs(size=len(data), random_state=i)
+        dist_boot = get_distribution('normal')
+        dist_boot.fit(boot_sample)
+        boot_estimates.append(dist_boot.params['loc'])
+    
+    boot_estimates = np.array(boot_estimates)
+    
+    # Plot histogram
+    plt.hist(boot_estimates, bins=50, density=True, alpha=0.7)
+    plt.axvline(dist.params['loc'], color='red', label='Original estimate')
+    plt.axvline(np.percentile(boot_estimates, 2.5), 
+                color='blue', linestyle='--', label='95% CI')
+    plt.axvline(np.percentile(boot_estimates, 97.5), 
+                color='blue', linestyle='--')
+    plt.xlabel('Parameter value')
+    plt.ylabel('Density')
+    plt.legend()
+    plt.title('Bootstrap Distribution')
+    plt.show()
 
 Best Practices
 --------------
 
-1. **Always set random_state for reproducibility**
+1. **Use enough bootstrap samples**
    
-   .. code-block:: python
-   
-       ci = Bootstrap.parametric(data, dist, random_state=42)
+   - Minimum: 1000
+   - Standard: 2000-5000
+   - Publication: 10,000+
 
-2. **Use parallel processing**
+2. **Set random seed for reproducibility**
    
    .. code-block:: python
    
-       ci = Bootstrap.parametric(data, dist, n_jobs=-1)
+       Bootstrap.parametric(data, dist, random_state=42)
 
-3. **Check convergence**
+3. **Use parallel processing**
    
    .. code-block:: python
    
-       # Try different B
-       for B in [100, 500, 1000, 2000]:
-           ci = Bootstrap.parametric(data, dist, n_bootstrap=B)
-           print(f"B={B}: {ci['loc'].ci_lower:.4f}")
-       
-       # Should stabilize
+       Bootstrap.parametric(data, dist, n_jobs=-1)
 
-4. **Compare methods**
+4. **Check GOF first**
    
-   .. code-block:: python
-   
-       # Both parametric and non-parametric
-       # If very different, investigate why
+   Bootstrap assumes your distribution is reasonable!
 
-5. **Visualize bootstrap distribution**
+5. **Report CI width**
    
-   .. code-block:: python
-   
-       import matplotlib.pyplot as plt
-       
-       boot_params = []  # Collect from bootstrap
-       plt.hist(boot_params, bins=50)
-       plt.axvline(ci_lower, color='r')
-       plt.axvline(ci_upper, color='r')
-       plt.show()
+   Not just the interval, but how wide it is.
+
+Limitations
+-----------
+
+**Bootstrap doesn't fix:**
+
+- Poor distribution choice
+- Model misspecification
+- Biased data
+- Small sample fundamental limits
+
+**Bootstrap helps with:**
+
+- Quantifying uncertainty
+- Non-normal parameter distributions
+- Complex estimators
+- Hypothesis testing
 
 Next Steps
 ----------
 
-- :doc:`06_diagnostics` - Residuals and outliers
+- :doc:`06_diagnostics` - Detailed model diagnostics
 - :doc:`07_weighted_data` - Weighted bootstrap
-- :doc:`08_visualization` - Plot bootstrap results
+- :doc:`08_visualization` - Visualize uncertainty
