@@ -1,25 +1,26 @@
 """Model Selection Criteria
 ========================
 
-این ماژول معیارهای مختلف انتخاب مدل را پیاده‌سازی می‌کند:
+This module implements various model selection criteria:
 - AIC (Akaike Information Criterion)
 - BIC (Bayesian Information Criterion)
 - WAIC (Watanabe-Akaike Information Criterion)
 - LOO-CV (Leave-One-Out Cross-Validation)
 
-هر معیار توضیح می‌دهد که چرا یک مدل را بهتر می‌داند.
+Each criterion explains why one model is better than another.
 """
 
 from dataclasses import dataclass
 from typing import List, Dict, Optional
 import numpy as np
 from scipy import stats
+from ..locales import t
 
 
 @dataclass
 class ModelScore:
     """
-    امتیاز یک مدل با توضیحات
+    Model score with explanations
     """
     distribution_name: str
     criterion: str
@@ -35,9 +36,9 @@ class ModelScore:
 
 class ModelSelection:
     """
-    کلاس اصلی برای انتخاب مدل
+    Main class for model selection
     
-    این کلاس معیارهای مختلف را محاسبه و مقایسه می‌کند.
+    This class computes and compares different selection criteria.
     """
     
     @staticmethod
@@ -45,20 +46,20 @@ class ModelSelection:
         """
         Akaike Information Criterion (AIC)
         
-        فرمول: AIC = 2k - 2ln(L)
+        Formula: AIC = 2k - 2ln(L)
         
-        توضیح:
-        -------
-        - k: تعداد پارامترهای مدل
+        Explanation:
+        -----------
+        - k: number of model parameters
         - L: likelihood
-        - مدل با AIC کمتر بهتر است
-        - جریمه برای پیچیدگی: 2k
+        - Lower AIC is better
+        - Penalty for complexity: 2k
         
-        کاربرد:
-        --------
-        - مناسب برای نمونه‌های متوسط تا بزرگ (n > 40)
-        - برای prediction بهتر است
-        - نسبت به BIC، مدل‌های پیچیده‌تر را ترجیح می‌دهد
+        Usage:
+        ------
+        - Suitable for medium to large samples (n > 40)
+        - Better for prediction
+        - Prefers more complex models compared to BIC
         """
         return 2 * n_params - 2 * log_likelihood
     
@@ -67,18 +68,18 @@ class ModelSelection:
         """
         Corrected AIC (AICc) for small samples
         
-        فرمول: AICc = AIC + [2k²+ 2k] / [n - k - 1]
+        Formula: AICc = AIC + [2k²+ 2k] / [n - k - 1]
         
-        توضیح:
-        -------
-        - اصلاح AIC برای نمونه‌های کوچک
-        - وقتی n/k < 40، استفاده شود
-        - برای n → ∞ به AIC میل می‌کند
+        Explanation:
+        -----------
+        - Correction of AIC for small samples
+        - Should be used when n/k < 40
+        - Converges to AIC as n → ∞
         
-        کاربرد:
-        --------
-        - نمونه‌های کوچک (n < 40)
-        - جلوگیری از overfitting
+        Usage:
+        ------
+        - Small samples (n < 40)
+        - Prevents overfitting
         """
         aic = ModelSelection.compute_aic(log_likelihood, n_params)
         correction = (2 * n_params**2 + 2 * n_params) / (n_samples - n_params - 1)
@@ -89,36 +90,36 @@ class ModelSelection:
         """
         Bayesian Information Criterion (BIC)
         
-        فرمول: BIC = k·ln(n) - 2ln(L)
+        Formula: BIC = k·ln(n) - 2ln(L)
         
-        توضیح:
-        -------
-        - جریمه قوی‌تر برای پیچیدگی: k·ln(n)
-        - مناسب برای نمونه‌های بزرگ
-        - مدل با BIC کمتر بهتر است
+        Explanation:
+        -----------
+        - Stronger penalty for complexity: k·ln(n)
+        - Suitable for large samples
+        - Lower BIC is better
         
-        کاربرد:
-        --------
-        - وقتی هدف identification مدل واقعی است
-        - مدل‌های ساده‌تر را بیشتر ترجیح می‌دهد
-        - برای n بزرگ، جریمه شدیدتر از AIC
+        Usage:
+        ------
+        - When goal is identification of true model
+        - Prefers simpler models more strongly
+        - For large n, penalty is stronger than AIC
         
-        تفاوت با AIC:
-        --------------
-        - AIC: بهتر برای prediction
-        - BIC: بهتر برای selection (انتخاب مدل درست)
+        Difference from AIC:
+        --------------------
+        - AIC: better for prediction
+        - BIC: better for model selection (finding true model)
         """
         return n_params * np.log(n_samples) - 2 * log_likelihood
     
     @staticmethod
     def compute_likelihood(data: np.ndarray, distribution) -> float:
         """
-        محاسبه log-likelihood
+        Compute log-likelihood
         
-        توضیح:
-        -------
-        - احتمال دیدن داده تحت مدل
-        - log استفاده می‌شود برای stability عددی
+        Explanation:
+        -----------
+        - Probability of observing data under the model
+        - Log is used for numerical stability
         """
         log_lik = np.sum(distribution.logpdf(data))
         return log_lik
@@ -130,21 +131,21 @@ class ModelSelection:
         criterion: str = 'aic'
     ) -> List[ModelScore]:
         """
-        مقایسه چند مدل با یک معیار
+        Compare multiple models using one criterion
         
         Parameters:
         -----------
         data : array-like
-            داده
+            Data
         fitted_distributions : list
-            لیست توزیع‌های فیت‌شده
+            List of fitted distributions
         criterion : str
             'aic', 'aicc', 'bic', 'loo_cv'
         
         Returns:
         --------
         scores : list of ModelScore
-            امتیازات مرتب شده (بهترین اول)
+            Sorted scores (best first)
         """
         n_samples = len(data)
         scores = []
@@ -177,7 +178,7 @@ class ModelSelection:
                 explanation=expl
             ))
         
-        # مرتب‌سازی (کمترین امتیاز = بهترین)
+        # Sort (lowest score = best)
         scores.sort(key=lambda x: x.score)
         for rank, score_obj in enumerate(scores, 1):
             score_obj.rank = rank
@@ -189,123 +190,124 @@ class ModelSelection:
         """
         Leave-One-Out Cross-Validation
         
-        توضیح:
-        -------
-        - برای هر نقطه داده:
-          1. مدل را بدون آن نقطه فیت کن
-          2. log-likelihood آن نقطه را محاسبه کن
-        - مجموع log-likelihoods منفی = LOO score
+        Explanation:
+        -----------
+        - For each data point:
+          1. Fit model without that point
+          2. Compute log-likelihood of that point
+        - Sum of negative log-likelihoods = LOO score
         
-        مزایا:
-        -------
-        - مستقیم کیفیت prediction را می‌سنجد
-        - به overfitting حساس است
-        - نیاز به تقسیم‌بندی ندارد
+        Advantages:
+        -----------
+        - Directly measures prediction quality
+        - Sensitive to overfitting
+        - No need for data splitting
         
-        معایب:
-        -------
-        - محاسباتی گران (n بار فیت)
-        - برای n بزرگ کند است
+        Disadvantages:
+        --------------
+        - Computationally expensive (n fits)
+        - Slow for large n
         """
         n = len(data)
         loo_scores = []
         
         for i in range(n):
-            # حذف یک نقطه
+            # Remove one point
             train_data = np.delete(data, i)
             test_point = data[i:i+1]
             
-            # فیت روی بقیه
+            # Fit on rest
             dist_temp = distribution.__class__()
             try:
                 dist_temp.fit(train_data, method='mle')
-                # محاسبه log-likelihood نقطه‌ی حذف‌شده
+                # Compute log-likelihood of removed point
                 log_lik = dist_temp.logpdf(test_point)[0]
                 loo_scores.append(log_lik)
             except:
-                # اگر فیت ناموفق بود، جریمه سنگین
+                # If fit fails, heavy penalty
                 loo_scores.append(-1e6)
         
-        # منفی مجموع log-likelihoods
+        # Negative sum of log-likelihoods
         return -np.sum(loo_scores)
     
     @staticmethod
     def _explain_aic(aic_value: float, n_params: int, n_samples: int) -> str:
-        """توضیح AIC"""
+        """Explain AIC"""
         return f"""AIC = {aic_value:.2f}
 
-💡 این عدد از دو بخش تشکیل شده:
-   • جریمه پیچیدگی: 2×{n_params} = {2*n_params}
-   • Goodness of fit: -2×log(likelihood)
+{t('model_sel_aic_components')}:
+   • {t('model_sel_complexity_penalty')}: 2×{n_params} = {2*n_params}
+   • {t('model_sel_goodness_of_fit')}: -2×log(likelihood)
    
-📊 تفسیر:
-   • عدد کوچک‌تر = مدل بهتر
-   • تعادل بین fit خوب و سادگی
-   • مناسب برای prediction
+{t('model_sel_interpretation')}:
+   • {t('model_sel_lower_better')}
+   • {t('model_sel_aic_balance')}
+   • {t('model_sel_aic_prediction')}
 """
     
     @staticmethod
     def _explain_aicc(aicc_value: float, n_params: int, n_samples: int) -> str:
-        """توضیح AICc"""
+        """Explain AICc"""
         ratio = n_samples / n_params
+        warning = t('model_sel_aicc_small_sample') if ratio < 40 else t('model_sel_aicc_large_sample')
         return f"""AICc = {aicc_value:.2f}
 
-💡 اصلاح AIC برای نمونه کوچک:
+{t('model_sel_aicc_correction')}:
    • n/k = {ratio:.1f}
-   • {"⚠️ نمونه کوچک - AICc را استفاده کن" if ratio < 40 else "✅ نمونه بزرگ - AIC کافی است"}
+   • {warning}
 """
     
     @staticmethod
     def _explain_bic(bic_value: float, n_params: int, n_samples: int) -> str:
-        """توضیح BIC"""
+        """Explain BIC"""
         penalty_ratio = np.log(n_samples) / 2
         return f"""BIC = {bic_value:.2f}
 
-💡 این عدد جریمه قوی‌تری برای پیچیدگی دارد:
-   • جریمه: {n_params}×ln({n_samples}) = {n_params * np.log(n_samples):.1f}
-   • نسبت جریمه BIC/AIC: {penalty_ratio:.2f}×
+{t('model_sel_bic_strong_penalty')}:
+   • {t('model_sel_penalty')}: {n_params}×ln({n_samples}) = {n_params * np.log(n_samples):.1f}
+   • {t('model_sel_bic_aic_ratio')}: {penalty_ratio:.2f}×
    
-📊 تفسیر:
-   • مدل‌های ساده‌تر را بیشتر ترجیح می‌دهد
-   • برای یافتن "مدل واقعی" مناسب است
-   • با افزایش n، جریمه شدیدتر می‌شود
+{t('model_sel_interpretation')}:
+   • {t('model_sel_bic_simpler')}
+   • {t('model_sel_bic_true_model')}
+   • {t('model_sel_bic_increasing_n')}
 """
     
     @staticmethod
     def _explain_loo(loo_value: float) -> str:
-        """توضیح LOO-CV"""
+        """Explain LOO-CV"""
         return f"""LOO-CV = {loo_value:.2f}
 
-💡 امتیاز cross-validation:
-   • مستقیماً توان prediction را می‌سنجد
-   • هر نقطه یک‌بار test می‌شود
-   • عدد کوچک‌تر = prediction بهتر
+{t('model_sel_loo_cv_score')}:
+   • {t('model_sel_loo_direct')}
+   • {t('model_sel_loo_each_point')}
+   • {t('model_sel_lower_better')}
 """
 
 
 class DeltaComparison:
     """
-    مقایسه مدل‌ها بر اساس Δ (delta) criteria
+    Compare models based on Δ (delta) criteria
     
     Δ_i = criterion_i - criterion_best
     
-    تفسیر:
-    -------
-    - Δ < 2: مدل‌ها تقریباً یکسان‌اند
-    - 2 < Δ < 7: مدل بهترین قابل‌توجه بهتر است
-    - Δ > 10: مدل بهترین به‌مراتب بهتر است
+    Interpretation:
+    ---------------
+    - Δ < 2: Models are roughly equivalent
+    - 2 < Δ < 7: Best model is noticeably better
+    - Δ > 10: Best model is substantially better
     """
     
     @staticmethod
     def compute_deltas(scores: List[ModelScore]) -> List[Dict]:
         """
-        محاسبه Δ برای هر مدل
+        Compute Δ for each model
         
         Returns:
         --------
-        list of dict با توضیحات
+        list of dict with explanations
         """
-        best_score = scores[0].score  # کمترین
+        best_score = scores[0].score  # Lowest
         deltas = []
         
         for score in scores:
@@ -323,23 +325,23 @@ class DeltaComparison:
     
     @staticmethod
     def _interpret_delta(delta: float) -> str:
-        """تفسیر مقدار Δ"""
+        """Interpret Δ value"""
         if delta < 2:
-            return "✅ تقریباً یکسان با بهترین مدل - هر دو قابل استفاده"
+            return t('model_sel_delta_equivalent')
         elif delta < 7:
-            return "⚠️ قابل‌توجه ضعیف‌تر - اگر دلیل خاصی نباشد، بهترین را بگیر"
+            return t('model_sel_delta_noticeably_worse')
         else:
-            return "❌ به‌مراتب ضعیف‌تر - استفاده نشود"
+            return t('model_sel_delta_substantially_worse')
     
     @staticmethod
     def print_comparison(scores: List[ModelScore]):
-        """چاپ مقایسه زیبا"""
+        """Print beautiful comparison"""
         deltas = DeltaComparison.compute_deltas(scores)
         
         print("\n" + "="*70)
-        print("📊 مقایسه مدل‌ها بر اساس", scores[0].criterion)
+        print(f"{t('model_sel_comparison_title')} {scores[0].criterion}")
         print("="*70)
-        print(f"{'Rank':<6} {'Model':<15} {'Score':<12} {'Δ':<10} {'تفسیر'}")
+        print(f"{'Rank':<6} {'Model':<15} {'Score':<12} {'Δ':<10} {t('model_sel_interpretation')}")
         print("-"*70)
         
         for i, (score, delta_info) in enumerate(zip(scores, deltas), 1):
@@ -348,6 +350,6 @@ class DeltaComparison:
                   f"{delta_info['interpretation']}")
         
         print("="*70)
-        print(f"\n🏆 مدل برتر: {scores[0].distribution_name}")
-        print(f"\n💡 توضیح:")
+        print(f"\n{t('model_sel_best_model')}: {scores[0].distribution_name}")
+        print(f"\n{t('model_sel_explanation')}:")
         print(scores[0].explanation)
