@@ -1,511 +1,55 @@
 """
-Distribution Classes with Self-Explanatory Behavior
-===================================================
+Distribution Implementations
+============================
 
-This module contains statistical distribution classes where each:
-- Clearly explains parameters
-- Specifies appropriate data ranges
-- Demonstrates practical applications
+Concrete implementations of all probability distributions.
 
-**30 Statistical Distributions:**
-- 25 Continuous Distributions
-- 5 Discrete Distributions
+Author: Ali Sadeghi Aghili
 """
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Dict, Any, Optional, Tuple, List
 import numpy as np
 from scipy import stats
-from scipy.optimize import minimize, brentq
-from scipy.special import gamma as gamma_func
-from ..locales import t
+from typing import Dict, Optional
+from .base import (
+    ContinuousDistribution,
+    DiscreteDistribution,
+    DistributionInfo
+)
 
 
-@dataclass
-class DistributionInfo:
-    """Information about a distribution"""
-    name: str
-    display_name: str
-    parameters: Dict[str, str]
-    support: str
-    use_cases: List[str]
-    characteristics: List[str]
-    warning: Optional[str] = None
-
-
-class BaseDistribution(ABC):
-    """
-    Base class for all distributions
-    
-    Each distribution must implement:
-    - pdf/pmf: probability density/mass function
-    - cdf: cumulative distribution function
-    - ppf: percent point function (inverse CDF)
-    - fit: parameter estimation from data
-    - explain: conceptual explanation
-    
-    Example:
-    --------
-    >>> from distfit_pro.core.distributions import get_distribution
-    >>> import numpy as np
-    >>> 
-    >>> # Generate sample data
-    >>> data = np.random.normal(loc=10, scale=2, size=1000)
-    >>> 
-    >>> # Fit distribution
-    >>> dist = get_distribution('normal')
-    >>> dist.fit(data, method='mle')
-    >>> 
-    >>> # View summary
-    >>> print(dist.summary())
-    >>> 
-    >>> # Get statistics
-    >>> print(f"Mean: {dist.mean():.2f}")
-    >>> print(f"Std: {dist.std():.2f}")
-    """
-    
-    def __init__(self):
-        self.params: Optional[Dict[str, float]] = None
-        self.fitted: bool = False
-        self._scipy_dist = None
-        self._is_discrete = False
-        
-    @property
-    @abstractmethod
-    def info(self) -> DistributionInfo:
-        """Distribution information"""
-        pass
-    
-    @abstractmethod
-    def pdf(self, x: np.ndarray) -> np.ndarray:
-        """Probability density/mass function"""
-        pass
-    
-    @abstractmethod
-    def cdf(self, x: np.ndarray) -> np.ndarray:
-        """Cumulative distribution function"""
-        pass
-    
-    @abstractmethod
-    def ppf(self, q: np.ndarray) -> np.ndarray:
-        """Percent point function (inverse of CDF)"""
-        pass
-    
-    def logpdf(self, x: np.ndarray) -> np.ndarray:
-        """Log probability density"""
-        return np.log(self.pdf(x) + 1e-300)
-    
-    def logcdf(self, x: np.ndarray) -> np.ndarray:
-        """Log cumulative distribution"""
-        return np.log(self.cdf(x) + 1e-300)
-    
-    def sf(self, x: np.ndarray) -> np.ndarray:
-        """Survival function (1 - CDF)"""
-        return 1.0 - self.cdf(x)
-    
-    def isf(self, q: np.ndarray) -> np.ndarray:
-        """Inverse survival function"""
-        return self.ppf(1.0 - q)
-    
-    def rvs(self, size: int = 1, random_state: Optional[int] = None) -> np.ndarray:
-        """
-        Generate random samples from the fitted distribution
-        
-        Parameters:
-        -----------
-        size : int
-            Number of random samples to generate
-        random_state : int, optional
-            Seed for reproducibility
-            
-        Returns:
-        --------
-        samples : np.ndarray
-            Random samples from the distribution
-            
-        Example:
-        --------
-        >>> dist = get_distribution('normal')
-        >>> dist.fit(data)
-        >>> samples = dist.rvs(size=100, random_state=42)
-        """
-        if random_state is not None:
-            np.random.seed(random_state)
-        if self._scipy_dist and self.params:
-            return self._scipy_dist.rvs(**self.params, size=size, random_state=random_state)
-        u = np.random.uniform(0, 1, size)
-        return self.ppf(u)
-    
-    # ========== Distribution Statistics ==========
-    
-    def mean(self) -> float:
-        """Distribution mean"""
-        if self._scipy_dist and self.params:
-            return self._scipy_dist.mean(**self.params)
-        raise NotImplementedError(f"Mean not implemented for {self.info.name}")
-    
-    def var(self) -> float:
-        """Distribution variance"""
-        if self._scipy_dist and self.params:
-            return self._scipy_dist.var(**self.params)
-        raise NotImplementedError(f"Variance not implemented for {self.info.name}")
-    
-    def variance(self) -> float:
-        """Alias for var()"""
-        return self.var()
-    
-    def std(self) -> float:
-        """Distribution standard deviation"""
-        return np.sqrt(self.var())
-    
-    def median(self) -> float:
-        """Distribution median (50th percentile)"""
-        return self.ppf(0.5)
-    
-    def mode(self) -> float:
-        """
-        Distribution mode (value with highest density)
-        
-        Returns:
-        --------
-        mode : float
-            Value where PDF/PMF is maximum
-        """
-        if hasattr(self, '_mode_at_zero') and self._mode_at_zero:
-            return 0.0
-        if hasattr(self, '_mode_value'):
-            return self._mode_value()
-        try:
-            x_min = self.ppf(0.01)
-            x_max = self.ppf(0.99)
-            from scipy.optimize import minimize_scalar
-            result = minimize_scalar(lambda x: -self.pdf(np.array([x]))[0], 
-                                    bounds=(x_min, x_max), method='bounded')
-            return result.x
-        except:
-            return self.median()
-    
-    def skewness(self) -> float:
-        """Distribution skewness (asymmetry)"""
-        if self._scipy_dist and self.params:
-            return self._scipy_dist.stats(**self.params, moments='s')
-        raise NotImplementedError(f"Skewness not implemented for {self.info.name}")
-    
-    def kurtosis(self) -> float:
-        """Distribution kurtosis (tail heaviness)"""
-        if self._scipy_dist and self.params:
-            return self._scipy_dist.stats(**self.params, moments='k')
-        raise NotImplementedError(f"Kurtosis not implemented for {self.info.name}")
-    
-    def hazard_rate(self, t: float) -> float:
-        """
-        Hazard rate (failure rate) at time t
-        
-        h(t) = f(t) / S(t) = pdf(t) / (1 - cdf(t))
-        """
-        pdf_t = self.pdf(np.array([t]))[0]
-        sf_t = self.sf(np.array([t]))[0]
-        if sf_t < 1e-10:
-            return np.inf
-        return pdf_t / sf_t
-    
-    def reliability(self, t: float) -> float:
-        """
-        Reliability function at time t
-        
-        R(t) = P(T > t) = 1 - F(t)
-        """
-        return self.sf(np.array([t]))[0]
-    
-    def mean_time_to_failure(self) -> float:
-        """Mean Time To Failure (MTTF) = E[T]"""
-        return self.mean()
-    
-    def conditional_var(self, alpha: float) -> float:
-        """
-        Conditional Value at Risk (CVaR) / Expected Shortfall
-        
-        CVaR_Î± = E[X | X â¤ VaR_Î±]
-        """
-        quantiles = np.linspace(0.0001, alpha, 100)
-        return np.mean(self.ppf(quantiles))
-    
-    # ========== Fitting Methods ==========
-    
-    @abstractmethod
-    def fit_mle(self, data: np.ndarray, **kwargs) -> Dict[str, float]:
-        """Maximum Likelihood Estimation"""
-        pass
-    
-    @abstractmethod
-    def fit_moments(self, data: np.ndarray) -> Dict[str, float]:
-        """Method of Moments"""
-        pass
-    
-    def fit(self, data: np.ndarray, method: str = 'mle', **kwargs) -> 'BaseDistribution':
-        """
-        Fit distribution to data
-        
-        Parameters:
-        -----------
-        data : array-like
-            Observed data
-        method : str
-            Estimation method: 'mle', 'moments', 'quantile'
-            
-        Returns:
-        --------
-        self : BaseDistribution
-            Fitted distribution (for method chaining)
-            
-        Example:
-        --------
-        >>> dist = get_distribution('weibull')
-        >>> dist.fit(data, method='mle')
-        >>> print(dist.summary())
-        """
-        data = np.asarray(data).flatten()
-        data = data[~np.isnan(data)]
-        
-        if method == 'mle':
-            self.params = self.fit_mle(data, **kwargs)
-        elif method == 'moments':
-            self.params = self.fit_moments(data)
-        elif method == 'quantile':
-            self.params = self.fit_quantile(data, **kwargs)
-        else:
-            raise ValueError(f"Unknown method: {method}")
-        
-        self.fitted = True
-        return self
-    
-    def fit_quantile(self, data: np.ndarray, quantiles: Optional[List[float]] = None) -> Dict[str, float]:
-        """Quantile matching estimation"""
-        if quantiles is None:
-            quantiles = [0.25, 0.5, 0.75]
-        empirical_quantiles = np.quantile(data, quantiles)
-        
-        def objective(params_array):
-            self.params = self._array_to_params(params_array)
-            theoretical_quantiles = self.ppf(np.array(quantiles))
-            return np.sum((empirical_quantiles - theoretical_quantiles) ** 2)
-        
-        initial_params = self.fit_moments(data)
-        x0 = self._params_to_array(initial_params)
-        result = minimize(objective, x0, method='Nelder-Mead')
-        return self._array_to_params(result.x)
-    
-    def _params_to_array(self, params: Dict[str, float]) -> np.ndarray:
-        return np.array(list(params.values()))
-    
-    def _array_to_params(self, array: np.ndarray) -> Dict[str, float]:
-        keys = list(self.info.parameters.keys())
-        return dict(zip(keys, array))
-    
-    # ========== Summary & Explanation ==========
-    
-    def summary(self) -> str:
-        """
-        Complete statistical summary of the fitted distribution
-        
-        Shows:
-        - Estimated parameters
-        - Location statistics (mean, median, mode)
-        - Spread statistics (variance, std)
-        - Shape statistics (skewness, kurtosis)
-        - Key quantiles
-        
-        Returns:
-        --------
-        summary : str
-            Formatted summary text
-            
-        Example:
-        --------
-        >>> dist = get_distribution('normal')
-        >>> dist.fit(data)
-        >>> print(dist.summary())
-        """
-        if not self.fitted:
-            return f"â ï¸  {t('warning')}: {self.info.display_name} {t('not_fitted')}"
-        
-        summary = f"""
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-â  {self.info.display_name:^60}  â
-â âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ£
-â  ð {t('estimated_parameters'):<58} â
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-"""
-        # Parameters
-        for param_name, param_value in self.params.items():
-            param_desc = self.info.parameters.get(param_name, param_name)
-            summary += f"   {param_desc:<35} = {param_value:>15.6f}\n"
-        
-        # Location Statistics
-        summary += f"""
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-â  ð {t('location_statistics'):<58} â
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-"""
-        try:
-            mean_val = self.mean()
-            if not np.isnan(mean_val):
-                summary += f"   {t('mean'):<35} = {mean_val:>15.6f}\n"
-            else:
-                summary += f"   {t('mean'):<35} = {t('undefined'):>15}\n"
-        except:
-            summary += f"   {t('mean'):<35} = {t('na'):>15}\n"
-        
-        try:
-            summary += f"   {t('median'):<35} = {self.median():>15.6f}\n"
-        except:
-            summary += f"   {t('median'):<35} = {t('na'):>15}\n"
-        
-        try:
-            summary += f"   {t('mode'):<35} = {self.mode():>15.6f}\n"
-        except:
-            summary += f"   {t('mode'):<35} = {t('na'):>15}\n"
-        
-        # Spread Statistics
-        summary += f"""
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-â  ð {t('spread_statistics'):<58} â
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-"""
-        try:
-            var_val = self.var()
-            if not np.isnan(var_val):
-                summary += f"   {t('variance'):<35} = {var_val:>15.6f}\n"
-                summary += f"   {t('std_deviation'):<35} = {np.sqrt(var_val):>15.6f}\n"
-            else:
-                summary += f"   {t('variance'):<35} = {t('undefined'):>15}\n"
-                summary += f"   {t('std_deviation'):<35} = {t('undefined'):>15}\n"
-        except:
-            summary += f"   {t('variance'):<35} = {t('na'):>15}\n"
-            summary += f"   {t('std_deviation'):<35} = {t('na'):>15}\n"
-        
-        # Shape Statistics
-        summary += f"""
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-â  ð {t('shape_statistics'):<58} â
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-"""
-        try:
-            skew = self.skewness()
-            summary += f"   {t('skewness'):<35} = {skew:>15.6f}\n"
-            if skew > 0.5:
-                summary += f"      {t('right_skewed'):<35}\n"
-            elif skew < -0.5:
-                summary += f"      {t('left_skewed'):<35}\n"
-            else:
-                summary += f"      {t('symmetric'):<35}\n"
-        except:
-            summary += f"   {t('skewness'):<35} = {t('na'):>15}\n"
-        
-        try:
-            kurt = self.kurtosis()
-            summary += f"   {t('kurtosis'):<35} = {kurt:>15.6f}\n"
-            if kurt > 1:
-                summary += f"      {t('heavy_tails'):<35}\n"
-            elif kurt < -1:
-                summary += f"      {t('light_tails'):<35}\n"
-            else:
-                summary += f"      {t('normal_tails'):<35}\n"
-        except:
-            summary += f"   {t('kurtosis'):<35} = {t('na'):>15}\n"
-        
-        # Quantiles
-        summary += f"""
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-â  ð {t('key_quantiles'):<58} â
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-"""
-        quantiles = [0.01, 0.05, 0.25, 0.50, 0.75, 0.95, 0.99]
-        for q in quantiles:
-            try:
-                q_val = self.ppf(q)
-                p = int(q * 100)
-                summary += f"   {t('percentile', p=p):<35} = {q_val:>15.6f}\n"
-            except:
-                pass
-        
-        summary += f"""
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-â  â¹ï¸  {t('for_explanation'):<58} â
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-"""
-        return summary
-    
-    def explain(self) -> str:
-        """
-        Conceptual explanation of the distribution
-        
-        Focus on:
-        - Estimated parameters and their meaning
-        - Practical use cases
-        - Distribution characteristics
-        - Warnings and caveats
-        
-        For statistical summary, use .summary()
-        
-        Returns:
-        --------
-        explanation : str
-            Formatted explanation text
-        """
-        if not self.fitted:
-            return f"â ï¸  {t('warning')}: {self.info.display_name} {t('not_fitted')}"
-        
-        explanation = f"""
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-â  {self.info.display_name:^60}  â
-ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
-ð {t('estimated_parameters')}:
-"""
-        for param_name, param_value in self.params.items():
-            param_desc = self.info.parameters.get(param_name, param_name)
-            explanation += f"   â¢ {param_desc}: {param_value:.4f}\n"
-        
-        explanation += f"\nð¡ {t('practical_applications')}:\n"
-        for use_case in self.info.use_cases:
-            if use_case.startswith('use_'):
-                translated = t(use_case)
-            else:
-                translated = use_case
-            explanation += f"   â¢ {translated}\n"
-        
-        explanation += f"\nð {t('characteristics')}:\n"
-        for char in self.info.characteristics:
-            if char.startswith('char_'):
-                translated = t(char)
-            else:
-                translated = char
-            explanation += f"   â¢ {translated}\n"
-        
-        if self.info.warning:
-            if isinstance(self.info.warning, str) and self.info.warning.startswith('warn_'):
-                warning_text = t(self.info.warning)
-            else:
-                warning_text = self.info.warning
-            explanation += f"\nâ ï¸  {t('warning')}: {warning_text}\n"
-
-        explanation += f"\nð {t('for_statistics')}\n"
-        return explanation
-    
-    def __repr__(self) -> str:
-        if self.fitted:
-            params_str = ", ".join([f"{k}={v:.3f}" for k, v in self.params.items()])
-            return f"{self.info.name}({params_str})"
-        return f"{self.info.name}(not fitted)"
-
-
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ============================================================================
 # CONTINUOUS DISTRIBUTIONS
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ============================================================================
 
-class NormalDistribution(BaseDistribution):
+class NormalDistribution(ContinuousDistribution):
+    """
+    Normal (Gaussian) Distribution.
+    
+    The most fundamental continuous probability distribution.
+    
+    Parameters
+    ----------
+    loc : float
+        Mean (μ)
+    scale : float
+        Standard deviation (σ > 0)
+    
+    Support
+    -------
+    x ∈ (-∞, ∞)
+    
+    PDF
+    ---
+    f(x|μ,σ) = (1/(σ√(2π))) * exp(-(x-μ)²/(2σ²))
+    
+    Applications
+    -----------
+    - Natural phenomena (heights, weights, measurement errors)
+    - Central Limit Theorem applications
+    - Statistical inference
+    - Financial returns (approximation)
+    """
+    
     def __init__(self):
         super().__init__()
         self._scipy_dist = stats.norm
@@ -514,821 +58,219 @@ class NormalDistribution(BaseDistribution):
     def info(self) -> DistributionInfo:
         return DistributionInfo(
             name="normal",
-            display_name="Normal (Gaussian) Distribution",
-            parameters={"loc": "Î¼ (mean)", "scale": "Ï (std)"},
-            support="(-â, +â)",
-            use_cases=["use_measurement_errors", "use_height_weight", "use_test_scores", "use_signal_noise"],
-            characteristics=["char_symmetric", "char_68_in_1std", "char_95_in_2std"],
-            warning="warn_not_for_skewed"
+            scipy_name="norm",
+            display_name="Normal Distribution",
+            description="Symmetric bell-shaped continuous distribution. "
+                       "Fundamental in statistics due to Central Limit Theorem. "
+                       "Characterized by mean (location) and standard deviation (scale).",
+            parameters=["loc", "scale"],
+            support="(-inf, inf)",
+            is_discrete=False,
+            has_shape_params=False
         )
     
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, **self.params)
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, **self.params)
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, **self.params)
-    def fit_mle(self, data, **kwargs):
-        return {"loc": np.mean(data), "scale": np.std(data, ddof=1)}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class LognormalDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.lognorm
+    def _fit_mle(self, data: np.ndarray, **kwargs):
+        """
+        Maximum Likelihood Estimation for Normal distribution.
+        
+        MLE for Normal:
+        - μ_hat = sample mean
+        - σ_hat = sample standard deviation (MLE uses n, not n-1)
+        """
+        # scipy.stats.norm.fit uses MLE
+        loc, scale = self._scipy_dist.fit(data)
+        
+        self._params = {
+            'loc': loc,
+            'scale': scale
+        }
     
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="lognormal",
-            display_name="Lognormal Distribution",
-            parameters={"s": "Ï (log-scale)", "scale": "exp(Î¼)"},
-            support="(0, +â)",
-            use_cases=["use_income", "use_stock_prices", "use_failure_time"],
-            characteristics=["char_right_skewed", "char_positive_only"],
-            warning="warn_positive_only"
-        )
+    def _fit_mom(self, data: np.ndarray, **kwargs):
+        """
+        Method of Moments for Normal distribution.
+        
+        For Normal, MoM coincides with MLE:
+        - μ = E[X] = sample mean
+        - σ² = Var[X] = sample variance
+        """
+        loc = np.mean(data)
+        scale = np.std(data, ddof=1)  # Use unbiased estimator
+        
+        self._params = {
+            'loc': loc,
+            'scale': scale
+        }
     
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['s'], scale=self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['s'], scale=self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['s'], scale=self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        data = data[data > 0]
-        log_data = np.log(data)
-        return {"s": np.std(log_data, ddof=1), "scale": np.exp(np.mean(log_data))}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class WeibullDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.weibull_min
+    def mode(self) -> float:
+        """
+        Mode of Normal distribution.
+        
+        For Normal distribution, mode = mean = median
+        """
+        if not self._fitted:
+            raise ValueError("Distribution not fitted yet")
+        return self._params['loc']
     
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="weibull",
-            display_name="Weibull Distribution",
-            parameters={"c": "k (shape)", "scale": "Î» (scale)"},
-            support="(0, +â)",
-            use_cases=["use_reliability", "use_failure_time", "use_wind_speed"],
-            characteristics=["char_k_less_1_decreasing", "char_k_equals_1_exponential", "char_k_greater_1_aging"],
-        )
+    def _get_scipy_params(self) -> Dict[str, float]:
+        """Convert parameters to scipy format"""
+        return {
+            'loc': self._params['loc'],
+            'scale': self._params['scale']
+        }
+
+
+class ExponentialDistribution(ContinuousDistribution):
+    """
+    Exponential Distribution.
     
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['c'], scale=self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['c'], scale=self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['c'], scale=self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        data = data[data > 0]
-        params = self._scipy_dist.fit(data, floc=0)
-        return {"c": params[0], "scale": params[2]}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class GammaDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.gamma
+    Memoryless distribution modeling time between events.
     
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="gamma",
-            display_name="Gamma Distribution",
-            parameters={"a": "Î± (shape)", "scale": "Î¸ (scale)"},
-            support="(0, +â)",
-            use_cases=["use_waiting_time", "use_rainfall", "use_bayesian_prior"],
-            characteristics=["char_alpha_1_exponential", "char_alpha_large_normal"],
-        )
+    Parameters
+    ----------
+    scale : float
+        Scale parameter (1/λ), where λ is the rate parameter (> 0)
     
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['a'], scale=self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['a'], scale=self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['a'], scale=self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        data = data[data > 0]
-        params = self._scipy_dist.fit(data, floc=0)
-        return {"a": params[0], "scale": params[2]}
-    def fit_moments(self, data):
-        m, v = np.mean(data), np.var(data, ddof=1)
-        return {"a": m*m/v, "scale": v/m}
-
-
-class ExponentialDistribution(BaseDistribution):
+    Support
+    -------
+    x ∈ [0, ∞)
+    
+    PDF
+    ---
+    f(x|λ) = λ * exp(-λx) for x ≥ 0
+    
+    Applications
+    -----------
+    - Time between events in Poisson process
+    - Lifetime/reliability analysis
+    - Queueing theory
+    - Radioactive decay
+    """
+    
     def __init__(self):
         super().__init__()
         self._scipy_dist = stats.expon
-        self._mode_at_zero = True
     
     @property
     def info(self) -> DistributionInfo:
         return DistributionInfo(
             name="exponential",
+            scipy_name="expon",
             display_name="Exponential Distribution",
-            parameters={"scale": "1/Î» (mean)"},
-            support="(0, +â)",
-            use_cases=["use_time_between_events", "use_component_lifetime"],
-            characteristics=["char_memoryless", "char_constant_hazard"],
+            description="Memoryless continuous distribution modeling waiting times. "
+                       "Characterized by constant hazard rate. "
+                       "Natural model for time between independent events.",
+            parameters=["scale"],
+            support="[0, inf)",
+            is_discrete=False,
+            has_shape_params=False
         )
     
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, scale=self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, scale=self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, scale=self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        return {"scale": np.mean(data[data > 0])}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class BetaDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.beta
+    def _fit_mle(self, data: np.ndarray, **kwargs):
+        """
+        MLE for Exponential distribution.
+        
+        MLE: λ_hat = 1 / sample_mean
+        So scale_hat = sample_mean
+        """
+        if np.any(data < 0):
+            raise ValueError("Exponential distribution requires non-negative data")
+        
+        # scipy.expon.fit fixes loc=0 by default
+        loc, scale = self._scipy_dist.fit(data, floc=0)
+        
+        self._params = {
+            'scale': scale
+        }
     
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="beta",
-            display_name="Beta Distribution",
-            parameters={"a": "Î± (shape 1)", "b": "Î² (shape 2)"},
-            support="[0, 1]",
-            use_cases=["use_probabilities", "use_success_rate", "use_bayesian_prior"],
-            characteristics=["char_flexible", "char_bounded_0_1"],
-        )
+    def _fit_mom(self, data: np.ndarray, **kwargs):
+        """
+        Method of Moments for Exponential.
+        
+        E[X] = 1/λ = scale
+        So scale = sample_mean
+        """
+        if np.any(data < 0):
+            raise ValueError("Exponential distribution requires non-negative data")
+        
+        scale = np.mean(data)
+        
+        self._params = {
+            'scale': scale
+        }
     
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['a'], self.params['b'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['a'], self.params['b'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['a'], self.params['b'])
-    def fit_mle(self, data, **kwargs):
-        data = data[(data > 0) & (data < 1)]
-        params = self._scipy_dist.fit(data, floc=0, fscale=1)
-        return {"a": params[0], "b": params[1]}
-    def fit_moments(self, data):
-        m, v = np.mean(data), np.var(data, ddof=1)
-        common = m * (1 - m) / v - 1
-        return {"a": m * common, "b": (1 - m) * common}
-
-
-class UniformDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.uniform
+    def mode(self) -> float:
+        """
+        Mode of Exponential distribution.
+        
+        Mode is always 0 for exponential distribution.
+        """
+        if not self._fitted:
+            raise ValueError("Distribution not fitted yet")
+        return 0.0
     
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="uniform",
-            display_name="Uniform Distribution",
-            parameters={"loc": "a (min)", "scale": "b-a (width)"},
-            support="[a, b]",
-            use_cases=["use_random_number_gen", "use_uninformative_prior"],
-            characteristics=["char_equal_probability", "char_maximum_entropy"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['loc'], self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['loc'], self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['loc'], self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        return {"loc": np.min(data), "scale": np.max(data) - np.min(data)}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
+    def _get_scipy_params(self) -> Dict[str, float]:
+        """Convert parameters to scipy format"""
+        return {
+            'loc': 0,
+            'scale': self._params['scale']
+        }
 
 
-class TriangularDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.triang
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="triangular",
-            display_name="Triangular Distribution",
-            parameters={"c": "mode position", "loc": "min", "scale": "width"},
-            support="[min, min+width]",
-            use_cases=["use_pert", "use_expert_estimate"],
-            characteristics=["char_simple", "char_intuitive"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['c'], self.params['loc'], self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['c'], self.params['loc'], self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['c'], self.params['loc'], self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        a, b = np.min(data), np.max(data)
-        c = (np.mean(data) - a) / (b - a) if b > a else 0.5
-        return {"c": c, "loc": a, "scale": b - a}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
+# ============================================================================
+# DISTRIBUTION REGISTRY
+# ============================================================================
 
-
-class LogisticDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.logistic
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="logistic",
-            display_name="Logistic Distribution",
-            parameters={"loc": "Î¼ (location)", "scale": "s (scale)"},
-            support="(-â, +â)",
-            use_cases=["use_logistic_regression", "use_growth_models"],
-            characteristics=["char_heavier_tails_than_normal"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['loc'], self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['loc'], self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['loc'], self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        return {"loc": np.mean(data), "scale": np.std(data) * np.sqrt(3) / np.pi}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class GumbelDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.gumbel_r
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="gumbel",
-            display_name="Gumbel Distribution (Extreme Value Type I)",
-            parameters={"loc": "Î¼ (location)", "scale": "Î² (scale)"},
-            support="(-â, +â)",
-            use_cases=["use_floods", "use_earthquakes", "use_extreme_max"],
-            characteristics=["char_positive_skew", "char_extreme_values"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['loc'], self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['loc'], self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['loc'], self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        params = self._scipy_dist.fit(data)
-        return {"loc": params[0], "scale": params[1]}
-    def fit_moments(self, data):
-        m, s = np.mean(data), np.std(data, ddof=1)
-        return {"scale": s * np.sqrt(6) / np.pi, "loc": m - 0.5772 * s * np.sqrt(6) / np.pi}
-
-
-class FrechetDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.invweibull
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="frechet",
-            display_name="Frechet Distribution (Extreme Value Type II)",
-            parameters={"c": "Î± (shape)", "scale": "s (scale)"},
-            support="(0, +â)",
-            use_cases=["use_positive_extreme_max", "use_insurance"],
-            characteristics=["char_very_heavy_tails"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['c'], scale=self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['c'], scale=self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['c'], scale=self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        data = data[data > 0]
-        params = self._scipy_dist.fit(data, floc=0)
-        return {"c": params[0], "scale": params[2]}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class ParetoDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.pareto
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="pareto",
-            display_name="Pareto Distribution",
-            parameters={"b": "Î± (shape)", "scale": "x_m (minimum)"},
-            support="[x_m, +â)",
-            use_cases=["use_wealth", "use_income", "use_80_20_rule"],
-            characteristics=["char_heavy_tails", "char_power_law"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['b'], scale=self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['b'], scale=self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['b'], scale=self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        data = data[data > 0]
-        xm = np.min(data)
-        n = len(data)
-        alpha = n / np.sum(np.log(data / xm))
-        return {"b": alpha, "scale": xm}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class CauchyDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.cauchy
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="cauchy",
-            display_name="Cauchy Distribution",
-            parameters={"loc": "x_0 (location)", "scale": "Î³ (scale)"},
-            support="(-â, +â)",
-            use_cases=["use_physics", "use_resonance"],
-            characteristics=["char_undefined_mean", "char_very_heavy_tails"],
-            warning="warn_no_mean_variance"
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['loc'], self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['loc'], self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['loc'], self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        return {"loc": np.median(data), "scale": np.percentile(np.abs(data - np.median(data)), 50)}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-    
-    def mean(self):
-        return np.nan
-    def var(self):
-        return np.nan
-
-
-class StudentTDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.t
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="studentt",
-            display_name="Student's t Distribution",
-            parameters={"df": "Î½ (degrees of freedom)", "loc": "Î¼", "scale": "Ï"},
-            support="(-â, +â)",
-            use_cases=["use_hypothesis_testing", "use_small_sample"],
-            characteristics=["char_heavier_tails_than_normal"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['df'], self.params['loc'], self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['df'], self.params['loc'], self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['df'], self.params['loc'], self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        params = self._scipy_dist.fit(data)
-        return {"df": params[0], "loc": params[1], "scale": params[2]}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class ChiSquaredDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.chi2
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="chisquared",
-            display_name="Chi-Squared Distribution",
-            parameters={"df": "k (degrees of freedom)"},
-            support="[0, +â)",
-            use_cases=["use_gof_test", "use_variance"],
-            characteristics=["char_special_case_gamma"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['df'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['df'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['df'])
-    def fit_mle(self, data, **kwargs):
-        return {"df": np.mean(data)}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class FDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.f
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="f",
-            display_name="F Distribution",
-            parameters={"dfn": "d1 (numerator df)", "dfd": "d2 (denominator df)"},
-            support="[0, +â)",
-            use_cases=["use_anova", "use_variance_ratio"],
-            characteristics=["char_skewed"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['dfn'], self.params['dfd'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['dfn'], self.params['dfd'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['dfn'], self.params['dfd'])
-    def fit_mle(self, data, **kwargs):
-        return {"dfn": 5, "dfd": 10}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class RayleighDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.rayleigh
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="rayleigh",
-            display_name="Rayleigh Distribution",
-            parameters={"scale": "Ï (scale)"},
-            support="[0, +â)",
-            use_cases=["use_radar_signal", "use_wind_speed"],
-            characteristics=["char_positive_skew"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, scale=self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, scale=self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, scale=self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        data = data[data >= 0]
-        return {"scale": np.sqrt(np.mean(data**2) / 2)}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class LaplaceDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.laplace
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="laplace",
-            display_name="Laplace Distribution (Double Exponential)",
-            parameters={"loc": "Î¼ (location)", "scale": "b (scale)"},
-            support="(-â, +â)",
-            use_cases=["use_differences", "use_lasso"],
-            characteristics=["char_heavier_tails_than_normal"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['loc'], self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['loc'], self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['loc'], self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        return {"loc": np.median(data), "scale": np.mean(np.abs(data - np.median(data)))}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class InverseGammaDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.invgamma
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="invgamma",
-            display_name="Inverse Gamma Distribution",
-            parameters={"a": "Î± (shape)", "scale": "Î² (scale)"},
-            support="(0, +â)",
-            use_cases=["use_variance_prior"],
-            characteristics=["char_heavy_tails"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['a'], scale=self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['a'], scale=self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['a'], scale=self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        data = data[data > 0]
-        params = self._scipy_dist.fit(data, floc=0)
-        return {"a": params[0], "scale": params[2]}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class LogLogisticDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.fisk
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="loglogistic",
-            display_name="Log-Logistic Distribution",
-            parameters={"c": "Î± (shape)", "scale": "Î² (scale)"},
-            support="(0, +â)",
-            use_cases=["use_survival_analysis"],
-            characteristics=["char_heavy_tails"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pdf(x, self.params['c'], scale=self.params['scale'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['c'], scale=self.params['scale'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['c'], scale=self.params['scale'])
-    def fit_mle(self, data, **kwargs):
-        data = data[data > 0]
-        params = self._scipy_dist.fit(data, floc=0)
-        return {"c": params[0], "scale": params[2]}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-# DISCRETE DISTRIBUTIONS
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
-class PoissonDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.poisson
-        self._is_discrete = True
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="poisson",
-            display_name="Poisson Distribution",
-            parameters={"mu": "Î» (rate)"},
-            support="{0, 1, 2, ...}",
-            use_cases=["use_event_count", "use_call_count"],
-            characteristics=["char_mean_eq_variance"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pmf(x, self.params['mu'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['mu'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['mu'])
-    def fit_mle(self, data, **kwargs):
-        return {"mu": np.mean(data)}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class BinomialDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.binom
-        self._is_discrete = True
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="binomial",
-            display_name="Binomial Distribution",
-            parameters={"n": "n (trials)", "p": "p (success prob)"},
-            support="{0, 1, 2, ..., n}",
-            use_cases=["use_success_failure_trials"],
-            characteristics=["char_n_independent_trials"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pmf(x, self.params['n'], self.params['p'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['n'], self.params['p'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['n'], self.params['p'])
-    def fit_mle(self, data, **kwargs):
-        n = int(np.max(data))
-        p = np.mean(data) / n if n > 0 else 0.5
-        return {"n": n, "p": p}
-    def fit_moments(self, data):
-        m, v = np.mean(data), np.var(data, ddof=1)
-        p = 1 - v / m if m > 0 else 0.5
-        n = int(m / p) if p > 0 else 1
-        return {"n": max(n, 1), "p": np.clip(p, 0.01, 0.99)}
-
-
-class NegativeBinomialDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.nbinom
-        self._is_discrete = True
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="nbinom",
-            display_name="Negative Binomial Distribution",
-            parameters={"n": "r (successes)", "p": "p (success prob)"},
-            support="{0, 1, 2, ...}",
-            use_cases=["use_overdispersed_counts"],
-            characteristics=["char_variance_gt_mean"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pmf(x, self.params['n'], self.params['p'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['n'], self.params['p'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['n'], self.params['p'])
-    def fit_mle(self, data, **kwargs):
-        m, v = np.mean(data), np.var(data, ddof=1)
-        p = m / v if v > m else 0.5
-        n = m * p / (1 - p) if p < 1 else 1
-        return {"n": max(n, 1), "p": np.clip(p, 0.01, 0.99)}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class GeometricDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.geom
-        self._is_discrete = True
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="geometric",
-            display_name="Geometric Distribution",
-            parameters={"p": "p (success prob)"},
-            support="{1, 2, 3, ...}",
-            use_cases=["use_time_to_first_success"],
-            characteristics=["char_memoryless"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pmf(x, self.params['p'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['p'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['p'])
-    def fit_mle(self, data, **kwargs):
-        return {"p": 1.0 / np.mean(data)}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-class HypergeometricDistribution(BaseDistribution):
-    def __init__(self):
-        super().__init__()
-        self._scipy_dist = stats.hypergeom
-        self._is_discrete = True
-    
-    @property
-    def info(self) -> DistributionInfo:
-        return DistributionInfo(
-            name="hypergeometric",
-            display_name="Hypergeometric Distribution",
-            parameters={"M": "population", "n": "successes in pop", "N": "draws"},
-            support="{max(0, N+n-M), ..., min(n, N)}",
-            use_cases=["use_sampling_without_replacement"],
-            characteristics=["char_finite"],
-        )
-    
-    def pdf(self, x):
-        return self._scipy_dist.pmf(x, self.params['M'], self.params['n'], self.params['N'])
-    def cdf(self, x):
-        return self._scipy_dist.cdf(x, self.params['M'], self.params['n'], self.params['N'])
-    def ppf(self, q):
-        return self._scipy_dist.ppf(q, self.params['M'], self.params['n'], self.params['N'])
-    def fit_mle(self, data, **kwargs):
-        N = int(np.max(data)) + 10
-        return {"M": N, "n": N // 2, "N": int(np.mean(data))}
-    def fit_moments(self, data):
-        return self.fit_mle(data)
-
-
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-# REGISTRY & FACTORY
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
-DISTRIBUTION_REGISTRY = {
+# Registry mapping names to distribution classes
+_DISTRIBUTION_REGISTRY = {
     'normal': NormalDistribution,
-    'lognormal': LognormalDistribution,
-    'weibull': WeibullDistribution,
-    'gamma': GammaDistribution,
     'exponential': ExponentialDistribution,
-    'beta': BetaDistribution,
-    'uniform': UniformDistribution,
-    'triangular': TriangularDistribution,
-    'logistic': LogisticDistribution,
-    'gumbel': GumbelDistribution,
-    'frechet': FrechetDistribution,
-    'pareto': ParetoDistribution,
-    'cauchy': CauchyDistribution,
-    'studentt': StudentTDistribution,
-    'chisquared': ChiSquaredDistribution,
-    'f': FDistribution,
-    'rayleigh': RayleighDistribution,
-    'laplace': LaplaceDistribution,
-    'invgamma': InverseGammaDistribution,
-    'loglogistic': LogLogisticDistribution,
-    'poisson': PoissonDistribution,
-    'binomial': BinomialDistribution,
-    'nbinom': NegativeBinomialDistribution,
-    'geometric': GeometricDistribution,
-    'hypergeometric': HypergeometricDistribution,
+    # More distributions will be added here
 }
 
 
-def get_distribution(name: str) -> BaseDistribution:
+def get_distribution(name: str) -> ContinuousDistribution:
     """
-    Get distribution by name
+    Get distribution class by name.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     name : str
-        Distribution name (case-insensitive)
-        
-    Returns:
-    --------
-    dist : BaseDistribution
+        Distribution name (e.g., 'normal', 'exponential')
+    
+    Returns
+    -------
+    distribution : BaseDistribution
         Distribution instance
-        
-    Example:
+    
+    Raises
+    ------
+    ValueError
+        If distribution name is not recognized
+    
+    Examples
     --------
     >>> dist = get_distribution('normal')
     >>> dist.fit(data)
-    >>> print(dist.summary())
     """
-    name = name.lower()
-    if name not in DISTRIBUTION_REGISTRY:
-        available = ', '.join(sorted(DISTRIBUTION_REGISTRY.keys()))
-        raise ValueError(f"Unknown distribution '{name}'. Available: {available}")
-    return DISTRIBUTION_REGISTRY[name]()
+    name_lower = name.lower()
+    
+    if name_lower not in _DISTRIBUTION_REGISTRY:
+        available = ", ".join(_DISTRIBUTION_REGISTRY.keys())
+        raise ValueError(
+            f"Unknown distribution: {name}. "
+            f"Available distributions: {available}"
+        )
+    
+    return _DISTRIBUTION_REGISTRY[name_lower]()
 
 
-def list_distributions() -> List[str]:
-    """List all available distributions (30 total)"""
-    return sorted(list(DISTRIBUTION_REGISTRY.keys()))
-
-
-def list_continuous_distributions() -> List[str]:
-    """List continuous distributions (20 total)"""
-    return [k for k, v in DISTRIBUTION_REGISTRY.items() if not get_distribution(k)._is_discrete]
-
-
-def list_discrete_distributions() -> List[str]:
-    """List discrete distributions (5 total)"""
-    return [k for k, v in DISTRIBUTION_REGISTRY.items() if get_distribution(k)._is_discrete]
+def list_distributions() -> list:
+    """
+    List all available distributions.
+    
+    Returns
+    -------
+    distributions : list of str
+        Names of available distributions
+    """
+    return sorted(_DISTRIBUTION_REGISTRY.keys())
