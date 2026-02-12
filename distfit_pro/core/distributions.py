@@ -3,6 +3,7 @@ Distribution Implementations
 ============================
 
 Concrete implementations of all probability distributions.
+25 distributions total: 20 continuous + 5 discrete
 
 Author: Ali Sadeghi Aghili
 """
@@ -18,7 +19,7 @@ from .base import (
 
 
 # ============================================================================
-# CONTINUOUS DISTRIBUTIONS
+# CONTINUOUS DISTRIBUTIONS (20)
 # ============================================================================
 
 class NormalDistribution(ContinuousDistribution):
@@ -250,7 +251,6 @@ class WeibullDistribution(ContinuousDistribution):
         self._params = {'shape': shape, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
-        # MoM for Weibull is complex, use MLE as fallback
         self._fit_mle(data, **kwargs)
     
     def mode(self) -> float:
@@ -318,7 +318,7 @@ class LogisticDistribution(ContinuousDistribution):
             name="logistic",
             scipy_name="logistic",
             display_name="Logistic Distribution",
-            description="Similar to normal but with heavier tails. Used in logistic regression.",
+            description="Similar to normal but with heavier tails.",
             parameters=["loc", "scale"],
             support="(-inf, inf)",
             is_discrete=False,
@@ -354,7 +354,7 @@ class GumbelDistribution(ContinuousDistribution):
             name="gumbel",
             scipy_name="gumbel_r",
             display_name="Gumbel Distribution",
-            description="Type I extreme value distribution. Models maximum of samples.",
+            description="Type I extreme value distribution.",
             parameters=["loc", "scale"],
             support="(-inf, inf)",
             is_discrete=False,
@@ -369,7 +369,7 @@ class GumbelDistribution(ContinuousDistribution):
         mean_val = np.mean(data)
         std_val = np.std(data, ddof=1)
         scale = std_val * np.sqrt(6) / np.pi
-        loc = mean_val - 0.5772 * scale  # Euler-Mascheroni constant
+        loc = mean_val - 0.5772 * scale
         self._params = {'loc': loc, 'scale': scale}
     
     def mode(self) -> float:
@@ -392,7 +392,7 @@ class ParetoDistribution(ContinuousDistribution):
             name="pareto",
             scipy_name="pareto",
             display_name="Pareto Distribution",
-            description="Power law distribution. Models wealth distribution and rare events.",
+            description="Power law distribution.",
             parameters=["shape", "scale"],
             support="[scale, inf)",
             is_discrete=False,
@@ -445,7 +445,6 @@ class CauchyDistribution(ContinuousDistribution):
         self._params = {'loc': loc, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
-        # Cauchy has no finite moments, use median and IQR
         loc = np.median(data)
         iqr = np.percentile(data, 75) - np.percentile(data, 25)
         scale = iqr / 2
@@ -471,7 +470,7 @@ class StudentTDistribution(ContinuousDistribution):
             name="studentt",
             scipy_name="t",
             display_name="Student's t Distribution",
-            description="Heavy-tailed distribution used in statistical inference with small samples.",
+            description="Heavy-tailed distribution used in statistical inference.",
             parameters=["df", "loc", "scale"],
             support="(-inf, inf)",
             is_discrete=False,
@@ -483,7 +482,6 @@ class StudentTDistribution(ContinuousDistribution):
         self._params = {'df': df, 'loc': loc, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
-        # Use MLE as MoM is complex for t-distribution
         self._fit_mle(data, **kwargs)
     
     def mode(self) -> float:
@@ -546,7 +544,7 @@ class FDistribution(ContinuousDistribution):
             name="f",
             scipy_name="f",
             display_name="F Distribution",
-            description="Ratio of two chi-square distributions. Used in ANOVA.",
+            description="Ratio of two chi-square distributions.",
             parameters=["dfn", "dfd"],
             support="[0, inf)",
             is_discrete=False,
@@ -560,7 +558,6 @@ class FDistribution(ContinuousDistribution):
         self._params = {'dfn': dfn, 'dfd': dfd}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
-        # Use MLE as MoM is complex
         self._fit_mle(data, **kwargs)
     
     def mode(self) -> float:
@@ -586,7 +583,7 @@ class LaplaceDistribution(ContinuousDistribution):
             name="laplace",
             scipy_name="laplace",
             display_name="Laplace Distribution",
-            description="Double exponential distribution. Heavier tails than normal.",
+            description="Double exponential distribution.",
             parameters=["loc", "scale"],
             support="(-inf, inf)",
             is_discrete=False,
@@ -661,7 +658,7 @@ class WaldDistribution(ContinuousDistribution):
             name="wald",
             scipy_name="invgauss",
             display_name="Wald Distribution",
-            description="Inverse Gaussian distribution. Models first passage time.",
+            description="Inverse Gaussian distribution.",
             parameters=["mean", "scale"],
             support="(0, inf)",
             is_discrete=False,
@@ -754,7 +751,6 @@ class BurrDistribution(ContinuousDistribution):
         self._params = {'c': c, 'd': d, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
-        # Use MLE as MoM is very complex
         self._fit_mle(data, **kwargs)
     
     def mode(self) -> float:
@@ -793,7 +789,6 @@ class GenExtremeDistribution(ContinuousDistribution):
         self._params = {'shape': shape, 'loc': loc, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
-        # Use MLE
         self._fit_mle(data, **kwargs)
     
     def mode(self) -> float:
@@ -807,10 +802,200 @@ class GenExtremeDistribution(ContinuousDistribution):
 
 
 # ============================================================================
-# DISTRIBUTION REGISTRY
+# DISCRETE DISTRIBUTIONS (5)
+# ============================================================================
+
+class PoissonDistribution(DiscreteDistribution):
+    """Poisson Distribution"""
+    
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.poisson
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="poisson",
+            scipy_name="poisson",
+            display_name="Poisson Distribution",
+            description="Models count of events in fixed interval with constant rate.",
+            parameters=["mu"],
+            support="{0, 1, 2, ...}",
+            is_discrete=True,
+            has_shape_params=False
+        )
+    
+    def _fit_mle(self, data: np.ndarray, **kwargs):
+        if not np.all(data >= 0):
+            raise ValueError("Poisson distribution requires non-negative integer data")
+        mu = np.mean(data)
+        self._params = {'mu': mu}
+    
+    def _fit_mom(self, data: np.ndarray, **kwargs):
+        self._fit_mle(data, **kwargs)
+    
+    def mode(self) -> float:
+        return np.floor(self._params['mu'])
+    
+    def _get_scipy_params(self) -> Dict[str, float]:
+        return {'mu': self._params['mu']}
+
+
+class BinomialDistribution(DiscreteDistribution):
+    """Binomial Distribution"""
+    
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.binom
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="binomial",
+            scipy_name="binom",
+            display_name="Binomial Distribution",
+            description="Number of successes in n independent Bernoulli trials.",
+            parameters=["n", "p"],
+            support="{0, 1, ..., n}",
+            is_discrete=True,
+            has_shape_params=True
+        )
+    
+    def _fit_mle(self, data: np.ndarray, n: int = None, **kwargs):
+        if n is None:
+            n = int(np.max(data))
+        p = np.mean(data) / n
+        self._params = {'n': n, 'p': np.clip(p, 0.001, 0.999)}
+    
+    def _fit_mom(self, data: np.ndarray, n: int = None, **kwargs):
+        self._fit_mle(data, n=n, **kwargs)
+    
+    def mode(self) -> float:
+        return np.floor((self._params['n'] + 1) * self._params['p'])
+    
+    def _get_scipy_params(self) -> Dict[str, float]:
+        return {'n': self._params['n'], 'p': self._params['p']}
+
+
+class NegativeBinomialDistribution(DiscreteDistribution):
+    """Negative Binomial Distribution"""
+    
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.nbinom
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="negativebinomial",
+            scipy_name="nbinom",
+            display_name="Negative Binomial Distribution",
+            description="Number of failures before r-th success.",
+            parameters=["n", "p"],
+            support="{0, 1, 2, ...}",
+            is_discrete=True,
+            has_shape_params=True
+        )
+    
+    def _fit_mle(self, data: np.ndarray, **kwargs):
+        mean_val = np.mean(data)
+        var_val = np.var(data, ddof=1)
+        if var_val <= mean_val:
+            var_val = mean_val * 1.1
+        p = mean_val / var_val
+        n = mean_val * p / (1 - p)
+        self._params = {'n': max(n, 0.1), 'p': np.clip(p, 0.001, 0.999)}
+    
+    def _fit_mom(self, data: np.ndarray, **kwargs):
+        self._fit_mle(data, **kwargs)
+    
+    def mode(self) -> float:
+        n, p = self._params['n'], self._params['p']
+        if n > 1:
+            return np.floor((n - 1) * (1 - p) / p)
+        return 0.0
+    
+    def _get_scipy_params(self) -> Dict[str, float]:
+        return {'n': self._params['n'], 'p': self._params['p']}
+
+
+class GeometricDistribution(DiscreteDistribution):
+    """Geometric Distribution"""
+    
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.geom
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="geometric",
+            scipy_name="geom",
+            display_name="Geometric Distribution",
+            description="Number of trials until first success.",
+            parameters=["p"],
+            support="{1, 2, 3, ...}",
+            is_discrete=True,
+            has_shape_params=False
+        )
+    
+    def _fit_mle(self, data: np.ndarray, **kwargs):
+        p = 1 / np.mean(data)
+        self._params = {'p': np.clip(p, 0.001, 0.999)}
+    
+    def _fit_mom(self, data: np.ndarray, **kwargs):
+        self._fit_mle(data, **kwargs)
+    
+    def mode(self) -> float:
+        return 1.0
+    
+    def _get_scipy_params(self) -> Dict[str, float]:
+        return {'p': self._params['p']}
+
+
+class HypergeometricDistribution(DiscreteDistribution):
+    """Hypergeometric Distribution"""
+    
+    def __init__(self):
+        super().__init__()
+        self._scipy_dist = stats.hypergeom
+    
+    @property
+    def info(self) -> DistributionInfo:
+        return DistributionInfo(
+            name="hypergeometric",
+            scipy_name="hypergeom",
+            display_name="Hypergeometric Distribution",
+            description="Sampling without replacement from finite population.",
+            parameters=["M", "n", "N"],
+            support="{max(0, n+N-M), ..., min(n, N)}",
+            is_discrete=True,
+            has_shape_params=True
+        )
+    
+    def _fit_mle(self, data: np.ndarray, M: int = None, n: int = None, **kwargs):
+        if M is None or n is None:
+            raise ValueError("Hypergeometric requires M (population) and n (draws) parameters")
+        N = int(np.round(np.mean(data) * M / n))
+        self._params = {'M': M, 'n': n, 'N': N}
+    
+    def _fit_mom(self, data: np.ndarray, M: int = None, n: int = None, **kwargs):
+        self._fit_mle(data, M=M, n=n, **kwargs)
+    
+    def mode(self) -> float:
+        M, n, N = self._params['M'], self._params['n'], self._params['N']
+        return np.floor((n + 1) * (N + 1) / (M + 2))
+    
+    def _get_scipy_params(self) -> Dict[str, float]:
+        return {'M': self._params['M'], 'n': self._params['n'], 'N': self._params['N']}
+
+
+# ============================================================================
+# DISTRIBUTION REGISTRY - ALL 25 DISTRIBUTIONS
 # ============================================================================
 
 _DISTRIBUTION_REGISTRY = {
+    # Continuous (20)
     'normal': NormalDistribution,
     'exponential': ExponentialDistribution,
     'uniform': UniformDistribution,
@@ -831,10 +1016,16 @@ _DISTRIBUTION_REGISTRY = {
     'triangular': TriangularDistribution,
     'burr': BurrDistribution,
     'genextreme': GenExtremeDistribution,
+    # Discrete (5)
+    'poisson': PoissonDistribution,
+    'binomial': BinomialDistribution,
+    'negativebinomial': NegativeBinomialDistribution,
+    'geometric': GeometricDistribution,
+    'hypergeometric': HypergeometricDistribution,
 }
 
 
-def get_distribution(name: str) -> ContinuousDistribution:
+def get_distribution(name: str):
     """Get distribution by name"""
     name_lower = name.lower()
     if name_lower not in _DISTRIBUTION_REGISTRY:
@@ -843,6 +1034,12 @@ def get_distribution(name: str) -> ContinuousDistribution:
     return _DISTRIBUTION_REGISTRY[name_lower]()
 
 
-def list_distributions() -> list:
-    """List all available distributions"""
+def list_distributions(discrete_only: bool = False, continuous_only: bool = False) -> list:
+    """List available distributions"""
+    if discrete_only:
+        return sorted([k for k, v in _DISTRIBUTION_REGISTRY.items() 
+                      if issubclass(v, DiscreteDistribution)])
+    elif continuous_only:
+        return sorted([k for k, v in _DISTRIBUTION_REGISTRY.items() 
+                      if issubclass(v, ContinuousDistribution)])
     return sorted(_DISTRIBUTION_REGISTRY.keys())
