@@ -80,6 +80,11 @@ class ExponentialDistribution(ContinuousDistribution):
             has_shape_params=False
         )
     
+    @property
+    def mode_at_zero(self) -> bool:
+        """Exponential distribution always has mode at 0"""
+        return True
+    
     def _fit_mle(self, data: np.ndarray, **kwargs):
         if np.any(data < 0):
             raise ValueError("Exponential distribution requires non-negative data")

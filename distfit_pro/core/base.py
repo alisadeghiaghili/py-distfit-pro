@@ -340,7 +340,7 @@ class BaseDistribution(ABC):
             if np.any(np.isnan(data)):
                 raise ValueError("Data contains NaN values")
             if np.any(np.isinf(data)):
-            raise ValueError("Data contains infinite values")
+                raise ValueError("Data contains infinite values")
         
         if data.size < 5:
             warnings.warn("Very small sample size (< 5)")
