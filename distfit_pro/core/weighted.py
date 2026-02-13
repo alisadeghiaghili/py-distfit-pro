@@ -82,7 +82,7 @@ class WeightedFitting:
             """Negative weighted log-likelihood"""
             try:
                 # Convert array to parameter dict
-                param_dict = distribution._array_to_params(params_array)
+                param_dict = distribution.array_to_params(params_array)
                 distribution.params = param_dict
                 
                 # Compute log-likelihood for each observation
@@ -96,7 +96,7 @@ class WeightedFitting:
                 return np.inf
         
         # Optimize
-        x0 = distribution._params_to_array(initial_params)
+        x0 = distribution.params_to_array(initial_params)
         result = minimize(
             weighted_neg_log_likelihood,
             x0,
@@ -104,7 +104,7 @@ class WeightedFitting:
             options={'maxiter': 1000}
         )
         
-        return distribution._array_to_params(result.x)
+        return distribution.array_to_params(result.x)
     
     @staticmethod
     def fit_weighted_moments(data: np.ndarray,
