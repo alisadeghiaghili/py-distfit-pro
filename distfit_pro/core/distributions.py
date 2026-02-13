@@ -253,19 +253,20 @@ class WeibullDistribution(ContinuousDistribution):
         if np.any(data < 0):
             raise ValueError("Weibull distribution requires non-negative data")
         shape, loc, scale = self._scipy_dist.fit(data, floc=0)
-        self._params = {'c': shape, 'scale': scale}
+        self._params = {'alpha': shape, 'a': shape, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
         self._fit_mle(data, **kwargs)
     
     def mode(self) -> float:
-        c, scale = self._params['c'], self._params['scale']
-        if c > 1:
-            return scale * ((c - 1) / c) ** (1 / c)
+        alpha = self._params['alpha']
+        scale = self._params['scale']
+        if alpha > 1:
+            return scale * ((alpha - 1) / alpha) ** (1 / alpha)
         return 0.0
-    
+ 
     def _get_scipy_params(self) -> Dict[str, float]:
-        return {'c': self._params['c'], 'loc': 0, 'scale': self._params['scale']}
+        return {'c': self._params['alpha'], 'loc': 0, 'scale': self._params['scale']}
 
 
 class LognormalDistribution(ContinuousDistribution):
@@ -292,7 +293,7 @@ class LognormalDistribution(ContinuousDistribution):
         if np.any(data <= 0):
             raise ValueError("Lognormal distribution requires positive data")
         shape, loc, scale = self._scipy_dist.fit(data, floc=0)
-        self._params = {'s': shape, 'scale': scale}
+        self._params = {'alpha': shape, 'a': shape, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
         if np.any(data <= 0):
@@ -300,14 +301,15 @@ class LognormalDistribution(ContinuousDistribution):
         log_data = np.log(data)
         s = np.std(log_data, ddof=1)
         scale = np.exp(np.mean(log_data))
-        self._params = {'s': s, 'scale': scale}
+        self._params = {'alpha': s, 'a': s, 'scale': scale}
     
     def mode(self) -> float:
-        s, scale = self._params['s'], self._params['scale']
-        return scale * np.exp(-s**2)
+        alpha = self._params['alpha']
+        scale = self._params['scale']
+        return scale * np.exp(-alpha**2)
     
     def _get_scipy_params(self) -> Dict[str, float]:
-        return {'s': self._params['s'], 'loc': 0, 'scale': self._params['scale']}
+        return {'s': self._params['alpha'], 'loc': 0, 'scale': self._params['scale']}
 
 
 class LogisticDistribution(ContinuousDistribution):
@@ -892,7 +894,7 @@ class NegativeBinomialDistribution(DiscreteDistribution):
     @property
     def info(self) -> DistributionInfo:
         return DistributionInfo(
-            name="negativebinomial",
+            name="negative_binomial",
             scipy_name="nbinom",
             display_name="Negative Binomial Distribution",
             description="Number of failures before r-th success.",
@@ -978,14 +980,24 @@ class HypergeometricDistribution(DiscreteDistribution):
             has_shape_params=True
         )
     
-    def _fit_mle(self, data: np.ndarray, M: int = None, n: int = None, **kwargs):
-        if M is None or n is None:
-            raise ValueError("Hypergeometric requires M (population) and n (draws) parameters")
-        N = int(np.round(np.mean(data) * M / n))
-        self._params = {'M': M, 'n': n, 'N': N}
+    def _fit_mle(self, data: np.ndarray, N: int = None, n: int = None, **kwargs):
+        """Fit hypergeometric distribution.
+        
+        Parameters:
+        -----------
+        N : int
+            Total population size
+        n : int  
+            Number of draws
+        """
+        if N is None or n is None:
+            raise ValueError("Hypergeometric requires N (population size) and n (number of draws) parameters")
+        # Estimate M (number of success states) from data mean
+        M = int(np.round(np.mean(data) * N / n))
+        self._params = {'M': N, 'n': n, 'N': M}
     
-    def _fit_mom(self, data: np.ndarray, M: int = None, n: int = None, **kwargs):
-        self._fit_mle(data, M=M, n=n, **kwargs)
+    def _fit_mom(self, data: np.ndarray, N: int = None, n: int = None, **kwargs):
+        self._fit_mle(data, N=N, n=n, **kwargs)
     
     def mode(self) -> float:
         M, n, N = self._params['M'], self._params['n'], self._params['N']
@@ -1025,6 +1037,7 @@ _DISTRIBUTION_REGISTRY = {
     'poisson': PoissonDistribution,
     'binomial': BinomialDistribution,
     'negativebinomial': NegativeBinomialDistribution,
+    'negative_binomial': NegativeBinomialDistribution,
     'geometric': GeometricDistribution,
     'hypergeometric': HypergeometricDistribution,
 }
