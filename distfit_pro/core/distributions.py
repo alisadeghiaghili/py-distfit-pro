@@ -1026,12 +1026,17 @@ _DISTRIBUTION_REGISTRY = {
 
 
 def get_distribution(name: str):
-    """Get distribution by name"""
-    name_lower = name.lower()
-    if name_lower not in _DISTRIBUTION_REGISTRY:
-        available = ", ".join(sorted(_DISTRIBUTION_REGISTRY.keys()))
-        raise ValueError(f"Unknown distribution: {name}. Available: {available}")
-    return _DISTRIBUTION_REGISTRY[name_lower]()
+    """Get distribution by name (supports aliases and underscores)"""
+    # Normalize: lowercase, remove spaces/dashes/underscores
+    name_normalized = name.lower().replace(' ', '').replace('-', '').replace('_', '')
+    
+    # Try to find in registry (also strip underscores from keys)
+    for key, dist_class in _DISTRIBUTION_REGISTRY.items():
+        if key.replace('_', '') == name_normalized:
+            return dist_class()
+    
+    available = ", ".join(sorted(_DISTRIBUTION_REGISTRY.keys()))
+    raise ValueError(f"Unknown distribution: {name}. Available: {available}")
 
 
 def list_distributions(discrete_only: bool = False, continuous_only: bool = False) -> list:
