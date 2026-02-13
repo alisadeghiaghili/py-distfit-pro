@@ -290,20 +290,7 @@ FA_TRANSLATIONS = {
     'undefined': 'نامعلوم',
     'na': 'ندارد',
     
-    # (Rest of FA translations same as before - keeping for brevity)
-    **{k: v for k, v in FA_TRANSLATIONS.items() if k not in [
-        'estimated_parameters', 'location_statistics', 'spread_statistics',
-        'shape_statistics', 'key_quantiles', 'practical_applications',
-        'characteristics', 'warning', 'mean', 'median', 'mode', 'variance',
-        'std_deviation', 'skewness', 'kurtosis', 'percentile',
-        'right_skewed', 'left_skewed', 'symmetric', 'heavy_tails',
-        'light_tails', 'normal_tails', 'not_fitted', 'for_explanation',
-        'for_statistics', 'undefined', 'na'
-    ]}
-}
-
-FA_TRANSLATIONS.update({
-    # (Keep all existing FA translations)
+    # Distribution characteristics and use cases
     'use_measurement_errors': 'خطاهای اندازه‌گیری',
     'use_height_weight': 'قد و وزن',
     'use_test_scores': 'نمرات تست',
@@ -405,6 +392,7 @@ FA_TRANSLATIONS.update({
     'recommendations': 'پیشنهادات',
     'suggested_distributions': 'توزیع‌های پیشنهادی',
     'fitting': 'در حال فیت',
+    'distributions': 'توزیع',
     'estimation_method': 'روش تخمین',
     'selection_criterion': 'معیار انتخاب',
     'num_cores': 'تعداد کور',
@@ -442,7 +430,7 @@ FA_TRANSLATIONS.update({
     'high_influence': 'نفوذ بالا (>{threshold:.3f})',
     'data_points': 'نقاط داده',
     'interactive_dashboard': 'داشبورد تعاملی فیت توزیع - بهترین: {model}',
-})
+}
 
 
 # ═══════════════════════════════════════════════════════════════
