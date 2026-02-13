@@ -14,7 +14,8 @@ joblib>=1.0.0
 # Progress bars
 tqdm>=4.60.0
 
-# RTL text support (for Persian/Arabic in plots)
+# RTL text support (REQUIRED for Persian/Arabic/Hebrew in plots)
+# Without these, Persian text will display incorrectly in matplotlib
 arabic-reshaper>=2.1.0
 python-bidi>=0.4.2
 
