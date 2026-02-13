@@ -1,4 +1,3 @@
-# [First 5000 chars of original file]
 """
 Base Classes for Distribution Framework
 ========================================
@@ -16,7 +15,6 @@ import numpy as np
 from scipy import stats
 import warnings
 
-# Import verbose logger if available
 try:
     from ..utils.verbose import logger
     from ..core.config import config
@@ -28,16 +26,14 @@ except ImportError:
 
 class FittingMethod(Enum):
     """Supported parameter estimation methods"""
-    MLE = "mle"  # Maximum Likelihood
-    MOM = "mom"  # Method of Moments
-    MOMENTS = "moments"  # Alias for MOM
+    MLE = "mle"
+    MOM = "mom"
+    MOMENTS = "moments"
 
 
 @dataclass
 class DistributionInfo:
-    """
-    Metadata describing a probability distribution.
-    """
+    """Metadata describing a probability distribution."""
     name: str
     scipy_name: str
     display_name: str
@@ -53,6 +49,15 @@ class DistributionInfo:
 
 class BaseDistribution(ABC):
     """Base class for all probability distributions."""
+    
+    # Parameter name aliases (for backward compatibility with scipy/tests)
+    PARAM_ALIASES = {
+        'a': 'alpha',  # Beta, Gamma
+        'b': 'beta',   # Beta
+        'c': 'shape',  # Weibull, Burr
+        's': 'shape',  # Lognormal
+        'mu': 'mean',  # Poisson, Wald
+    }
     
     def __init__(self):
         self._scipy_dist: Optional[stats.rv_continuous] = None
@@ -78,18 +83,42 @@ class BaseDistribution(ABC):
         self._fitted = value
     
     @property
-    def params(self) -> Dict[str, float]:
-        """Fitted parameter values"""
+    def params(self) -> Optional[Dict[str, float]]:
+        """Fitted parameter values with alias support"""
         if not self._fitted:
-            # Return empty dict with standard param names
-            return {p: 0.0 for p in self.info.parameters}
-        return self._params.copy()
+            return None
+        
+        # Return params with both real names and aliases
+        result = self._params.copy()
+        
+        # Add aliases
+        for alias, real_name in self.PARAM_ALIASES.items():
+            if real_name in result:
+                result[alias] = result[real_name]
+        
+        return result
     
     @params.setter
     def params(self, value: Dict[str, float]):
         """Set parameters manually"""
         self._params = value
         self._fitted = True
+    
+    def get_param(self, name: str) -> Optional[float]:
+        """Get parameter by name (supports aliases)"""
+        if not self._fitted:
+            return None
+        
+        # Check real name first
+        if name in self._params:
+            return self._params[name]
+        
+        # Check alias
+        real_name = self.PARAM_ALIASES.get(name)
+        if real_name and real_name in self._params:
+            return self._params[real_name]
+        
+        return None
     
     @property
     def data(self) -> Optional[np.ndarray]:
@@ -98,6 +127,8 @@ class BaseDistribution(ABC):
     
     def params_to_array(self) -> np.ndarray:
         """Convert parameters to array (for weighted fitting)"""
+        if not self._fitted:
+            raise ValueError("Distribution not fitted yet")
         return np.array([self._params[k] for k in sorted(self._params.keys())])
     
     def array_to_params(self, arr: np.ndarray) -> Dict[str, float]:
@@ -109,27 +140,22 @@ class BaseDistribution(ABC):
     
     def fit(self, data: np.ndarray, method: str = 'mle', verbose: Optional[bool] = None, **kwargs) -> 'BaseDistribution':
         """Fit distribution to data"""
-        # Normalize method name
         method = method.lower()
         if method == 'moments':
             method = 'mom'
         
-        # Handle NaN if requested
         handle_nan = kwargs.pop('handle_nan', None)
         if handle_nan == 'remove':
             data = data[~np.isnan(data)]
         
-        # Clean and validate data
         data = self._validate_data(data, strict=handle_nan != 'remove')
         self._data = data
         
-        # Check verbose
         if VERBOSE_AVAILABLE:
             use_verbose = verbose if verbose is not None else config.is_verbose()
         else:
             use_verbose = False
         
-        # Do fitting
         try:
             if method == 'mle':
                 self._fit_mle(data, **kwargs)
@@ -288,9 +314,8 @@ class BaseDistribution(ABC):
         return " | ".join(lines)
     
     def explain(self) -> str:
-        """Explanation"""
-        # Include distribution name in explanation
-        return f"{self.info.description}"
+        """Explanation (just description, no name)"""
+        return self.info.description
     
     def _validate_data(self, data: Union[List, np.ndarray], strict: bool = True) -> np.ndarray:
         """Validate data"""
