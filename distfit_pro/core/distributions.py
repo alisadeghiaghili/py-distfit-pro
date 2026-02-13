@@ -253,7 +253,7 @@ class WeibullDistribution(ContinuousDistribution):
         if np.any(data < 0):
             raise ValueError("Weibull distribution requires non-negative data")
         shape, loc, scale = self._scipy_dist.fit(data, floc=0)
-        self._params = {'alpha': shape, 'scale': scale}
+        self._params = {'c': shape, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
         self._fit_mle(data, **kwargs)
@@ -292,7 +292,7 @@ class LognormalDistribution(ContinuousDistribution):
         if np.any(data <= 0):
             raise ValueError("Lognormal distribution requires positive data")
         shape, loc, scale = self._scipy_dist.fit(data, floc=0)
-        self._params = {'alpha': shape, 'scale': scale}
+        self._params = {'s': shape, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
         if np.any(data <= 0):
@@ -300,7 +300,7 @@ class LognormalDistribution(ContinuousDistribution):
         log_data = np.log(data)
         s = np.std(log_data, ddof=1)
         scale = np.exp(np.mean(log_data))
-        self._params = {'alpha': shape, 'scale': scale}
+        self._params = {'s': s, 'scale': scale}
     
     def mode(self) -> float:
         s, scale = self._params['s'], self._params['scale']
