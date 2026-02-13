@@ -111,147 +111,6 @@ EN_TRANSLATIONS = {
     'for_statistics': 'For complete statistics: dist.summary()',
     'undefined': 'Undefined',
     'na': 'N/A',
-    
-    # Distribution characteristics and use cases
-    'use_measurement_errors': 'Measurement errors',
-    'use_height_weight': 'Height and weight',
-    'use_test_scores': 'Test scores',
-    'use_signal_noise': 'Signal noise',
-    'use_income': 'Income',
-    'use_stock_prices': 'Stock prices',
-    'use_failure_time': 'Failure time',
-    'use_reliability': 'Reliability analysis',
-    'use_wind_speed': 'Wind speed',
-    'use_waiting_time': 'Waiting time',
-    'use_rainfall': 'Rainfall',
-    'use_bayesian_prior': 'Bayesian prior',
-    'use_time_between_events': 'Time between events',
-    'use_component_lifetime': 'Component lifetime',
-    'use_probabilities': 'Probabilities',
-    'use_success_rate': 'Success rate',
-    'use_random_number_gen': 'Random number generation',
-    'use_uninformative_prior': 'Uninformative prior',
-    'use_pert': 'PERT / Project estimation',
-    'use_expert_estimation': 'Expert estimation',
-    'use_logistic_regression': 'Logistic regression',
-    'use_growth_models': 'Growth models',
-    'use_flood': 'Flood analysis',
-    'use_earthquake': 'Earthquake',
-    'use_extreme_values': 'Extreme values (maxima)',
-    'use_extreme_positive': 'Positive extreme values',
-    'use_insurance': 'Insurance',
-    'use_wealth': 'Wealth distribution',
-    'use_80_20_rule': '80-20 rule',
-    'use_physics': 'Physics',
-    'use_resonance': 'Resonance',
-    'use_hypothesis_testing': 'Hypothesis testing',
-    'use_small_sample': 'Small sample analysis',
-    'use_gof_test': 'Goodness-of-fit test',
-    'use_variance_test': 'Variance testing',
-    'use_anova': 'ANOVA',
-    'use_variance_ratio': 'Variance ratio',
-    'use_radar_signal': 'Radar signal',
-    'use_differences': 'Differences',
-    'use_lasso_regression': 'Lasso regression',
-    'use_variance_prior': 'Prior for variance',
-    'use_survival_analysis': 'Survival analysis',
-    'use_event_counts': 'Event counts',
-    'use_call_counts': 'Call counts',
-    'use_success_failure': 'Success/failure experiments',
-    'use_overdispersed_counts': 'Overdispersed counts',
-    'use_time_to_success': 'Time until first success',
-    'use_sampling_without_replacement': 'Sampling without replacement',
-    
-    'char_symmetric': 'Symmetric',
-    'char_68_in_1sd': '68% within μ±σ',
-    'char_95_in_2sd': '95% within μ±2σ',
-    'char_right_skewed': 'Right-skewed',
-    'char_positive': 'Only positive values',
-    'char_k_less_1': 'k<1: decreasing failure rate',
-    'char_k_eq_1': 'k=1: exponential',
-    'char_k_gr_1': 'k>1: wear-out',
-    'char_alpha_1_exponential': 'α=1: exponential',
-    'char_alpha_large_normal': 'Large α → normal',
-    'char_memoryless': 'Memoryless property',
-    'char_constant_hazard': 'Constant hazard rate',
-    'char_flexible': 'Flexible shape',
-    'char_bounded_0_1': 'Bounded to [0,1]',
-    'char_equal_probability': 'Equal probability',
-    'char_max_entropy': 'Maximum entropy',
-    'char_simple': 'Simple',
-    'char_intuitive': 'Intuitive',
-    'char_heavier_tails_than_normal': 'Heavier tails than normal',
-    'char_positive_skew': 'Positive skew',
-    'char_extreme_values': 'For extreme values',
-    'char_very_heavy_tails': 'Very heavy tails',
-    'char_power_law': 'Power law',
-    'char_mean_undefined': 'Mean undefined',
-    'char_extremely_heavy_tails': 'Extremely heavy tails',
-    'char_special_case_gamma': 'Special case of Gamma',
-    'char_skewed': 'Skewed',
-    'char_heavy_tails_dist': 'Heavy tails',
-    'char_mean_var_equal_lambda': 'Mean = Variance = λ',
-    'char_n_independent_trials': 'n independent trials',
-    'char_var_greater_mean': 'Variance > Mean',
-    'char_memoryless_discrete': 'Memoryless (discrete)',
-    'char_finite': 'Finite support',
-    
-    'warn_not_for_skewed': 'Not suitable for skewed data',
-    'warn_positive_only': 'Only for positive values',
-    'warn_no_mean_variance': 'Has no mean or variance',
-    
-    # Fitter and Results
-    'fit_results': 'Distribution Fitting Results',
-    'data_summary': 'Data Summary',
-    'ci_95': '95% CI',
-    'outliers': 'Outliers',
-    'model_ranking': 'Model Ranking',
-    'rank': 'Rank',
-    'delta': 'Δ',
-    'status': 'Status',
-    'best_model': 'Best Model',
-    'diagnostic_notes': 'Diagnostic Notes',
-    'recommendations': 'Recommendations',
-    'suggested_distributions': 'Suggested Distributions',
-    'fitting': 'Fitting',
-    'distributions': 'distributions',
-    'estimation_method': 'Estimation method',
-    'selection_criterion': 'Selection criterion',
-    'num_cores': 'Number of cores',
-    'all': 'all',
-    'comparing_models': 'Comparing models',
-    'fit_complete': 'Fitting complete',
-    
-    # Plotting
-    'pdf_comparison': 'PDF Comparison',
-    'cdf_comparison': 'CDF Comparison',
-    'qq_plot': 'Q-Q Plot',
-    'pp_plot': 'P-P Plot',
-    'residual_plot': 'Residual Plot',
-    'residual_distribution': 'Residual Distribution',
-    'tail_behavior': 'Tail Behavior (Survival Function)',
-    'influence_plot': 'Influence Plot',
-    'diagnostic_plots': 'Diagnostic Plots',
-    'comparison_plots': 'Distribution Fitting - Comparison Plots',
-    'value': 'Value',
-    'density': 'Density',
-    'cumulative_probability': 'Cumulative Probability',
-    'theoretical_quantiles': 'Theoretical Quantiles',
-    'empirical_quantiles': 'Empirical Quantiles',
-    'theoretical_probabilities': 'Theoretical Probabilities',
-    'empirical_probabilities': 'Empirical Probabilities',
-    'perfect_fit': 'Perfect fit',
-    'data': 'Data',
-    'fitted': 'Fitted',
-    'empirical': 'Empirical',
-    'empirical_cdf': 'Empirical CDF',
-    'residuals': 'Residuals',
-    'standardized_residuals': 'Standardized Residuals',
-    'zero_line': 'Zero line',
-    'influence': 'Influence',
-    'high_influence': 'High influence (>{threshold:.3f})',
-    'data_points': 'Data points',
-    'interactive_dashboard': 'Interactive Distribution Fitting Dashboard - Best: {model}',
 }
 
 
@@ -331,28 +190,22 @@ FA_TRANSLATIONS = {
     'kurtosis': 'کشیدگی (سنگینی دنباله)',
     'percentile': 'صدک {p}',
     
-    # (Rest of translations - keeping all the existing ones)
-    **{k: v for k, v in [
-        ('right_skewed', '→ راست‌چوله (چولگی مثبت)'),
-        ('left_skewed', '→ چپ‌چوله (چولگی منفی)'),
-        ('symmetric', '→ تقریباً متقارن'),
-        ('heavy_tails', '→ دنباله‌های سنگین'),
-        ('light_tails', '→ دنباله‌های سبک'),
-        ('normal_tails', '→ دنباله‌های شبیه نرمال'),
-        ('not_fitted', 'هنوز فیت نشده است.'),
-        ('for_explanation', 'برای توضیح مفهومی، از explain. استفاده کنید'),
-        ('for_statistics', 'برای آمارهای کامل: dist.summary()'),
-        ('undefined', 'نامعلوم'),
-        ('na', 'ندارد'),
-    ]},
+    # Skewness interpretations
+    'right_skewed': '→ راست‌چوله (چولگی مثبت)',
+    'left_skewed': '→ چپ‌چوله (چولگی منفی)',
+    'symmetric': '→ تقریباً متقارن',
     
-    # All other existing FA translations
-    'fit_results': 'نتایج فیت توزیع‌های آماری',
-    'data_summary': 'خلاصه داده',
-    'ci_95': 'فاصله اطمینان ۹۵٪',
-    'fitting': 'در حال فیت',
-    'distributions': 'توزیع',
-    'fit_complete': 'فیت کامل شد',
+    # Kurtosis interpretations
+    'heavy_tails': '→ دنباله‌های سنگین',
+    'light_tails': '→ دنباله‌های سبک',
+    'normal_tails': '→ دنباله‌های شبیه نرمال',
+    
+    # Messages
+    'not_fitted': 'هنوز فیت نشده است.',
+    'for_explanation': 'برای توضیح مفهومی، از explain. استفاده کنید',
+    'for_statistics': 'برای آماره‌های کامل: dist.summary()',
+    'undefined': 'نامعلوم',
+    'na': 'ندارد',
 }
 
 
@@ -361,8 +214,93 @@ FA_TRANSLATIONS = {
 # ═══════════════════════════════════════════════════════════════
 
 DE_TRANSLATIONS = {
-    **EN_TRANSLATIONS  # Fallback to English for now
-    # TODO: Add German translations
+    # Distribution info headers
+    'estimated_parameters': 'GESCHÄTZTE PARAMETER',
+    'location_statistics': 'LAGESTATISTIKEN',
+    'spread_statistics': 'STREUUNGSSTATISTIKEN',
+    'shape_statistics': 'FORMSTATISTIKEN',
+    'key_quantiles': 'WICHTIGE QUANTILE',
+    'practical_applications': 'PRAKTISCHE ANWENDUNGEN',
+    'characteristics': 'EIGENSCHAFTEN',
+    'warning': 'Warnung',
+    
+    # Section headers for verbose mode
+    'section_fitting': 'Anpassung',
+    'section_fitted_parameters': 'Angepasste Parameter',
+    'section_distribution_statistics': 'Verteilungsstatistiken',
+    
+    # Verbose mode - Data characteristics
+    'data_characteristics': 'Datenmerkmale',
+    'sample_size': 'Stichprobengröße',
+    'observations': 'Beobachtungen',
+    'mean': 'Mittelwert',
+    'std_dev': 'Standardabweichung',
+    'skewness': 'Schiefe',
+    'data_approximately_symmetric': 'Daten sind annähernd symmetrisch',
+    'data_right_skewed': 'Daten sind rechtsschief (langer Schwanz rechts)',
+    'data_left_skewed': 'Daten sind linksschief (langer Schwanz links)',
+    
+    # Verbose mode - Fitting process
+    'fitting_process': 'Anpassungsprozess',
+    'distribution': 'Verteilung',
+    'method': 'Methode',
+    'about_method': 'Über diese Methode',
+    'mle_explanation': 'Maximum-Likelihood-Schätzung findet Parameter, die die Wahrscheinlichkeit maximieren, Ihre Daten zu beobachten.',
+    'moments_explanation': 'Momentenmethode passt theoretische Momente (Mittelwert, Varianz) an Stichprobenmomente an.',
+    'method_explanation': 'Diese Methode passt die Verteilung an Ihre Daten an.',
+    
+    # Verbose mode - Parameter explanations
+    'meaning': 'Bedeutung',
+    'impact': 'Praktische Auswirkung',
+    
+    # Parameter meanings
+    'param_loc_meaning': 'Lageparameter (Zentrum der Verteilung)',
+    'param_scale_meaning': 'Skalierungsparameter (Streuung der Verteilung)',
+    'param_shape_meaning': 'Formparameter (beeinflusst Verteilungsform)',
+    'param_rate_meaning': 'Ratenparameter (Kehrwert der Skalierung)',
+    'param_df_meaning': 'Freiheitsgrade',
+    
+    # Practical impacts
+    'impact_low_variability': 'Geringe Variabilität - Daten eng gruppiert',
+    'impact_moderate_variability': 'Mittlere Variabilität',
+    'impact_high_variability': 'Hohe Variabilität - Daten weit gestreut',
+    'impact_see_docs': 'Siehe Dokumentation für Interpretation',
+    
+    # Statistics explanations
+    'stat_expected_value': 'Erwartungswert',
+    'stat_typical_deviation': 'Typische Abweichung vom Mittelwert',
+    'stat_50_percent_below': '50% der Daten unter diesem Wert',
+    'stat_most_common_value': 'Häufigster Wert',
+    'stat_approximately_symmetric': 'Annähernd symmetrisch',
+    'stat_normal_tail_behavior': 'Normales Schwanzverhalten',
+    
+    # Fitting success messages
+    'fitting_completed_successfully': 'Anpassung erfolgreich abgeschlossen',
+    
+    # Statistics
+    'median': 'Median',
+    'mode': 'Modus',
+    'variance': 'Varianz (σ²)',
+    'std_deviation': 'Standardabweichung (σ)',
+    'kurtosis': 'Kurtosis (Schwanzgewicht)',
+    'percentile': '{p}. Perzentil',
+    
+    # Skewness interpretations
+    'right_skewed': '→ Rechtsschief (positiv)',
+    'left_skewed': '→ Linksschief (negativ)',
+    'symmetric': '→ Annähernd symmetrisch',
+    
+    # Kurtosis interpretations
+    'heavy_tails': '→ Schwere Schwänze (leptokurtisch)',
+    'light_tails': '→ Leichte Schwänze (platykurtisch)',
+    'normal_tails': '→ Normalähnliche Schwänze',
+    
+    # Messages
+    'not_fitted': 'wurde noch nicht angepasst.',
+    'for_explanation': 'Für konzeptionelle Erklärung, verwenden Sie .explain()',
+    'for_statistics': 'Für vollständige Statistiken: dist.summary()',
+    'undefined': 'Undefiniert',
+    'na': 'N/V',
 }
 
 
@@ -379,19 +317,27 @@ TRANSLATIONS = {
 
 def t(key: str, **kwargs) -> str:
     """
-    Translate a key to the current language
+    Translate a key to the current language.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     key : str
         Translation key
     **kwargs : dict
         Format parameters for the translation string
         
-    Returns:
-    --------
+    Returns
+    -------
     translation : str
         Translated string
+        
+    Examples
+    --------
+    >>> from distfit_pro.locales import t
+    >>> t('mean')
+    'Mean'  # (if language is 'en')
+    'میانگین'  # (if language is 'fa')
+    'Mittelwert'  # (if language is 'de')
     """
     lang = get_language()
     translations = TRANSLATIONS.get(lang, EN_TRANSLATIONS)
@@ -405,23 +351,24 @@ def t(key: str, **kwargs) -> str:
 
 def t_list(keys: List[str]) -> List[str]:
     """
-    Translate a list of keys
+    Translate a list of keys.
     
-    Parameters:
+    Parameters
     -----------
     keys : list of str
         List of translation keys
         
-    Returns:
+    Returns
     --------
     translations : list of str
         List of translated strings
         
-    Example:
-    --------
-    >>> t_list(['use_income', 'use_stock_prices'])
-    ['Income', 'Stock prices']  # (in English)
-    ['درآمد', 'قیمت سهام']  # (in Persian)
+    Example
+    -------
+    >>> t_list(['mean', 'median', 'mode'])
+    ['Mean', 'Median', 'Mode']  # English
+    ['میانگین', 'میانه', 'مد']  # Persian
+    ['Mittelwert', 'Median', 'Modus']  # German
     """
     return [t(key) for key in keys]
 
