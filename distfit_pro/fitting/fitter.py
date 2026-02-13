@@ -18,7 +18,8 @@ from scipy import stats
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
-from ..core.distributions import get_distribution, list_distributions, BaseDistribution
+from ..core.base import BaseDistribution
+from ..core.distributions import get_distribution, list_distributions
 from ..core.model_selection import ModelSelection, DeltaComparison, ModelScore
 from ..visualization.plots import DistributionPlotter
 from ..locales import t
