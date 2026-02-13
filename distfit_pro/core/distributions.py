@@ -163,7 +163,7 @@ class GammaDistribution(ContinuousDistribution):
         if np.any(data <= 0):
             raise ValueError("Gamma distribution requires positive data")
         shape, loc, scale = self._scipy_dist.fit(data, floc=0)
-        self._params = {'shape': shape, 'scale': scale}
+        self._params = {'alpha': shape, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
         if np.any(data <= 0):
@@ -172,15 +172,15 @@ class GammaDistribution(ContinuousDistribution):
         var_val = np.var(data, ddof=1)
         scale = var_val / mean_val
         shape = mean_val / scale
-        self._params = {'shape': shape, 'scale': scale}
+        self._params = {'alpha': shape, 'scale': scale}
     
     def mode(self) -> float:
-        if self._params['shape'] >= 1:
-            return (self._params['shape'] - 1) * self._params['scale']
+        if self._params['alpha'] >= 1:
+            return (self._params['alpha'] - 1) * self._params['scale']
         return 0.0
     
     def _get_scipy_params(self) -> Dict[str, float]:
-        return {'a': self._params['shape'], 'loc': 0, 'scale': self._params['scale']}
+        return {'a': self._params['alpha'], 'loc': 0, 'scale': self._params['scale']}
 
 
 class BetaDistribution(ContinuousDistribution):
@@ -253,7 +253,7 @@ class WeibullDistribution(ContinuousDistribution):
         if np.any(data < 0):
             raise ValueError("Weibull distribution requires non-negative data")
         shape, loc, scale = self._scipy_dist.fit(data, floc=0)
-        self._params = {'shape': shape, 'scale': scale}
+        self._params = {'alpha': shape, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
         self._fit_mle(data, **kwargs)
@@ -292,7 +292,7 @@ class LognormalDistribution(ContinuousDistribution):
         if np.any(data <= 0):
             raise ValueError("Lognormal distribution requires positive data")
         shape, loc, scale = self._scipy_dist.fit(data, floc=0)
-        self._params = {'shape': shape, 'scale': scale}
+        self._params = {'alpha': shape, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
         if np.any(data <= 0):
@@ -300,7 +300,7 @@ class LognormalDistribution(ContinuousDistribution):
         log_data = np.log(data)
         shape = np.std(log_data, ddof=1)
         scale = np.exp(np.mean(log_data))
-        self._params = {'shape': shape, 'scale': scale}
+        self._params = {'alpha': shape, 'scale': scale}
     
     def mode(self) -> float:
         shape, scale = self._params['shape'], self._params['scale']
@@ -408,7 +408,7 @@ class ParetoDistribution(ContinuousDistribution):
         if np.any(data <= 0):
             raise ValueError("Pareto distribution requires positive data")
         shape, loc, scale = self._scipy_dist.fit(data, floc=0)
-        self._params = {'shape': shape, 'scale': scale}
+        self._params = {'alpha': shape, 'scale': scale}
     
     def _fit_mom(self, data: np.ndarray, **kwargs):
         if np.any(data <= 0):
