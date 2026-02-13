@@ -125,11 +125,13 @@ class BaseDistribution(ABC):
         """Original data used for fitting"""
         return self._data
     
-    def params_to_array(self) -> np.ndarray:
+    def params_to_array(self, params: Optional[Dict[str, float]] = None) -> np.ndarray:
         """Convert parameters to array (for weighted fitting)"""
-        if not self._fitted:
-            raise ValueError("Distribution not fitted yet")
-        return np.array([self._params[k] for k in sorted(self._params.keys())])
+        if params is None:
+            if not self._fitted:
+                raise ValueError("Distribution not fitted yet")
+            params = self._params
+        return np.array([params[k] for k in sorted(params.keys())])
     
     def array_to_params(self, arr: np.ndarray) -> Dict[str, float]:
         """Convert array back to parameters dict"""
