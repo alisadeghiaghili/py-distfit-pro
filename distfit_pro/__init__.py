@@ -23,19 +23,15 @@ Features:
 
 Quick Start:
 -----------
->>> from distfit_pro import DistributionFitter
+>>> from distfit_pro import fit
 >>> import numpy as np
 >>>
 >>> # Generate sample data
 >>> data = np.random.normal(10, 2, 1000)
 >>>
->>> # Fit distributions
->>> fitter = DistributionFitter(data)
->>> results = fitter.fit()
->>> print(results.summary())
->>>
->>> # Plot results
->>> results.plot(kind='comparison')
+>>> # Quick fit
+>>> result = fit(data, 'normal')
+>>> print(result.summary())
 
 For more examples, see: https://github.com/alisadeghiaghili/py-distfit-pro
 """
@@ -106,6 +102,9 @@ from .gof import (
     CramerVonMisesTest,
 )
 
+# Alias for compatibility
+GOFTestResult = GOFResult
+
 # ============================================================================
 # BOOTSTRAP METHODS
 # ============================================================================
@@ -126,6 +125,11 @@ from .bootstrap import (
 from .fitting import (
     DistributionFitter,
     FitResults,
+    FitResult,
+    fit,
+    find_best_distribution,
+    compare_distributions,
+    ComparisonResult,
 )
 
 # ============================================================================
@@ -135,6 +139,29 @@ from .fitting import (
 from .visualization import (
     DistributionPlotter,
 )
+
+# ============================================================================
+# CONFIG
+# ============================================================================
+
+from .core.config import config
+
+# Expose config functions at top level
+def set_language(lang: str):
+    """Set display language: 'en', 'fa', 'de'"""
+    config.set_language(lang)
+
+def set_verbosity(level: str):
+    """Set verbosity: 'silent', 'normal', 'verbose', 'debug'"""
+    config.set_verbosity(level)
+
+def get_language() -> str:
+    """Get current language"""
+    return config.language
+
+def get_verbosity() -> str:
+    """Get current verbosity level"""
+    return config.verbosity
 
 # ============================================================================
 # PUBLIC API
@@ -190,6 +217,7 @@ __all__ = [
     # === GOODNESS-OF-FIT TESTS (4) ===
     "GOFTest",
     "GOFResult",
+    "GOFTestResult",  # Alias
     "KolmogorovSmirnovTest",
     "AndersonDarlingTest",
     "ChiSquareTest",
@@ -206,79 +234,19 @@ __all__ = [
     # === HIGH-LEVEL API ===
     "DistributionFitter",
     "FitResults",
+    "FitResult",
+    "fit",
+    "find_best_distribution",
+    "compare_distributions",
+    "ComparisonResult",
     
     # === VISUALIZATION ===
     "DistributionPlotter",
+    
+    # === CONFIG ===
+    "config",
+    "set_language",
+    "set_verbosity",
+    "get_language",
+    "get_verbosity",
 ]
-
-
-# ============================================================================
-# PACKAGE METADATA
-# ============================================================================
-
-def get_info() -> dict:
-    """
-    Get package information.
-    
-    Returns
-    -------
-    info : dict
-        Package metadata
-    """
-    return {
-        'name': 'distfit-pro',
-        'version': __version__,
-        'author': __author__,
-        'email': __email__,
-        'license': __license__,
-        'n_distributions': 25,
-        'n_continuous': 20,
-        'n_discrete': 5,
-        'n_gof_tests': 4,
-        'features': [
-            'Multiple fitting methods',
-            'Goodness-of-fit tests',
-            'Bootstrap confidence intervals',
-            'Professional visualizations',
-            'Multilingual support',
-        ]
-    }
-
-
-def list_all_distributions() -> dict:
-    """
-    List all available distributions grouped by type.
-    
-    Returns
-    -------
-    distributions : dict
-        Dictionary with 'continuous' and 'discrete' lists
-    """
-    return {
-        'continuous': list_distributions(continuous_only=True),
-        'discrete': list_distributions(discrete_only=True),
-        'total': len(list_distributions())
-    }
-
-
-def show_welcome_message():
-    """
-    Show welcome message with package info.
-    """
-    print("="*70)
-    print("  distfit-pro v{}".format(__version__))
-    print("  Professional Distribution Fitting Library")
-    print("="*70)
-    print("\nFeatures:")
-    print("  • 25 probability distributions")
-    print("  • 4 goodness-of-fit tests")
-    print("  • Bootstrap confidence intervals")
-    print("  • Professional visualizations")
-    print("  • Multilingual support")
-    print("\nQuick start:")
-    print("  >>> from distfit_pro import DistributionFitter")
-    print("  >>> fitter = DistributionFitter(data)")
-    print("  >>> results = fitter.fit()")
-    print("  >>> results.plot()")
-    print("\nDocumentation: https://github.com/alisadeghiaghili/py-distfit-pro")
-    print("="*70)
