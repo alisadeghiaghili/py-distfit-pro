@@ -259,7 +259,7 @@ class WeibullDistribution(ContinuousDistribution):
         self._fit_mle(data, **kwargs)
     
     def mode(self) -> float:
-        shape, scale = self._params['shape'], self._params['scale']
+        c, scale = self._params['c'], self._params['scale']
         if c > 1:
             return scale * ((c - 1) / c) ** (1 / c)
         return 0.0
@@ -298,12 +298,12 @@ class LognormalDistribution(ContinuousDistribution):
         if np.any(data <= 0):
             raise ValueError("Lognormal distribution requires positive data")
         log_data = np.log(data)
-        shape = np.std(log_data, ddof=1)
+        s = np.std(log_data, ddof=1)
         scale = np.exp(np.mean(log_data))
         self._params = {'alpha': shape, 'scale': scale}
     
     def mode(self) -> float:
-        shape, scale = self._params['shape'], self._params['scale']
+        s, scale = self._params['s'], self._params['scale']
         return scale * np.exp(-s**2)
     
     def _get_scipy_params(self) -> Dict[str, float]:
