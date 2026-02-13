@@ -1,0 +1,477 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-8.4.2, pluggy-1.5.0 -- C:\Users\alisa\anaconda3\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\alisa\Desktop\py-distfit-pro-main
+plugins: anyio-4.10.0
+collecting ... collected 180 items
+
+tests/test_basic.py::TestBasicFitting::test_normal_fit PASSED            [  0%]
+tests/test_basic.py::TestBasicFitting::test_exponential_fit PASSED       [  1%]
+tests/test_basic.py::TestBasicFitting::test_get_distribution PASSED      [  1%]
+tests/test_basic.py::TestBasicFitting::test_pdf_cdf PASSED               [  2%]
+tests/test_basic.py::TestBasicFitting::test_sampling PASSED              [  2%]
+tests/test_bootstrap.py::test_parametric_bootstrap_runs_and_produces_ci FAILED [  3%]
+tests/test_diagnostics.py::test_outlier_detection_basic_behaviour PASSED [  3%]
+tests/test_distributions.py::TestAllDistributions::test_list_distributions PASSED [  4%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[normal] PASSED [  5%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[exponential] PASSED [  5%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[uniform] PASSED [  6%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[gamma] PASSED [  6%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[beta] PASSED [  7%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[weibull] PASSED [  7%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[lognormal] PASSED [  8%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[logistic] PASSED [  8%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[gumbel] PASSED [  9%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[pareto] PASSED [ 10%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[cauchy] PASSED [ 10%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[student_t] PASSED [ 11%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[chi_square] PASSED [ 11%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[f] PASSED [ 12%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[laplace] PASSED [ 12%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[rayleigh] PASSED [ 13%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[wald] PASSED [ 13%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[triangular] PASSED [ 14%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[burr] PASSED [ 15%]
+tests/test_distributions.py::TestAllDistributions::test_continuous_distributions[genextreme] PASSED [ 15%]
+tests/test_distributions.py::TestAllDistributions::test_discrete_distributions[poisson] PASSED [ 16%]
+tests/test_distributions.py::TestAllDistributions::test_discrete_distributions[binomial] PASSED [ 16%]
+tests/test_distributions.py::TestAllDistributions::test_discrete_distributions[negative_binomial] PASSED [ 17%]
+tests/test_distributions.py::TestAllDistributions::test_discrete_distributions[geometric] PASSED [ 17%]
+tests/test_distributions.py::TestAllDistributions::test_discrete_distributions[hypergeometric] PASSED [ 18%]
+tests/test_distributions_advanced1.py::TestGammaDistribution::test_initialization PASSED [ 18%]
+tests/test_distributions_advanced1.py::TestGammaDistribution::test_fit_mle PASSED [ 19%]
+tests/test_distributions_advanced1.py::TestGammaDistribution::test_fit_moments PASSED [ 20%]
+tests/test_distributions_advanced1.py::TestGammaDistribution::test_exponential_special_case PASSED [ 20%]
+tests/test_distributions_advanced1.py::TestGammaDistribution::test_normal_approximation_large_alpha PASSED [ 21%]
+tests/test_distributions_advanced1.py::TestGammaDistribution::test_positive_only FAILED [ 21%]
+tests/test_distributions_advanced1.py::TestGammaDistribution::test_statistics PASSED [ 22%]
+tests/test_distributions_advanced1.py::TestGammaDistribution::test_pdf_shape PASSED [ 22%]
+tests/test_distributions_advanced1.py::TestGammaDistribution::test_skewness_formula PASSED [ 23%]
+tests/test_distributions_advanced1.py::TestBetaDistribution::test_initialization PASSED [ 23%]
+tests/test_distributions_advanced1.py::TestBetaDistribution::test_fit_mle PASSED [ 24%]
+tests/test_distributions_advanced1.py::TestBetaDistribution::test_fit_moments PASSED [ 25%]
+tests/test_distributions_advanced1.py::TestBetaDistribution::test_bounded_01 PASSED [ 25%]
+tests/test_distributions_advanced1.py::TestBetaDistribution::test_uniform_special_case PASSED [ 26%]
+tests/test_distributions_advanced1.py::TestBetaDistribution::test_symmetric_case PASSED [ 26%]
+tests/test_distributions_advanced1.py::TestBetaDistribution::test_skewness_direction PASSED [ 27%]
+tests/test_distributions_advanced1.py::TestBetaDistribution::test_mean_formula PASSED [ 27%]
+tests/test_distributions_advanced1.py::TestBetaDistribution::test_bayesian_prior PASSED [ 28%]
+tests/test_distributions_advanced1.py::TestTriangularDistribution::test_initialization PASSED [ 28%]
+tests/test_distributions_advanced1.py::TestTriangularDistribution::test_fit_mle PASSED [ 29%]
+tests/test_distributions_advanced1.py::TestTriangularDistribution::test_symmetric_case PASSED [ 30%]
+tests/test_distributions_advanced1.py::TestTriangularDistribution::test_mean_formula PASSED [ 30%]
+tests/test_distributions_advanced1.py::TestTriangularDistribution::test_bounded_support PASSED [ 31%]
+tests/test_distributions_advanced1.py::TestTriangularDistribution::test_pdf_shape PASSED [ 31%]
+tests/test_distributions_advanced1.py::TestTriangularDistribution::test_expert_estimation_use_case PASSED [ 32%]
+tests/test_distributions_advanced1.py::TestLogisticDistribution::test_initialization PASSED [ 32%]
+tests/test_distributions_advanced1.py::TestLogisticDistribution::test_fit_mle PASSED [ 33%]
+tests/test_distributions_advanced1.py::TestLogisticDistribution::test_heavier_tails_than_normal PASSED [ 33%]
+tests/test_distributions_advanced1.py::TestLogisticDistribution::test_symmetric PASSED [ 34%]
+tests/test_distributions_advanced1.py::TestLogisticDistribution::test_cdf_sigmoid_shape PASSED [ 35%]
+tests/test_distributions_advanced1.py::TestLogisticDistribution::test_variance_formula PASSED [ 35%]
+tests/test_distributions_advanced1.py::TestLogisticDistribution::test_logistic_regression_connection PASSED [ 36%]
+tests/test_distributions_advanced1.py::TestGumbelDistribution::test_initialization PASSED [ 36%]
+tests/test_distributions_advanced1.py::TestGumbelDistribution::test_fit_mle PASSED [ 37%]
+tests/test_distributions_advanced1.py::TestGumbelDistribution::test_fit_moments PASSED [ 37%]
+tests/test_distributions_advanced1.py::TestGumbelDistribution::test_extreme_value_property PASSED [ 38%]
+tests/test_distributions_advanced1.py::TestGumbelDistribution::test_positive_skewness PASSED [ 38%]
+tests/test_distributions_advanced1.py::TestGumbelDistribution::test_mode_less_than_median PASSED [ 39%]
+tests/test_distributions_advanced1.py::TestGumbelDistribution::test_pdf_shape PASSED [ 40%]
+tests/test_distributions_advanced1.py::TestGumbelDistribution::test_return_period PASSED [ 40%]
+tests/test_distributions_advanced1.py::TestAdvancedDistributions1Integration::test_all_distributions_fit PASSED [ 41%]
+tests/test_distributions_advanced1.py::TestAdvancedDistributions1Integration::test_pdf_integrates_to_one PASSED [ 41%]
+tests/test_distributions_advanced1.py::TestAdvancedDistributions1Integration::test_cdf_monotonic PASSED [ 42%]
+tests/test_distributions_advanced1.py::TestAdvancedDistributions1Integration::test_ppf_cdf_inverse PASSED [ 42%]
+tests/test_distributions_advanced1.py::TestAdvancedDistributions1Integration::test_summary_and_explain FAILED [ 43%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_initialization PASSED [ 43%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_fit_mle PASSED [ 44%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_fit_moments PASSED [ 45%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_pdf PASSED [ 45%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_cdf PASSED [ 46%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_ppf PASSED [ 46%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_statistics PASSED [ 47%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_shape_statistics PASSED [ 47%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_rvs PASSED [ 48%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_summary PASSED [ 48%]
+tests/test_distributions_basic.py::TestNormalDistribution::test_explain FAILED [ 49%]
+tests/test_distributions_basic.py::TestLognormalDistribution::test_initialization PASSED [ 50%]
+tests/test_distributions_basic.py::TestLognormalDistribution::test_fit_mle FAILED [ 50%]
+tests/test_distributions_basic.py::TestLognormalDistribution::test_positive_only FAILED [ 51%]
+tests/test_distributions_basic.py::TestLognormalDistribution::test_pdf FAILED [ 51%]
+tests/test_distributions_basic.py::TestLognormalDistribution::test_statistics FAILED [ 52%]
+tests/test_distributions_basic.py::TestLognormalDistribution::test_skewness FAILED [ 52%]
+tests/test_distributions_basic.py::TestExponentialDistribution::test_initialization FAILED [ 53%]
+tests/test_distributions_basic.py::TestExponentialDistribution::test_fit_mle PASSED [ 53%]
+tests/test_distributions_basic.py::TestExponentialDistribution::test_memoryless_property PASSED [ 54%]
+tests/test_distributions_basic.py::TestExponentialDistribution::test_mode_at_zero PASSED [ 55%]
+tests/test_distributions_basic.py::TestExponentialDistribution::test_mean_equals_scale PASSED [ 55%]
+tests/test_distributions_basic.py::TestExponentialDistribution::test_constant_hazard_rate PASSED [ 56%]
+tests/test_distributions_basic.py::TestUniformDistribution::test_initialization PASSED [ 56%]
+tests/test_distributions_basic.py::TestUniformDistribution::test_fit_mle PASSED [ 57%]
+tests/test_distributions_basic.py::TestUniformDistribution::test_constant_pdf PASSED [ 57%]
+tests/test_distributions_basic.py::TestUniformDistribution::test_mean_midpoint PASSED [ 58%]
+tests/test_distributions_basic.py::TestUniformDistribution::test_variance_formula PASSED [ 58%]
+tests/test_distributions_basic.py::TestUniformDistribution::test_zero_skewness PASSED [ 59%]
+tests/test_distributions_basic.py::TestWeibullDistribution::test_initialization PASSED [ 60%]
+tests/test_distributions_basic.py::TestWeibullDistribution::test_fit_mle FAILED [ 60%]
+tests/test_distributions_basic.py::TestWeibullDistribution::test_shape_parameter_effects FAILED [ 61%]
+tests/test_distributions_basic.py::TestWeibullDistribution::test_reliability_analysis FAILED [ 61%]
+tests/test_distributions_basic.py::TestWeibullDistribution::test_positive_only FAILED [ 62%]
+tests/test_distributions_basic.py::TestWeibullDistribution::test_pdf_shape FAILED [ 62%]
+tests/test_distributions_basic.py::TestWeibullDistribution::test_cdf_bounds FAILED [ 63%]
+tests/test_distributions_basic.py::TestBasicDistributionsIntegration::test_get_distribution_factory PASSED [ 63%]
+tests/test_distributions_basic.py::TestBasicDistributionsIntegration::test_fit_and_sample_roundtrip PASSED [ 64%]
+tests/test_distributions_basic.py::TestBasicDistributionsIntegration::test_cdf_ppf_inverse PASSED [ 65%]
+tests/test_distributions_basic.py::TestBasicDistributionsIntegration::test_all_methods_consistency PASSED [ 65%]
+tests/test_distributions_basic.py::TestBasicDistributionsIntegration::test_edge_cases FAILED [ 66%]
+tests/test_distributions_discrete.py::TestPoissonDistribution::test_initialization PASSED [ 66%]
+tests/test_distributions_discrete.py::TestPoissonDistribution::test_fit_mle PASSED [ 67%]
+tests/test_distributions_discrete.py::TestPoissonDistribution::test_mle_equals_sample_mean PASSED [ 67%]
+tests/test_distributions_discrete.py::TestPoissonDistribution::test_mean_equals_variance PASSED [ 68%]
+tests/test_distributions_discrete.py::TestPoissonDistribution::test_non_negative_integers PASSED [ 68%]
+tests/test_distributions_discrete.py::TestPoissonDistribution::test_pmf_sums_to_one PASSED [ 69%]
+tests/test_distributions_discrete.py::TestPoissonDistribution::test_rare_events PASSED [ 70%]
+tests/test_distributions_discrete.py::TestPoissonDistribution::test_event_counting_application PASSED [ 70%]
+tests/test_distributions_discrete.py::TestPoissonDistribution::test_binomial_approximation PASSED [ 71%]
+tests/test_distributions_discrete.py::TestBinomialDistribution::test_initialization PASSED [ 71%]
+tests/test_distributions_discrete.py::TestBinomialDistribution::test_fit_mle PASSED [ 72%]
+tests/test_distributions_discrete.py::TestBinomialDistribution::test_mle_formula PASSED [ 72%]
+tests/test_distributions_discrete.py::TestBinomialDistribution::test_bounded_support PASSED [ 73%]
+tests/test_distributions_discrete.py::TestBinomialDistribution::test_mean_formula PASSED [ 73%]
+tests/test_distributions_discrete.py::TestBinomialDistribution::test_variance_formula PASSED [ 74%]
+tests/test_distributions_discrete.py::TestBinomialDistribution::test_symmetric_case PASSED [ 75%]
+tests/test_distributions_discrete.py::TestBinomialDistribution::test_skewness PASSED [ 75%]
+tests/test_distributions_discrete.py::TestBinomialDistribution::test_coin_flipping_application PASSED [ 76%]
+tests/test_distributions_discrete.py::TestNegativeBinomialDistribution::test_initialization FAILED [ 76%]
+tests/test_distributions_discrete.py::TestNegativeBinomialDistribution::test_fit_mle PASSED [ 77%]
+tests/test_distributions_discrete.py::TestNegativeBinomialDistribution::test_overdispersion PASSED [ 77%]
+tests/test_distributions_discrete.py::TestNegativeBinomialDistribution::test_mean_formula PASSED [ 78%]
+tests/test_distributions_discrete.py::TestNegativeBinomialDistribution::test_variance_formula PASSED [ 78%]
+tests/test_distributions_discrete.py::TestNegativeBinomialDistribution::test_geometric_special_case PASSED [ 79%]
+tests/test_distributions_discrete.py::TestNegativeBinomialDistribution::test_non_negative_integers PASSED [ 80%]
+tests/test_distributions_discrete.py::TestNegativeBinomialDistribution::test_waiting_time_interpretation PASSED [ 80%]
+tests/test_distributions_discrete.py::TestGeometricDistribution::test_initialization PASSED [ 81%]
+tests/test_distributions_discrete.py::TestGeometricDistribution::test_fit_mle PASSED [ 81%]
+tests/test_distributions_discrete.py::TestGeometricDistribution::test_mle_formula PASSED [ 82%]
+tests/test_distributions_discrete.py::TestGeometricDistribution::test_memoryless_property PASSED [ 82%]
+tests/test_distributions_discrete.py::TestGeometricDistribution::test_mean_formula PASSED [ 83%]
+tests/test_distributions_discrete.py::TestGeometricDistribution::test_variance_formula PASSED [ 83%]
+tests/test_distributions_discrete.py::TestGeometricDistribution::test_positive_integers PASSED [ 84%]
+tests/test_distributions_discrete.py::TestGeometricDistribution::test_waiting_time_application PASSED [ 85%]
+tests/test_distributions_discrete.py::TestGeometricDistribution::test_mode_equals_one PASSED [ 85%]
+tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_initialization PASSED [ 86%]
+tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_fit_mle FAILED [ 86%]
+tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_bounded_support FAILED [ 87%]
+tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_mean_formula FAILED [ 87%]
+tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_variance_formula FAILED [ 88%]
+tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_binomial_approximation_large_N FAILED [ 88%]
+tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_sampling_without_replacement FAILED [ 89%]
+tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_quality_control_application FAILED [ 90%]
+tests/test_distributions_discrete.py::TestDiscreteDistributionsIntegration::test_all_distributions_fit FAILED [ 90%]
+tests/test_distributions_discrete.py::TestDiscreteDistributionsIntegration::test_all_produce_integers PASSED [ 91%]
+tests/test_distributions_discrete.py::TestDiscreteDistributionsIntegration::test_pmf_properties PASSED [ 91%]
+tests/test_distributions_discrete.py::TestDiscreteDistributionsIntegration::test_cdf_monotonic PASSED [ 92%]
+tests/test_distributions_discrete.py::TestDiscreteDistributionsIntegration::test_summary_output FAILED [ 92%]
+tests/test_distributions_discrete.py::TestDiscreteDistributionsIntegration::test_all_25_distributions_complete FAILED [ 93%]
+tests/test_distributions_discrete.py::TestDiscreteDistributionsIntegration::test_discrete_vs_continuous_flag PASSED [ 93%]
+tests/test_fitting.py::test_mle_recovers_normal_params FAILED            [ 94%]
+tests/test_fitting.py::test_moments_not_exploding_on_simple_data PASSED  [ 95%]
+tests/test_gof.py::TestGOFTests::test_ks_test PASSED                     [ 95%]
+tests/test_gof.py::TestGOFTests::test_ad_test PASSED                     [ 96%]
+tests/test_gof.py::TestGOFTests::test_chi_square_test PASSED             [ 96%]
+tests/test_gof.py::TestGOFTests::test_cvm_test PASSED                    [ 97%]
+tests/test_i18n.py::TestI18n::test_english PASSED                        [ 97%]
+tests/test_i18n.py::TestI18n::test_persian PASSED                        [ 98%]
+tests/test_i18n.py::TestI18n::test_german PASSED                         [ 98%]
+tests/test_i18n.py::TestI18n::test_verbose_output_languages PASSED       [ 99%]
+tests/test_weighted.py::test_weighted_mle_matches_expanded_sample FAILED [100%]
+
+================================== FAILURES ===================================
+_______________ test_parametric_bootstrap_runs_and_produces_ci ________________
+tests\test_bootstrap.py:17: in test_parametric_bootstrap_runs_and_produces_ci
+    assert "mu" in ci_results
+E   AssertionError: assert 'mu' in {'loc': \nBootstrap CI for loc\n==================================================\nPoint Estimate: 1.042302\n95% CI: [0.876090, 1.205955]\nMethod: Parametric Bootstrap\nBootstrap Samples: 100\n, 'scale': \nBootstrap CI for scale\n==================================================\nPoint Estimate: 2.041863\n95% CI: [1.880315, 2.143316]\nMethod: Parametric Bootstrap\nBootstrap Samples: 100\n}
+---------------------------- Captured stderr call -----------------------------
+\rParametric Bootstrap:   0%|          | 0/100 [00:00<?, ?it/s]\rParametric Bootstrap: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 100/100 [00:00<00:00, 2546.83it/s]
+__________________ TestGammaDistribution.test_positive_only ___________________
+tests\test_distributions_advanced1.py:102: in test_positive_only
+    dist.fit(data_with_negatives, method='mle')
+distfit_pro\core\base.py:161: in fit
+    self._fit_mle(data, **kwargs)
+distfit_pro\core\distributions.py:164: in _fit_mle
+    raise ValueError("Gamma distribution requires positive data")
+E   ValueError: Gamma distribution requires positive data
+---------------------------- Captured stderr call -----------------------------
+\u274c Fitting failed: Gamma distribution requires positive data
+_______ TestAdvancedDistributions1Integration.test_summary_and_explain ________
+tests\test_distributions_advanced1.py:649: in test_summary_and_explain
+    assert len(summary) > 200
+E   assert 131 > 200
+E    +  where 131 = len("Gamma Distribution | Parameters: {'alpha': 2.197537761915599, 'scale': np.float64(2.7076619049039685)} | Mean: 5.9502 | Std: 4.0139")
+_____________________ TestNormalDistribution.test_explain _____________________
+tests\test_distributions_basic.py:163: in test_explain
+    assert "Normal" in explanation
+E   AssertionError: assert 'Normal' in 'Symmetric bell-shaped continuous distribution. Fundamental in statistics due to Central Limit Theorem.'
+___________________ TestLognormalDistribution.test_fit_mle ____________________
+tests\test_distributions_basic.py:192: in test_fit_mle
+    assert 's' in dist.params
+E   AssertionError: assert 's' in {'a': np.float64(0.48936310387367715), 'alpha': np.float64(0.48936310387367715), 'scale': np.float64(7.4608252238080635)}
+E    +  where {'a': np.float64(0.48936310387367715), 'alpha': np.float64(0.48936310387367715), 'scale': np.float64(7.4608252238080635)} = <Lognormal Distribution (fitted)>.params
+________________ TestLognormalDistribution.test_positive_only _________________
+tests\test_distributions_basic.py:201: in test_positive_only
+    dist.fit(data_with_negatives, method='mle')
+distfit_pro\core\base.py:161: in fit
+    self._fit_mle(data, **kwargs)
+distfit_pro\core\distributions.py:293: in _fit_mle
+    raise ValueError("Lognormal distribution requires positive data")
+E   ValueError: Lognormal distribution requires positive data
+---------------------------- Captured stderr call -----------------------------
+\u274c Fitting failed: Lognormal distribution requires positive data
+_____________________ TestLognormalDistribution.test_pdf ______________________
+tests\test_distributions_basic.py:212: in test_pdf
+    pdf_values = dist.pdf(x)
+                 ^^^^^^^^^^^
+distfit_pro\core\base.py:192: in pdf
+    return self._scipy_dist.pdf(x, **self._get_scipy_params())
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+distfit_pro\core\distributions.py:310: in _get_scipy_params
+    return {'s': self._params['shape'], 'loc': 0, 'scale': self._params['scale']}
+                 ^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'shape'
+__________________ TestLognormalDistribution.test_statistics __________________
+tests\test_distributions_basic.py:222: in test_statistics
+    mean = dist.mean()
+           ^^^^^^^^^^^
+distfit_pro\core\base.py:245: in mean
+    return float(self._scipy_dist.mean(**self._get_scipy_params()))
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^
+distfit_pro\core\distributions.py:310: in _get_scipy_params
+    return {'s': self._params['shape'], 'loc': 0, 'scale': self._params['scale']}
+                 ^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'shape'
+___________________ TestLognormalDistribution.test_skewness ___________________
+tests\test_distributions_basic.py:236: in test_skewness
+    skew = dist.skewness()
+           ^^^^^^^^^^^^^^^
+distfit_pro\core\base.py:265: in skewness
+    return float(self._scipy_dist.stats(**self._get_scipy_params(), moments='s'))
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^
+distfit_pro\core\distributions.py:310: in _get_scipy_params
+    return {'s': self._params['shape'], 'loc': 0, 'scale': self._params['scale']}
+                 ^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'shape'
+_______________ TestExponentialDistribution.test_initialization _______________
+tests\test_distributions_basic.py:257: in test_initialization
+    assert dist._mode_at_zero
+           ^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'ExponentialDistribution' object has no attribute '_mode_at_zero'. Did you mean: 'mode_at_zero'?
+____________________ TestWeibullDistribution.test_fit_mle _____________________
+tests\test_distributions_basic.py:413: in test_fit_mle
+    assert 'c' in dist.params  # shape
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert 'c' in {'a': np.float64(1.9805725368512337), 'alpha': np.float64(1.9805725368512337), 'scale': np.float64(4.920457995801591)}
+E    +  where {'a': np.float64(1.9805725368512337), 'alpha': np.float64(1.9805725368512337), 'scale': np.float64(4.920457995801591)} = <Weibull Distribution (fitted)>.params
+____________ TestWeibullDistribution.test_shape_parameter_effects _____________
+tests\test_distributions_basic.py:426: in test_shape_parameter_effects
+    assert dist1.params['c'] < 1.2
+           ^^^^^^^^^^^^^^^^^
+E   KeyError: 'c'
+______________ TestWeibullDistribution.test_reliability_analysis ______________
+tests\test_distributions_basic.py:446: in test_reliability_analysis
+    reliability = dist.reliability(t)
+                  ^^^^^^^^^^^^^^^^^^^
+distfit_pro\core\base.py:230: in reliability
+    return self.sf(t)
+           ^^^^^^^^^^
+distfit_pro\core\base.py:226: in sf
+    return self._scipy_dist.sf(x, **self._get_scipy_params())
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^
+distfit_pro\core\distributions.py:268: in _get_scipy_params
+    return {'c': self._params['shape'], 'loc': 0, 'scale': self._params['scale']}
+                 ^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'shape'
+_________________ TestWeibullDistribution.test_positive_only __________________
+tests\test_distributions_basic.py:456: in test_positive_only
+    dist.fit(data_with_negatives, method='mle')
+distfit_pro\core\base.py:161: in fit
+    self._fit_mle(data, **kwargs)
+distfit_pro\core\distributions.py:254: in _fit_mle
+    raise ValueError("Weibull distribution requires non-negative data")
+E   ValueError: Weibull distribution requires non-negative data
+---------------------------- Captured stderr call -----------------------------
+\u274c Fitting failed: Weibull distribution requires non-negative data
+___________________ TestWeibullDistribution.test_pdf_shape ____________________
+tests\test_distributions_basic.py:467: in test_pdf_shape
+    pdf_values = dist.pdf(x)
+                 ^^^^^^^^^^^
+distfit_pro\core\base.py:192: in pdf
+    return self._scipy_dist.pdf(x, **self._get_scipy_params())
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+distfit_pro\core\distributions.py:268: in _get_scipy_params
+    return {'c': self._params['shape'], 'loc': 0, 'scale': self._params['scale']}
+                 ^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'shape'
+___________________ TestWeibullDistribution.test_cdf_bounds ___________________
+tests\test_distributions_basic.py:478: in test_cdf_bounds
+    cdf_values = dist.cdf(x)
+                 ^^^^^^^^^^^
+distfit_pro\core\base.py:212: in cdf
+    return self._scipy_dist.cdf(x, **self._get_scipy_params())
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+distfit_pro\core\distributions.py:268: in _get_scipy_params
+    return {'c': self._params['shape'], 'loc': 0, 'scale': self._params['scale']}
+                 ^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'shape'
+______________ TestBasicDistributionsIntegration.test_edge_cases ______________
+tests\test_distributions_basic.py:566: in test_edge_cases
+    dist.fit(data_with_nan)
+distfit_pro\core\base.py:151: in fit
+    data = self._validate_data(data, strict=handle_nan != 'remove')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+distfit_pro\core\base.py:341: in _validate_data
+    raise ValueError("Data contains NaN values")
+E   ValueError: Data contains NaN values
+____________ TestNegativeBinomialDistribution.test_initialization _____________
+tests\test_distributions_discrete.py:267: in test_initialization
+    assert dist.info.name == "negative_binomial"
+E   AssertionError: assert 'negativebinomial' == 'negative_binomial'
+E     
+E     - negative_binomial
+E     ?         -
+E     + negativebinomial
+_________________ TestHypergeometricDistribution.test_fit_mle _________________
+tests\test_distributions_discrete.py:473: in test_fit_mle
+    dist.fit(hypergeometric_data, method='mle', N=100, n=10)
+distfit_pro\core\base.py:161: in fit
+    self._fit_mle(data, **kwargs)
+distfit_pro\core\distributions.py:983: in _fit_mle
+    raise ValueError("Hypergeometric requires M (population) and n (draws) parameters")
+E   ValueError: Hypergeometric requires M (population) and n (draws) parameters
+---------------------------- Captured stderr call -----------------------------
+\u274c Fitting failed: Hypergeometric requires M (population) and n (draws) parameters
+_____________ TestHypergeometricDistribution.test_bounded_support _____________
+tests\test_distributions_discrete.py:483: in test_bounded_support
+    dist.fit(hypergeometric_data, method='mle', N=100, n=10)
+distfit_pro\core\base.py:161: in fit
+    self._fit_mle(data, **kwargs)
+distfit_pro\core\distributions.py:983: in _fit_mle
+    raise ValueError("Hypergeometric requires M (population) and n (draws) parameters")
+E   ValueError: Hypergeometric requires M (population) and n (draws) parameters
+---------------------------- Captured stderr call -----------------------------
+\u274c Fitting failed: Hypergeometric requires M (population) and n (draws) parameters
+______________ TestHypergeometricDistribution.test_mean_formula _______________
+tests\test_distributions_discrete.py:493: in test_mean_formula
+    dist.fit(hypergeometric_data, method='mle', N=100, n=10)
+distfit_pro\core\base.py:161: in fit
+    self._fit_mle(data, **kwargs)
+distfit_pro\core\distributions.py:983: in _fit_mle
+    raise ValueError("Hypergeometric requires M (population) and n (draws) parameters")
+E   ValueError: Hypergeometric requires M (population) and n (draws) parameters
+---------------------------- Captured stderr call -----------------------------
+\u274c Fitting failed: Hypergeometric requires M (population) and n (draws) parameters
+____________ TestHypergeometricDistribution.test_variance_formula _____________
+tests\test_distributions_discrete.py:507: in test_variance_formula
+    dist.fit(hypergeometric_data, method='mle', N=100, n=10)
+distfit_pro\core\base.py:161: in fit
+    self._fit_mle(data, **kwargs)
+distfit_pro\core\distributions.py:983: in _fit_mle
+    raise ValueError("Hypergeometric requires M (population) and n (draws) parameters")
+E   ValueError: Hypergeometric requires M (population) and n (draws) parameters
+---------------------------- Captured stderr call -----------------------------
+\u274c Fitting failed: Hypergeometric requires M (population) and n (draws) parameters
+_____ TestHypergeometricDistribution.test_binomial_approximation_large_N ______
+tests\test_distributions_discrete.py:527: in test_binomial_approximation_large_N
+    dist.fit(data, method='mle', N=N, n=n)
+distfit_pro\core\base.py:161: in fit
+    self._fit_mle(data, **kwargs)
+distfit_pro\core\distributions.py:983: in _fit_mle
+    raise ValueError("Hypergeometric requires M (population) and n (draws) parameters")
+E   ValueError: Hypergeometric requires M (population) and n (draws) parameters
+---------------------------- Captured stderr call -----------------------------
+\u274c Fitting failed: Hypergeometric requires M (population) and n (draws) parameters
+______ TestHypergeometricDistribution.test_sampling_without_replacement _______
+tests\test_distributions_discrete.py:544: in test_sampling_without_replacement
+    assert 0 < prob_2_hearts < 1
+E   assert 0 < np.float64(nan)
+_______ TestHypergeometricDistribution.test_quality_control_application _______
+tests\test_distributions_discrete.py:555: in test_quality_control_application
+    assert 1.5 < expected_defectives < 2.5  # Should be 2
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert 1.5 < nan
+_______ TestDiscreteDistributionsIntegration.test_all_distributions_fit _______
+tests\test_distributions_discrete.py:582: in test_all_distributions_fit
+    dist.fit(data, method='mle', N=100, n=10)
+distfit_pro\core\base.py:161: in fit
+    self._fit_mle(data, **kwargs)
+distfit_pro\core\distributions.py:983: in _fit_mle
+    raise ValueError("Hypergeometric requires M (population) and n (draws) parameters")
+E   ValueError: Hypergeometric requires M (population) and n (draws) parameters
+---------------------------- Captured stderr call -----------------------------
+\u274c Fitting failed: Hypergeometric requires M (population) and n (draws) parameters
+__________ TestDiscreteDistributionsIntegration.test_summary_output ___________
+tests\test_distributions_discrete.py:647: in test_summary_output
+    assert len(explain) > 50
+E   AssertionError: assert 37 > 50
+E    +  where 37 = len('Number of trials until first success.')
+___ TestDiscreteDistributionsIntegration.test_all_25_distributions_complete ___
+tests\test_distributions_discrete.py:665: in test_all_25_distributions_complete
+    dist = get_distribution(name)
+           ^^^^^^^^^^^^^^^^^^^^^^
+distfit_pro\core\distributions.py:1044: in get_distribution
+    raise ValueError(f"Unknown distribution: {name}. Available: {available}")
+E   ValueError: Unknown distribution: frechet. Available: beta, binomial, burr, cauchy, chisquare, exponential, f, gamma, genextreme, geometric, gumbel, hypergeometric, laplace, logistic, lognormal, negativebinomial, normal, pareto, poisson, rayleigh, studentt, triangular, uniform, wald, weibull
+_______________________ test_mle_recovers_normal_params _______________________
+tests\test_fitting.py:16: in test_mle_recovers_normal_params
+    assert abs(est["mu"] - true_mu) < 0.1
+               ^^^^^^^^^
+E   KeyError: 'mu'
+__________________ test_weighted_mle_matches_expanded_sample __________________
+tests\test_weighted.py:18: in test_weighted_mle_matches_expanded_sample
+    params = WeightedFitting.fit_weighted_mle(values, freqs, dist2)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+distfit_pro\core\weighted.py:99: in fit_weighted_mle
+    x0 = distribution._params_to_array(initial_params)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'NormalDistribution' object has no attribute '_params_to_array'. Did you mean: 'params_to_array'?
+============================== warnings summary ===============================
+tests/test_distributions_advanced1.py::TestAdvancedDistributions1Integration::test_pdf_integrates_to_one
+  C:\Users\alisa\Desktop\py-distfit-pro-main\tests\test_distributions_advanced1.py:606: DeprecationWarning: `trapz` is deprecated. Use `trapezoid` instead, or one of the numerical integration functions in `scipy.integrate`.
+    integral = np.trapz(pdf_values, x)
+
+tests/test_distributions_basic.py::TestBasicDistributionsIntegration::test_edge_cases
+  C:\Users\alisa\Desktop\py-distfit-pro-main\distfit_pro\core\base.py:346: UserWarning: Very small sample size (< 5)
+    warnings.warn("Very small sample size (< 5)")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_bootstrap.py::test_parametric_bootstrap_runs_and_produces_ci
+FAILED tests/test_distributions_advanced1.py::TestGammaDistribution::test_positive_only
+FAILED tests/test_distributions_advanced1.py::TestAdvancedDistributions1Integration::test_summary_and_explain
+FAILED tests/test_distributions_basic.py::TestNormalDistribution::test_explain
+FAILED tests/test_distributions_basic.py::TestLognormalDistribution::test_fit_mle
+FAILED tests/test_distributions_basic.py::TestLognormalDistribution::test_positive_only
+FAILED tests/test_distributions_basic.py::TestLognormalDistribution::test_pdf
+FAILED tests/test_distributions_basic.py::TestLognormalDistribution::test_statistics
+FAILED tests/test_distributions_basic.py::TestLognormalDistribution::test_skewness
+FAILED tests/test_distributions_basic.py::TestExponentialDistribution::test_initialization
+FAILED tests/test_distributions_basic.py::TestWeibullDistribution::test_fit_mle
+FAILED tests/test_distributions_basic.py::TestWeibullDistribution::test_shape_parameter_effects
+FAILED tests/test_distributions_basic.py::TestWeibullDistribution::test_reliability_analysis
+FAILED tests/test_distributions_basic.py::TestWeibullDistribution::test_positive_only
+FAILED tests/test_distributions_basic.py::TestWeibullDistribution::test_pdf_shape
+FAILED tests/test_distributions_basic.py::TestWeibullDistribution::test_cdf_bounds
+FAILED tests/test_distributions_basic.py::TestBasicDistributionsIntegration::test_edge_cases
+FAILED tests/test_distributions_discrete.py::TestNegativeBinomialDistribution::test_initialization
+FAILED tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_fit_mle
+FAILED tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_bounded_support
+FAILED tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_mean_formula
+FAILED tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_variance_formula
+FAILED tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_binomial_approximation_large_N
+FAILED tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_sampling_without_replacement
+FAILED tests/test_distributions_discrete.py::TestHypergeometricDistribution::test_quality_control_application
+FAILED tests/test_distributions_discrete.py::TestDiscreteDistributionsIntegration::test_all_distributions_fit
+FAILED tests/test_distributions_discrete.py::TestDiscreteDistributionsIntegration::test_summary_output
+FAILED tests/test_distributions_discrete.py::TestDiscreteDistributionsIntegration::test_all_25_distributions_complete
+FAILED tests/test_fitting.py::test_mle_recovers_normal_params - KeyError: 'mu'
+FAILED tests/test_weighted.py::test_weighted_mle_matches_expanded_sample - At...
+================= 30 failed, 150 passed, 2 warnings in 7.11s ==================

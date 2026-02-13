@@ -260,12 +260,12 @@ class WeibullDistribution(ContinuousDistribution):
     
     def mode(self) -> float:
         shape, scale = self._params['shape'], self._params['scale']
-        if shape > 1:
-            return scale * ((shape - 1) / shape) ** (1 / shape)
+        if c > 1:
+            return scale * ((c - 1) / c) ** (1 / c)
         return 0.0
     
     def _get_scipy_params(self) -> Dict[str, float]:
-        return {'c': self._params['shape'], 'loc': 0, 'scale': self._params['scale']}
+        return {'c': self._params['c'], 'loc': 0, 'scale': self._params['scale']}
 
 
 class LognormalDistribution(ContinuousDistribution):
@@ -304,10 +304,10 @@ class LognormalDistribution(ContinuousDistribution):
     
     def mode(self) -> float:
         shape, scale = self._params['shape'], self._params['scale']
-        return scale * np.exp(-shape**2)
+        return scale * np.exp(-s**2)
     
     def _get_scipy_params(self) -> Dict[str, float]:
-        return {'s': self._params['shape'], 'loc': 0, 'scale': self._params['scale']}
+        return {'s': self._params['s'], 'loc': 0, 'scale': self._params['scale']}
 
 
 class LogisticDistribution(ContinuousDistribution):
