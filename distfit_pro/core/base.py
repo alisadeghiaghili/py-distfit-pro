@@ -219,11 +219,23 @@ class BaseDistribution(ABC):
         return self._scipy_dist.ppf(q, **self._get_scipy_params())
     
     def sf(self, x: np.ndarray) -> np.ndarray:
-        """Survival function"""
+        """Survival function (1 - CDF)"""
         if not self._fitted:
             raise ValueError("Must call fit() first")
         x = np.asarray(x)
         return self._scipy_dist.sf(x, **self._get_scipy_params())
+    
+    def reliability(self, t: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """Reliability function R(t) = P(X > t) = 1 - F(t)"""
+        return self.sf(t)
+    
+    def hazard_rate(self, t: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        """Hazard rate function h(t) = f(t) / R(t)"""
+        t = np.asarray(t)
+        pdf_val = self.pdf(t)
+        sf_val = self.sf(t)
+        # Avoid division by zero
+        return np.where(sf_val > 0, pdf_val / sf_val, np.inf)
     
     # ===== MOMENTS =====
     
@@ -328,7 +340,7 @@ class BaseDistribution(ABC):
             if np.any(np.isnan(data)):
                 raise ValueError("Data contains NaN values")
             if np.any(np.isinf(data)):
-                raise ValueError("Data contains infinite values")
+            raise ValueError("Data contains infinite values")
         
         if data.size < 5:
             warnings.warn("Very small sample size (< 5)")
