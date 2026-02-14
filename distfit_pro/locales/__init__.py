@@ -144,6 +144,53 @@ EN_TRANSLATIONS = {
     'for_statistics': 'For complete statistics: dist.summary()',
     'undefined': 'Undefined',
     'na': 'N/A',
+    
+    # ═══════════════════════════════════════════════════════════
+    # PLOTTING TRANSLATIONS (NEW!)
+    # ═══════════════════════════════════════════════════════════
+    
+    # Basic plot elements
+    'data': 'Data',
+    'value': 'Value',
+    'density': 'Density',
+    
+    # Comparison plots
+    'pdf_comparison': 'PDF Comparison',
+    'cdf_comparison': 'CDF Comparison',
+    'comparison_plots': 'Distribution Comparison Plots',
+    
+    # CDF related
+    'empirical_cdf': 'Empirical CDF',
+    'cumulative_probability': 'Cumulative Probability',
+    
+    # Q-Q and P-P plots
+    'qq_plot': 'Q-Q Plot',
+    'pp_plot': 'P-P Plot',
+    'perfect_fit': 'Perfect Fit',
+    'theoretical_quantiles': 'Theoretical Quantiles',
+    'empirical_quantiles': 'Empirical Quantiles',
+    'theoretical_probabilities': 'Theoretical Probabilities',
+    'empirical_probabilities': 'Empirical Probabilities',
+    
+    # Diagnostic plots
+    'diagnostic_plots': 'Diagnostic Plots',
+    'residual_plot': 'Residual Plot',
+    'residual_distribution': 'Residual Distribution',
+    'residuals': 'Residuals',
+    'standardized_residuals': 'Standardized Residuals',
+    'zero_line': 'Zero Line',
+    
+    # Tail and influence
+    'tail_behavior': 'Tail Behavior',
+    'influence_plot': 'Influence Plot',
+    'influence': 'Influence',
+    'high_influence': 'High Influence (>{threshold:.2f})',
+    
+    # General
+    'empirical': 'Empirical',
+    'fitted': 'Fitted Model',
+    'data_points': 'Data Points',
+    'interactive_dashboard': 'Interactive Dashboard - {model}',
 }
 
 
@@ -272,6 +319,53 @@ FA_TRANSLATIONS = {
     'for_statistics': 'برای آماره‌های کامل: dist.summary()',
     'undefined': 'نامعلوم',
     'na': 'ندارد',
+    
+    # ═══════════════════════════════════════════════════════════
+    # PLOTTING TRANSLATIONS (NEW!)
+    # ═══════════════════════════════════════════════════════════
+    
+    # Basic plot elements
+    'data': 'داده',
+    'value': 'مقدار',
+    'density': 'چگالی',
+    
+    # Comparison plots
+    'pdf_comparison': 'مقایسه PDF',
+    'cdf_comparison': 'مقایسه CDF',
+    'comparison_plots': 'نمودارهای مقایسه توزیع',
+    
+    # CDF related
+    'empirical_cdf': 'CDF تجربی',
+    'cumulative_probability': 'احتمال تجمعی',
+    
+    # Q-Q and P-P plots
+    'qq_plot': 'نمودار Q-Q',
+    'pp_plot': 'نمودار P-P',
+    'perfect_fit': 'برازش کامل',
+    'theoretical_quantiles': 'چارک‌های نظری',
+    'empirical_quantiles': 'چارک‌های تجربی',
+    'theoretical_probabilities': 'احتمالات نظری',
+    'empirical_probabilities': 'احتمالات تجربی',
+    
+    # Diagnostic plots
+    'diagnostic_plots': 'نمودارهای تشخیصی',
+    'residual_plot': 'نمودار باقی‌مانده',
+    'residual_distribution': 'توزیع باقی‌مانده',
+    'residuals': 'باقی‌مانده‌ها',
+    'standardized_residuals': 'باقی‌مانده‌های استاندارد',
+    'zero_line': 'خط صفر',
+    
+    # Tail and influence
+    'tail_behavior': 'رفتار دنباله',
+    'influence_plot': 'نمودار تأثیرگذاری',
+    'influence': 'تأثیرگذاری',
+    'high_influence': 'تأثیرگذاری بالا (>{threshold:.2f})',
+    
+    # General
+    'empirical': 'تجربی',
+    'fitted': 'مدل برازش شده',
+    'data_points': 'نقاط داده',
+    'interactive_dashboard': 'داشبورد تعاملی - {model}',
 }
 
 
@@ -400,6 +494,53 @@ DE_TRANSLATIONS = {
     'for_statistics': 'Für vollständige Statistiken: dist.summary()',
     'undefined': 'Undefiniert',
     'na': 'N/V',
+    
+    # ═══════════════════════════════════════════════════════════
+    # PLOTTING TRANSLATIONS (NEW!)
+    # ═══════════════════════════════════════════════════════════
+    
+    # Basic plot elements
+    'data': 'Daten',
+    'value': 'Wert',
+    'density': 'Dichte',
+    
+    # Comparison plots
+    'pdf_comparison': 'PDF-Vergleich',
+    'cdf_comparison': 'CDF-Vergleich',
+    'comparison_plots': 'Verteilungsvergleichsdiagramme',
+    
+    # CDF related
+    'empirical_cdf': 'Empirische CDF',
+    'cumulative_probability': 'Kumulative Wahrscheinlichkeit',
+    
+    # Q-Q and P-P plots
+    'qq_plot': 'Q-Q-Diagramm',
+    'pp_plot': 'P-P-Diagramm',
+    'perfect_fit': 'Perfekte Anpassung',
+    'theoretical_quantiles': 'Theoretische Quantile',
+    'empirical_quantiles': 'Empirische Quantile',
+    'theoretical_probabilities': 'Theoretische Wahrscheinlichkeiten',
+    'empirical_probabilities': 'Empirische Wahrscheinlichkeiten',
+    
+    # Diagnostic plots
+    'diagnostic_plots': 'Diagnosediagramme',
+    'residual_plot': 'Residuendiagramm',
+    'residual_distribution': 'Residuenverteilung',
+    'residuals': 'Residuen',
+    'standardized_residuals': 'Standardisierte Residuen',
+    'zero_line': 'Nulllinie',
+    
+    # Tail and influence
+    'tail_behavior': 'Schwanzverhalten',
+    'influence_plot': 'Einflussdiagramm',
+    'influence': 'Einfluss',
+    'high_influence': 'Hoher Einfluss (>{threshold:.2f})',
+    
+    # General
+    'empirical': 'Empirisch',
+    'fitted': 'Angepasstes Modell',
+    'data_points': 'Datenpunkte',
+    'interactive_dashboard': 'Interaktives Dashboard - {model}',
 }
 
 
