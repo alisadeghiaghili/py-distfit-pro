@@ -1,68 +1,43 @@
 # MANIFEST.in
-# ===========
-# Controls which files are included in source distributions
+# Specifies additional files to include in the distribution package
 
-# Include documentation
+# Documentation
 include README.md
+include README.fa.md
+include README.de.md
 include LICENSE
 include CHANGELOG.md
 include CONTRIBUTING.md
-include requirements.txt
-include requirements-dev.txt
 
-# Include package data
-include setup.py
-include pyproject.toml
-
-# Include all locale files (CRITICAL for multilingual support)
+# Locale files (translations)
 recursive-include distfit_pro/locales *.json
 
-# Include tests
-recursive-include tests *.py
-include test_*.py
+# Package metadata
+include setup.py
+include pyproject.toml
+include requirements.txt
 
-# Include examples
-recursive-include examples *.py
-recursive-include examples *.ipynb
-recursive-include examples *.md
+# Exclude development and temporary files
+exclude .gitignore
+exclude *.pyc
+exclude *.pyo
+exclude *~
+exclude .DS_Store
 
-# Include docs
-recursive-include docs *.rst
-recursive-include docs *.md
-recursive-include docs *.py
-recursive-include docs Makefile
+# Exclude test files from distribution
+exclude test_*.py
+recursive-exclude tests *
+recursive-exclude docs *
+recursive-exclude examples *
 
-# Exclude compiled Python files
-global-exclude *.py[cod]
-global-exclude __pycache__
-global-exclude *.so
-global-exclude .DS_Store
-
-# Exclude version control
-global-exclude .git*
-global-exclude .hg*
-
-# Exclude temporary and backup files
-global-exclude *~
-global-exclude *.bak
-global-exclude *.swp
-global-exclude *_temp.py
-global-exclude *_FIXED.py
-global-exclude *_backup.py
+# Exclude temporary/backup files
+exclude *_temp.py
+exclude *_FIXED.py
+exclude *.bak
+exclude *.swp
 
 # Exclude build artifacts
-global-exclude *.egg-info
 prune build
 prune dist
-prune .eggs
-
-# Exclude IDE files
-prune .vscode
-prune .idea
-global-exclude *.code-workspace
-
-# Exclude coverage and test artifacts
-global-exclude .coverage
-global-exclude htmlcov
-global-exclude .pytest_cache
-global-exclude .tox
+prune *.egg-info
+prune __pycache__
