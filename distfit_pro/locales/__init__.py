@@ -32,6 +32,7 @@ EN_TRANSLATIONS = {
     'key_quantiles': 'KEY QUANTILES',
     'practical_applications': 'PRACTICAL APPLICATIONS',
     'characteristics': 'CHARACTERISTICS',
+    'goodness_of_fit': 'GOODNESS OF FIT',
     'warning': 'Warning',
     
     # Section headers for verbose mode
@@ -127,6 +128,7 @@ FA_TRANSLATIONS = {
     'key_quantiles': 'چارک‌های کلیدی',
     'practical_applications': 'کاربردهای عملی',
     'characteristics': 'ویژگی‌های این توزیع',
+    'goodness_of_fit': 'نیکویی برازش',
     'warning': 'هشدار',
     
     # Section headers
@@ -222,6 +224,7 @@ DE_TRANSLATIONS = {
     'key_quantiles': 'WICHTIGE QUANTILE',
     'practical_applications': 'PRAKTISCHE ANWENDUNGEN',
     'characteristics': 'EIGENSCHAFTEN',
+    'goodness_of_fit': 'ANPASSUNGSGÜTE',
     'warning': 'Warnung',
     
     # Section headers for verbose mode
