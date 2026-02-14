@@ -593,50 +593,125 @@ class BaseDistribution(ABC):
     
     def summary(self) -> str:
         """
-        Generate text summary of fitted distribution.
+        Generate beautifully formatted summary of fitted distribution with box drawing.
         
         Returns
         -------
         summary : str
-            Multi-line summary with parameters and statistics
+            Multi-line summary with box characters, parameters, and statistics
         """
         if not self._fitted:
             return f"{self.info.display_name} (not fitted)"
         
-        lines = [
-            f"Distribution: {self.info.display_name}",
-            f"Description: {self.info.description}",
-            f"Support: {self.info.support}",
-            "",
-            "Parameters:",
-        ]
+        lines = []
         
+        # Header box
+        title = self.info.display_name
+        lines.append("╔" + "═" * 62 + "╗")
+        lines.append(f"║ {title:^60} ║")
+        lines.append("╠" + "═" * 62 + "╣")
+        lines.append("║  📊 Estimated Parameters" + " " * 37 + "║")
+        lines.append("╚" + "═" * 62 + "╝")
+        
+        # Parameters
         for param, value in self._params.items():
-            lines.append(f"  {param}: {value:.6f}")
+            # Get display name for parameter
+            param_display = param
+            if param == 'loc':
+                param_display = 'μ (mean)' if self.info.name == 'normal' else 'location'
+            elif param == 'scale':
+                param_display = 'σ (std)' if self.info.name == 'normal' else 'scale'
+            elif param == 'alpha':
+                param_display = 'α (shape)'
+            elif param == 'beta':
+                param_display = 'β (rate/scale)'
+            elif param == 'c':
+                param_display = 'c (shape)'
+            elif param == 's':
+                param_display = 's (shape)'
+            
+            lines.append(f"   {param_display:<30} = {value:>15.6f}")
         
-        lines.extend([
-            "",
-            "Statistics:",
-            f"  Mean: {self.mean():.6f}",
-            f"  Variance: {self.var():.6f}",
-            f"  Std Dev: {self.std():.6f}",
-            f"  Median: {self.median():.6f}",
-        ])
+        # Location Statistics box
+        lines.append("")
+        lines.append("╔" + "═" * 62 + "╗")
+        lines.append("║  📍 Location Statistics" + " " * 38 + "║")
+        lines.append("╚" + "═" * 62 + "╝")
         
         try:
-            lines.append(f"  Skewness: {self.skewness():.6f}")
-            lines.append(f"  Kurtosis: {self.kurtosis():.6f}")
+            mean_val = self.mean()
+            lines.append(f"   {'Mean':<30} = {mean_val:>15.6f}")
         except:
             pass
         
+        try:
+            median_val = self.median()
+            lines.append(f"   {'Median':<30} = {median_val:>15.6f}")
+        except:
+            pass
+        
+        try:
+            mode_val = self.mode()
+            lines.append(f"   {'Mode':<30} = {mode_val:>15.6f}")
+        except:
+            pass
+        
+        # Spread Statistics box
+        lines.append("")
+        lines.append("╔" + "═" * 62 + "╗")
+        lines.append("║  📏 Spread Statistics" + " " * 40 + "║")
+        lines.append("╚" + "═" * 62 + "╝")
+        
+        try:
+            var_val = self.var()
+            lines.append(f"   {'Variance':<30} = {var_val:>15.6f}")
+        except:
+            pass
+        
+        try:
+            std_val = self.std()
+            lines.append(f"   {'Std Deviation':<30} = {std_val:>15.6f}")
+        except:
+            pass
+        
+        # Shape Statistics box
+        try:
+            skew_val = self.skewness()
+            kurt_val = self.kurtosis()
+            
+            lines.append("")
+            lines.append("╔" + "═" * 62 + "╗")
+            lines.append("║  📐 Shape Statistics" + " " * 41 + "║")
+            lines.append("╚" + "═" * 62 + "╝")
+            lines.append(f"   {'Skewness':<30} = {skew_val:>15.6f}")
+            lines.append(f"   {'Kurtosis (excess)':<30} = {kurt_val:>15.6f}")
+        except:
+            pass
+        
+        # Goodness of Fit box
         if self._data is not None:
-            lines.extend([
-                "",
-                "Goodness of Fit:",
-                f"  Log-Likelihood: {self.log_likelihood():.2f}",
-                f"  AIC: {self.aic():.2f}",
-                f"  BIC: {self.bic():.2f}",
-            ])
+            lines.append("")
+            lines.append("╔" + "═" * 62 + "╗")
+            lines.append("║  ✅ Goodness of Fit" + " " * 42 + "║")
+            lines.append("╚" + "═" * 62 + "╝")
+            
+            try:
+                ll = self.log_likelihood()
+                lines.append(f"   {'Log-Likelihood':<30} = {ll:>15.2f}")
+            except:
+                pass
+            
+            try:
+                aic_val = self.aic()
+                lines.append(f"   {'AIC':<30} = {aic_val:>15.2f}")
+            except:
+                pass
+            
+            try:
+                bic_val = self.bic()
+                lines.append(f"   {'BIC':<30} = {bic_val:>15.2f}")
+            except:
+                pass
         
         return "\n".join(lines)
     
