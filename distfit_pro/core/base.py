@@ -221,6 +221,102 @@ class BaseDistribution(ABC):
         """Method of moments implementation - must override in subclass"""
         pass
     
+    def fit_moments(self, data: np.ndarray, **kwargs) -> Dict[str, float]:
+        """
+        Fit using method of moments and return parameters.
+        
+        This is a convenience method that calls _fit_mom() and returns
+        the parameters without modifying the distribution state.
+        Used by weighted fitting for initial parameter guesses.
+        
+        Parameters
+        ----------
+        data : array-like
+            Observed data
+            
+        Returns
+        -------
+        params : dict
+            Fitted parameters
+        """
+        # Temporarily fit
+        original_params = self._params.copy()
+        original_fitted = self._fitted
+        
+        self._fit_mom(data, **kwargs)
+        result = self._params.copy()
+        
+        # Restore state
+        self._params = original_params
+        self._fitted = original_fitted
+        
+        return result
+    
+    def params_to_array(self, params: Dict[str, float]) -> np.ndarray:
+        """
+        Convert parameter dictionary to numpy array.
+        
+        Used by weighted fitting and optimization routines that
+        require parameters as a flat array.
+        
+        Parameters
+        ----------
+        params : dict
+            Parameter dictionary {name: value}
+            
+        Returns
+        -------
+        array : ndarray
+            Parameter values in consistent order
+            
+        Examples
+        --------
+        >>> dist = get_distribution('normal')
+        >>> params = {'loc': 5.0, 'scale': 2.0}
+        >>> arr = dist.params_to_array(params)
+        >>> print(arr)
+        [5.0, 2.0]
+        """
+        # Use parameter order from distribution info
+        param_order = self.info.parameters
+        return np.array([params[name] for name in param_order])
+    
+    def array_to_params(self, array: np.ndarray) -> Dict[str, float]:
+        """
+        Convert numpy array to parameter dictionary.
+        
+        Inverse of params_to_array(). Used by weighted fitting
+        to convert optimization results back to parameter dict.
+        
+        Parameters
+        ----------
+        array : array-like
+            Parameter values in same order as info.parameters
+            
+        Returns
+        -------
+        params : dict
+            Parameter dictionary {name: value}
+            
+        Examples
+        --------
+        >>> dist = get_distribution('normal')
+        >>> arr = np.array([5.0, 2.0])
+        >>> params = dist.array_to_params(arr)
+        >>> print(params)
+        {'loc': 5.0, 'scale': 2.0}
+        """
+        param_order = self.info.parameters
+        array = np.asarray(array)
+        
+        if len(array) != len(param_order):
+            raise ValueError(
+                f"Array length {len(array)} doesn't match "
+                f"expected {len(param_order)} parameters"
+            )
+        
+        return {name: float(value) for name, value in zip(param_order, array)}
+    
     def _explain_fitted_parameters(self):
         """
         Explain fitted parameters in plain language (verbose only).
