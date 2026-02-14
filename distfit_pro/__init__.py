@@ -8,7 +8,7 @@ and beautiful visualizations.
 
 Author: Ali Sadeghi Aghili
 Email: alisadeghiaghili@gmail.com
-Version: 0.1.0
+Version: 1.0.0
 License: MIT
 
 Features:
@@ -17,9 +17,11 @@ Features:
 - Multiple fitting methods (MLE, Method of Moments)
 - 4 goodness-of-fit tests (KS, AD, Chi-Square, CvM)
 - Bootstrap confidence intervals (parametric & non-parametric)
+- Weighted fitting for survey data
+- Model selection (AIC, BIC, AICc, LOO-CV)
+- Residual diagnostics and outlier detection
 - Professional visualizations (matplotlib & plotly)
 - Multilingual support (English, Persian, German)
-- High-level API for easy usage
 
 Quick Start:
 -----------
@@ -36,7 +38,7 @@ Quick Start:
 For more examples, see: https://github.com/alisadeghiaghili/py-distfit-pro
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __author__ = "Ali Sadeghi Aghili"
 __email__ = "alisadeghiaghili@gmail.com"
 __license__ = "MIT"
@@ -46,7 +48,7 @@ __license__ = "MIT"
 # ============================================================================
 
 from .core.distributions import (
-    # Continuous distributions
+    # Continuous distributions (20)
     NormalDistribution,
     ExponentialDistribution,
     UniformDistribution,
@@ -68,7 +70,7 @@ from .core.distributions import (
     BurrDistribution,
     GenExtremeDistribution,
     
-    # Discrete distributions
+    # Discrete distributions (5)
     PoissonDistribution,
     BinomialDistribution,
     NegativeBinomialDistribution,
@@ -117,6 +119,22 @@ from .bootstrap import (
     bootstrap_hypothesis_test,
     bootstrap_goodness_of_fit,
 )
+
+# ============================================================================
+# ADVANCED FEATURES (from core/)
+# ============================================================================
+
+# Import advanced classes directly
+try:
+    from .core.gof_tests import GOFTests
+    from .core.bootstrap import Bootstrap
+    from .core.diagnostics import Diagnostics
+    from .core.weighted import WeightedFitting
+    from .core.model_selection import ModelSelection, DeltaComparison
+    
+    ADVANCED_AVAILABLE = True
+except ImportError:
+    ADVANCED_AVAILABLE = False
 
 # ============================================================================
 # HIGH-LEVEL API
@@ -250,3 +268,14 @@ __all__ = [
     "get_language",
     "get_verbosity",
 ]
+
+# Add advanced classes to __all__ if available
+if ADVANCED_AVAILABLE:
+    __all__.extend([
+        "GOFTests",
+        "Bootstrap",
+        "Diagnostics",
+        "WeightedFitting",
+        "ModelSelection",
+        "DeltaComparison",
+    ])
