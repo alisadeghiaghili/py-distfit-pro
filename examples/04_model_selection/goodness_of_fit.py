@@ -3,12 +3,10 @@
 Goodness-of-Fit Tests
 ====================
 
-Statistical tests to check if data follows a distribution.
-
-Tests covered:
-  - Kolmogorov-Smirnov (KS): General purpose
-  - Anderson-Darling (AD): More sensitive to tails
-  - Chi-Square: For grouped/discrete data
+Statistical tests to assess how well a distribution fits data:
+  - Kolmogorov-Smirnov (KS) test: Distribution comparison
+  - Chi-square test: Binned data comparison
+  - Anderson-Darling (AD) test: More sensitive in tails
 
 Author: Ali Sadeghi Aghili
 """
@@ -26,326 +24,365 @@ print("="*70)
 
 
 # ============================================================================
-# Understanding GoF Tests
+# Theory: GoF Tests
 # ============================================================================
 
 print("\n" + "="*70)
-print("📚 Understanding Goodness-of-Fit Tests")
+print("📚 Theory: Goodness-of-Fit Tests")
+print("="*70)
+
+theory = """
+1. KOLMOGOROV-SMIRNOV (KS) TEST:
+   • Compares empirical CDF with theoretical CDF
+   • Test statistic: D = max|F_empirical(x) - F_theoretical(x)|
+   • Sensitive to differences in middle of distribution
+   • Null hypothesis: Data follows specified distribution
+   • p-value > 0.05 → Don't reject (distribution fits)
+   • p-value < 0.05 → Reject (distribution doesn't fit)
+
+2. CHI-SQUARE (χ²) TEST:
+   • Compares observed vs expected frequencies in bins
+   • Works with binned data
+   • Test statistic: χ² = Σ(Observed - Expected)²/Expected
+   • Requires adequate bin counts (≥5 per bin)
+   • p-value > 0.05 → Distribution fits
+   • p-value < 0.05 → Distribution doesn't fit
+
+3. ANDERSON-DARLING (AD) TEST:
+   • Modified KS test, more sensitive in tails
+   • Weighted test: emphasizes tail differences
+   • Better for detecting departures in extremes
+   • Critical values depend on distribution
+   • Statistic < Critical value → Distribution fits
+
+4. CHOOSING A TEST:
+   • KS: General purpose, any distribution
+   • Chi-square: Discrete data, histograms
+   • AD: When tails matter (risk, reliability)
+   • Use multiple tests for robustness!
+"""
+
+print(theory)
+
+
+# ============================================================================
+# Example 1: Good Fit (Data from Fitted Distribution)
+# ============================================================================
+
+print("\n" + "="*70)
+print("EXAMPLE 1: Good Fit Scenario")
 print("="*70)
 print("""
-GoF tests answer: "Does my data follow this distribution?"
-
-NULL HYPOTHESIS (H₀): Data follows the specified distribution
-ALTERNATIVE (H₁): Data does NOT follow the distribution
-
-P-VALUE INTERPRETATION:
-  • p > 0.05: Cannot reject H₀ (data could follow distribution) ✓
-  • p < 0.05: Reject H₀ (data does NOT follow distribution) ✗
-
-TEST COMPARISON:
-
-  Kolmogorov-Smirnov (KS):
-    • Measures max distance between CDFs
-    • Good for continuous distributions
-    • Less sensitive to tails
-    • Most commonly used
-  
-  Anderson-Darling (AD):
-    • Weighted KS (emphasizes tails)
-    • More powerful for tail differences
-    • Better for detecting outliers
-  
-  Chi-Square (χ²):
-    • Compares observed vs expected frequencies
-    • Good for discrete/grouped data
-    • Requires sufficient data in each bin
+Test: Does normal data fit normal distribution?
+(Expected result: YES - p-value > 0.05)
 """)
 
+# Generate normal data
+data_good = np.random.normal(loc=50, scale=10, size=1000)
 
-# ============================================================================
-# Example 1: Good Fit (Normal Data)
-# ============================================================================
+print(f"\n📊 Data: {len(data_good)} samples from N(50, 10²)")
+print(f"  Mean: {data_good.mean():.2f}")
+print(f"  Std:  {data_good.std():.2f}")
 
-print("\n" + "="*70)
-print("EXAMPLE 1: Good Fit - Normal Distribution")
-print("="*70)
-
-# Generate truly normal data
-data_good = np.random.normal(loc=100, scale=15, size=500)
-
-print(f"\n📊 Data: {len(data_good)} samples from N(100, 15)")
-
-# Fit distribution
+# Fit normal distribution
 dist_good = get_distribution('normal')
 dist_good.fit(data_good)
 
-print(f"\nFitted parameters:")
+print(f"\n✅ Fitted Normal Distribution:")
 for param, val in dist_good.params.items():
     print(f"  {param}: {val:.4f}")
 
-# Kolmogorov-Smirnov Test
-ks_stat, ks_pval = stats.kstest(data_good, dist_good.cdf)
+# 1. Kolmogorov-Smirnov Test
+ks_stat, ks_pvalue = stats.kstest(data_good, dist_good.cdf)
 
 print(f"\n1️⃣ Kolmogorov-Smirnov Test:")
 print(f"  Test statistic: {ks_stat:.6f}")
-print(f"  P-value:        {ks_pval:.6f}")
+print(f"  p-value:        {ks_pvalue:.6f}")
+print(f"  Result: {'✅ PASS (distribution fits)' if ks_pvalue > 0.05 else '❌ FAIL (distribution does not fit)'}")
 
-if ks_pval > 0.05:
-    print(f"  ✅ Cannot reject H₀ (p > 0.05)")
-    print(f"     → Data is consistent with Normal distribution")
-else:
-    print(f"  ✗ Reject H₀ (p < 0.05)")
-    print(f"     → Data does NOT follow Normal distribution")
+# 2. Chi-square Test (binned)
+n_bins = 20
+observed_freq, bin_edges = np.histogram(data_good, bins=n_bins)
+bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+bin_width = bin_edges[1] - bin_edges[0]
 
-# Anderson-Darling Test
+# Expected frequencies
+expected_prob = np.diff(dist_good.cdf(bin_edges))
+expected_freq = expected_prob * len(data_good)
+
+# Remove bins with low expected counts
+mask = expected_freq >= 5
+observed_filtered = observed_freq[mask]
+expected_filtered = expected_freq[mask]
+
+chi2_stat, chi2_pvalue = stats.chisquare(observed_filtered, expected_filtered)
+
+print(f"\n2️⃣ Chi-Square Test ({np.sum(mask)} bins):")
+print(f"  Test statistic: {chi2_stat:.4f}")
+print(f"  p-value:        {chi2_pvalue:.6f}")
+print(f"  Result: {'✅ PASS (distribution fits)' if chi2_pvalue > 0.05 else '❌ FAIL (distribution does not fit)'}")
+
+# 3. Anderson-Darling Test
 ad_result = stats.anderson(data_good, dist='norm')
 
-print(f"\n2️⃣ Anderson-Darling Test:")
-print(f"  Test statistic: {ad_result.statistic:.6f}")
+print(f"\n3️⃣ Anderson-Darling Test:")
+print(f"  Test statistic: {ad_result.statistic:.4f}")
 print(f"  Critical values: {ad_result.critical_values}")
-print(f"  Significance levels: {ad_result.significance_level}%")
-
-if ad_result.statistic < ad_result.critical_values[2]:  # 5% level (index 2)
-    print(f"  ✅ Cannot reject H₀ (stat < critical value at 5%)")
-    print(f"     → Data is consistent with Normal distribution")
+print(f"  Significance:    {ad_result.significance_level}%")
+if ad_result.statistic < ad_result.critical_values[2]:  # 5% level
+    print(f"  Result: ✅ PASS (statistic < critical value at 5%)")
 else:
-    print(f"  ✗ Reject H₀ (stat > critical value at 5%)")
-    print(f"     → Data does NOT follow Normal distribution")
+    print(f"  Result: ❌ FAIL (statistic > critical value at 5%)")
+
+print(f"\n🎯 Conclusion: All tests suggest good fit!")
 
 
 # ============================================================================
-# Example 2: Bad Fit (Normal fit to Lognormal data)
+# Example 2: Poor Fit (Wrong Distribution)
 # ============================================================================
 
 print("\n" + "="*70)
-print("EXAMPLE 2: Bad Fit - Normal on Lognormal Data")
+print("EXAMPLE 2: Poor Fit Scenario")
 print("="*70)
+print("""
+Test: Does exponential data fit normal distribution?
+(Expected result: NO - p-value < 0.05)
+""")
 
-# Generate lognormal data (right-skewed)
-data_bad = np.random.lognormal(mean=4, sigma=0.5, size=500)
+# Generate exponential data (right-skewed)
+data_poor = np.random.exponential(scale=10, size=1000)
 
-print(f"\n📊 Data: {len(data_bad)} samples from Lognormal(4, 0.5)")
-print(f"  Skewness: {stats.skew(data_bad):.2f} (right-skewed)")
+print(f"\n📊 Data: {len(data_poor)} samples from Exp(λ=1/10)")
+print(f"  Mean:     {data_poor.mean():.2f}")
+print(f"  Median:   {np.median(data_poor):.2f}")
+print(f"  Skewness: {stats.skew(data_poor):.2f}")
 
-# Incorrectly fit Normal distribution
-dist_bad = get_distribution('normal')
-dist_bad.fit(data_bad)
+# WRONG: Fit normal distribution to exponential data
+dist_wrong = get_distribution('normal')
+dist_wrong.fit(data_poor)
 
-print(f"\nFitted Normal parameters (WRONG model):")
-for param, val in dist_bad.params.items():
+print(f"\n❌ Incorrectly Fitted Normal Distribution:")
+for param, val in dist_wrong.params.items():
     print(f"  {param}: {val:.4f}")
 
-# KS Test
-ks_stat_bad, ks_pval_bad = stats.kstest(data_bad, dist_bad.cdf)
+# Kolmogorov-Smirnov Test
+ks_stat_wrong, ks_pvalue_wrong = stats.kstest(data_poor, dist_wrong.cdf)
 
 print(f"\n1️⃣ Kolmogorov-Smirnov Test:")
-print(f"  Test statistic: {ks_stat_bad:.6f}")
-print(f"  P-value:        {ks_pval_bad:.6f}")
+print(f"  Test statistic: {ks_stat_wrong:.6f}")
+print(f"  p-value:        {ks_pvalue_wrong:.6f}")
+print(f"  Result: {'✅ PASS' if ks_pvalue_wrong > 0.05 else '❌ FAIL (normal distribution does NOT fit!)'}")
 
-if ks_pval_bad > 0.05:
-    print(f"  ✅ Cannot reject H₀")
-else:
-    print(f"  ✗ Reject H₀ (p < 0.05)")
-    print(f"     → Normal distribution is NOT a good fit!")
+print(f"\n🎯 Conclusion: Tests correctly reject normal distribution!")
 
-# Now fit correct distribution (Lognormal)
-print(f"\n🔧 Trying correct distribution (Lognormal)...")
+# Now fit CORRECT distribution
+print(f"\n✅ Fitting CORRECT Distribution (Exponential):")
+dist_correct = get_distribution('expon')
+dist_correct.fit(data_poor)
 
-dist_correct = get_distribution('lognormal')
-dist_correct.fit(data_bad)
+ks_stat_correct, ks_pvalue_correct = stats.kstest(data_poor, dist_correct.cdf)
 
-ks_stat_correct, ks_pval_correct = stats.kstest(data_bad, dist_correct.cdf)
-
-print(f"\n3️⃣ KS Test with Lognormal:")
-print(f"  Test statistic: {ks_stat_correct:.6f}")
-print(f"  P-value:        {ks_pval_correct:.6f}")
-
-if ks_pval_correct > 0.05:
-    print(f"  ✅ Cannot reject H₀ (p > 0.05)")
-    print(f"     → Lognormal is a good fit!")
-
-print(f"\n🎯 Comparison:")
-print(f"  Normal fit:    p = {ks_pval_bad:.6f} {'(BAD)' if ks_pval_bad < 0.05 else ''}")
-print(f"  Lognormal fit: p = {ks_pval_correct:.6f} {'(GOOD)' if ks_pval_correct > 0.05 else ''}")
+print(f"\n1️⃣ KS Test with Exponential:")
+print(f"  p-value: {ks_pvalue_correct:.6f}")
+print(f"  Result: {'✅ PASS (exponential fits well!)' if ks_pvalue_correct > 0.05 else '❌ FAIL'}")
 
 
 # ============================================================================
-# Example 3: Chi-Square Test for Discrete Data
+# Example 3: Comparing Multiple Distributions
 # ============================================================================
 
 print("\n" + "="*70)
-print("EXAMPLE 3: Chi-Square Test - Poisson Data")
+print("EXAMPLE 3: Compare Multiple Distributions")
+print("="*70)
+print("""
+Scenario: Test which distribution fits best
+Data: Gamma-distributed (skewed, positive)
+""")
+
+# Generate gamma data
+data_gamma = np.random.gamma(shape=3, scale=2, size=800)
+
+print(f"\n📊 Data: {len(data_gamma)} samples from Gamma(3, 2)")
+
+# Test multiple distributions
+candidates = ['normal', 'lognormal', 'gamma', 'weibull_min', 'expon']
+
+test_results = []
+
+for dist_name in candidates:
+    try:
+        dist = get_distribution(dist_name)
+        dist.fit(data_gamma)
+        
+        # KS test
+        ks_stat, ks_pval = stats.kstest(data_gamma, dist.cdf)
+        
+        test_results.append({
+            'name': dist_name,
+            'dist': dist,
+            'ks_stat': ks_stat,
+            'ks_pval': ks_pval,
+            'aic': dist.aic(),
+        })
+    except Exception as e:
+        print(f"  Failed {dist_name}: {e}")
+
+print("\n" + "="*70)
+print("Goodness-of-Fit Results")
 print("="*70)
 
-# Generate Poisson data
-lambda_true = 5.0
-data_poisson = np.random.poisson(lam=lambda_true, size=500)
+print(f"\n{'Distribution':<15} {'KS Stat':<10} {'p-value':<12} {'Result':<15} {'AIC':<10}")
+print("-"*70)
 
-print(f"\n📊 Data: {len(data_poisson)} samples from Poisson(λ={lambda_true})")
-print(f"  Mean: {data_poisson.mean():.2f}")
+for r in sorted(test_results, key=lambda x: x['ks_stat']):
+    pass_fail = "✅ PASS" if r['ks_pval'] > 0.05 else "❌ FAIL"
+    print(f"{r['name']:<15} {r['ks_stat']:<10.6f} {r['ks_pval']:<12.6f} {pass_fail:<15} {r['aic']:<10.2f}")
 
-# Fit Poisson
-dist_poisson = get_distribution('poisson')
-dist_poisson.fit(data_poisson)
+# Best by p-value
+best_pval = max(test_results, key=lambda x: x['ks_pval'])
+print(f"\n🏆 Best by p-value: {best_pval['name']} (p = {best_pval['ks_pval']:.6f})")
 
-print(f"\nFitted λ: {dist_poisson.mean():.4f}")
+# Best by KS statistic
+best_ks = min(test_results, key=lambda x: x['ks_stat'])
+print(f"🏆 Best by KS stat:  {best_ks['name']} (D = {best_ks['ks_stat']:.6f})")
 
-# Chi-Square Test
-# Group data into bins
-unique_vals, observed_counts = np.unique(data_poisson, return_counts=True)
-
-# Calculate expected frequencies
-expected_counts = len(data_poisson) * dist_poisson.pdf(unique_vals)
-
-# Remove bins with expected < 5 (chi-square requirement)
-valid_mask = expected_counts >= 5
-observed_valid = observed_counts[valid_mask]
-expected_valid = expected_counts[valid_mask]
-
-chi2_stat, chi2_pval = stats.chisquare(observed_valid, expected_valid, 
-                                        ddof=1)  # 1 parameter estimated
-
-print(f"\n4️⃣ Chi-Square Test:")
-print(f"  Test statistic: {chi2_stat:.6f}")
-print(f"  P-value:        {chi2_pval:.6f}")
-print(f"  Degrees of freedom: {len(observed_valid) - 1 - 1}")
-
-if chi2_pval > 0.05:
-    print(f"  ✅ Cannot reject H₀ (p > 0.05)")
-    print(f"     → Data is consistent with Poisson distribution")
-else:
-    print(f"  ✗ Reject H₀ (p < 0.05)")
-    print(f"     → Data does NOT follow Poisson distribution")
+# Best by AIC
+best_aic = min(test_results, key=lambda x: x['aic'])
+print(f"🏆 Best by AIC:      {best_aic['name']} (AIC = {best_aic['aic']:.2f})")
 
 
 # ============================================================================
-# Visualization: Q-Q Plots
+# Visualization: GoF Assessment
 # ============================================================================
 
 print("\n" + "="*70)
-print("📊 Creating Q-Q Plot Diagnostics...")
+print("📊 Creating Visualizations...")
 print("="*70)
 
-fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+fig.suptitle('Goodness-of-Fit Tests Visualization', fontsize=16, fontweight='bold')
 
-# Plot 1: Good fit Q-Q plot
+# Plot 1: Good fit - Histogram + PDF
 ax = axes[0, 0]
+ax.hist(data_good, bins=40, density=True, alpha=0.6, color='skyblue', 
+        edgecolor='black', label='Data')
+x = np.linspace(data_good.min(), data_good.max(), 200)
+ax.plot(x, dist_good.pdf(x), 'r-', linewidth=2, label='Fitted Normal')
+ax.set_xlabel('Value', fontsize=10)
+ax.set_ylabel('Density', fontsize=10)
+ax.set_title(f'Good Fit: p={ks_pvalue:.4f}', fontweight='bold', color='green')
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+# Plot 2: Good fit - QQ plot
+ax = axes[0, 1]
 theoretical_quantiles = dist_good.ppf(np.linspace(0.01, 0.99, len(data_good)))
 empirical_quantiles = np.sort(data_good)
-
-ax.scatter(theoretical_quantiles, empirical_quantiles, alpha=0.5, s=20)
-min_val = min(theoretical_quantiles.min(), empirical_quantiles.min())
-max_val = max(theoretical_quantiles.max(), empirical_quantiles.max())
-ax.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, label='Perfect Fit')
-
-ax.set_xlabel('Theoretical Quantiles (Normal)', fontsize=10)
-ax.set_ylabel('Sample Quantiles', fontsize=10)
-ax.set_title(f'Q-Q Plot: Good Fit (p={ks_pval:.4f})', fontweight='bold', color='green')
-ax.legend()
-ax.grid(True, alpha=0.3)
-ax.set_aspect('equal')
-
-# Plot 2: Bad fit Q-Q plot
-ax = axes[0, 1]
-theoretical_bad = dist_bad.ppf(np.linspace(0.01, 0.99, len(data_bad)))
-empirical_bad = np.sort(data_bad)
-
-ax.scatter(theoretical_bad, empirical_bad, alpha=0.5, s=20, color='orange')
-min_val = min(theoretical_bad.min(), empirical_bad.min())
-max_val = max(theoretical_bad.max(), empirical_bad.max())
-ax.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, label='Perfect Fit')
-
-ax.set_xlabel('Theoretical Quantiles (Normal)', fontsize=10)
-ax.set_ylabel('Sample Quantiles', fontsize=10)
-ax.set_title(f'Q-Q Plot: Bad Fit (p={ks_pval_bad:.4f})', fontweight='bold', color='red')
-ax.legend()
+ax.scatter(theoretical_quantiles, empirical_quantiles, alpha=0.5, s=10)
+min_val, max_val = min(theoretical_quantiles.min(), empirical_quantiles.min()), \
+                   max(theoretical_quantiles.max(), empirical_quantiles.max())
+ax.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2)
+ax.set_xlabel('Theoretical Quantiles', fontsize=10)
+ax.set_ylabel('Empirical Quantiles', fontsize=10)
+ax.set_title('Q-Q Plot: Good Fit', fontweight='bold', color='green')
 ax.grid(True, alpha=0.3)
 
-# Plot 3: CDF comparison (good fit)
-ax = axes[1, 0]
+# Plot 3: Good fit - CDF comparison
+ax = axes[0, 2]
 data_sorted = np.sort(data_good)
 empirical_cdf = np.arange(1, len(data_sorted)+1) / len(data_sorted)
-theoretical_cdf = dist_good.cdf(data_sorted)
-
-ax.plot(data_sorted, empirical_cdf, 'b-', linewidth=2, label='Empirical CDF', alpha=0.7)
-ax.plot(data_sorted, theoretical_cdf, 'r--', linewidth=2, label='Fitted CDF')
-
+ax.plot(data_sorted, empirical_cdf, 'b-', linewidth=1, label='Empirical CDF', alpha=0.7)
+ax.plot(data_sorted, dist_good.cdf(data_sorted), 'r-', linewidth=2, label='Theoretical CDF')
 ax.set_xlabel('Value', fontsize=10)
 ax.set_ylabel('Cumulative Probability', fontsize=10)
-ax.set_title('CDF Comparison: Good Fit', fontweight='bold', color='green')
-ax.legend()
+ax.set_title(f'CDF: KS stat={ks_stat:.4f}', fontweight='bold', color='green')
+ax.legend(fontsize=9)
 ax.grid(True, alpha=0.3)
 
-# Plot 4: CDF comparison (bad fit)
+# Plot 4: Poor fit - Histogram + PDF
+ax = axes[1, 0]
+ax.hist(data_poor, bins=40, density=True, alpha=0.6, color='salmon', 
+        edgecolor='black', label='Exp Data')
+x_poor = np.linspace(data_poor.min(), data_poor.max(), 200)
+ax.plot(x_poor, dist_wrong.pdf(x_poor), 'r-', linewidth=2, label='Wrong: Normal')
+ax.plot(x_poor, dist_correct.pdf(x_poor), 'g-', linewidth=2, label='Correct: Exp')
+ax.set_xlabel('Value', fontsize=10)
+ax.set_ylabel('Density', fontsize=10)
+ax.set_title(f'Poor Fit: p={ks_pvalue_wrong:.4f}', fontweight='bold', color='red')
+ax.legend(fontsize=9)
+ax.grid(True, alpha=0.3)
+
+# Plot 5: Poor fit - QQ plot
 ax = axes[1, 1]
-data_sorted_bad = np.sort(data_bad)
-empirical_cdf_bad = np.arange(1, len(data_sorted_bad)+1) / len(data_sorted_bad)
-theoretical_cdf_bad = dist_bad.cdf(data_sorted_bad)
-
-ax.plot(data_sorted_bad, empirical_cdf_bad, 'b-', linewidth=2, label='Empirical CDF', alpha=0.7)
-ax.plot(data_sorted_bad, theoretical_cdf_bad, 'r--', linewidth=2, label='Fitted CDF (Wrong)')
-
-# Also plot correct fit
-theoretical_correct = dist_correct.cdf(data_sorted_bad)
-ax.plot(data_sorted_bad, theoretical_correct, 'g:', linewidth=2, label='Fitted CDF (Correct)')
-
-ax.set_xlabel('Value', fontsize=10)
-ax.set_ylabel('Cumulative Probability', fontsize=10)
-ax.set_title('CDF Comparison: Bad vs Correct Fit', fontweight='bold')
-ax.legend()
+theoretical_q_wrong = dist_wrong.ppf(np.linspace(0.01, 0.99, len(data_poor)))
+empirical_q_poor = np.sort(data_poor)
+ax.scatter(theoretical_q_wrong, empirical_q_poor, alpha=0.5, s=10, color='red')
+min_v = min(theoretical_q_wrong.min(), empirical_q_poor.min())
+max_v = max(theoretical_q_wrong.max(), empirical_q_poor.max())
+ax.plot([min_v, max_v], [min_v, max_v], 'k--', linewidth=2)
+ax.set_xlabel('Theoretical Quantiles (Normal)', fontsize=10)
+ax.set_ylabel('Empirical Quantiles', fontsize=10)
+ax.set_title('Q-Q Plot: Poor Fit', fontweight='bold', color='red')
 ax.grid(True, alpha=0.3)
+
+# Plot 6: p-value comparison
+ax = axes[1, 2]
+names = [r['name'] for r in sorted(test_results, key=lambda x: x['ks_pval'], reverse=True)]
+pvals = [r['ks_pval'] for r in sorted(test_results, key=lambda x: x['ks_pval'], reverse=True)]
+colors = ['green' if p > 0.05 else 'red' for p in pvals]
+ax.barh(names, pvals, color=colors, alpha=0.7, edgecolor='black')
+ax.axvline(0.05, color='black', linestyle='--', linewidth=2, label='α=0.05')
+ax.set_xlabel('p-value', fontsize=10)
+ax.set_title('KS Test p-values (Example 3)', fontweight='bold')
+ax.legend()
+ax.grid(True, alpha=0.3, axis='x')
+ax.invert_yaxis()
 
 plt.tight_layout()
 
-print("\n✅ Q-Q and CDF plots created!")
-print("   Q-Q plots: Points on line = good fit")
-print("   CDF plots: Lines overlap = good fit")
+print("\n✅ Plots created!")
+print("   Close plot window to continue...")
 
 plt.show()
 
 
 print("\n" + "="*70)
-print("🎓 GoF Test Guidelines")
+print("🎓 Key Takeaways")
 print("="*70)
 print("""
-📊 TEST SELECTION:
+1. GOODNESS-OF-FIT TESTS:
+   • Statistical tests to assess distribution fit
+   • Complement visual inspection (QQ-plots)
+   • Use p-value > 0.05 as threshold (typically)
 
-  Kolmogorov-Smirnov:
-    ✅ Continuous distributions
-    ✅ Any sample size
-    ✅ General-purpose test
-    ⚠️  Less sensitive to tails
-  
-  Anderson-Darling:
-    ✅ When tail behavior matters
-    ✅ Detecting outliers
-    ✅ More powerful than KS
-    ⚠️  Limited to specific distributions
-  
-  Chi-Square:
-    ✅ Discrete data
-    ✅ Grouped/binned data
-    ⚠️  Need ≥5 expected per bin
-    ⚠️  Loses information from binning
+2. THREE MAIN TESTS:
+   • KS: General purpose, works for any distribution
+   • Chi-square: For binned data, discrete distributions
+   • Anderson-Darling: Sensitive to tails
 
-💡 PRACTICAL TIPS:
+3. INTERPRETING RESULTS:
+   • p-value > 0.05: Don't reject (distribution may fit)
+   • p-value < 0.05: Reject (distribution doesn't fit)
+   • Lower p-value = stronger evidence against fit
 
-  1. ALWAYS visualize (Q-Q plots, CDF comparison)
-  2. P-value is not everything (check visual fit)
-  3. Large samples: tests may reject "good enough" fits
-  4. Small samples: tests may not detect poor fits
-  5. Use multiple tests when possible
-  6. Consider practical significance, not just statistical
+4. IMPORTANT NOTES:
+   ⚠️  "Don't reject" ≠ "distribution is correct"
+   ⚠️  Tests lose power with small samples
+   ⚠️  Tests are sensitive with large samples
+   ⚠️  Always use multiple tests + visual checks
 
-⚠️  COMMON PITFALLS:
+5. BEST PRACTICES:
+   ✓ Use GoF tests + information criteria (AIC/BIC)
+   ✓ Check QQ-plots visually
+   ✓ Test multiple candidate distributions
+   ✓ Consider domain knowledge
+   ✓ Use highest p-value (or lowest KS stat)
 
-  ✗ Relying only on p-values
-  ✗ Not checking assumptions (e.g., parameters known vs estimated)
-  ✗ Ignoring visual diagnostics
-  ✗ Testing too many distributions (multiple testing problem)
+6. IN scipy:
+   from scipy import stats
+   stats.kstest(data, dist.cdf)      # KS test
+   stats.chisquare(obs, exp)         # Chi-square
+   stats.anderson(data, dist='norm') # AD test
 
-RECOMMENDATION:
-  🎯 Use GoF tests + AIC/BIC + visual inspection together!
-
-Next: See auto_selection.py for automated distribution selection!
+Next: See auto_selection.py for automatic distribution selection!
 """)
