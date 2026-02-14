@@ -1,4 +1,8 @@
 """Visualization Examples.
 
-Advanced plotting and diagnostic visualizations.
+Create beautiful, informative plots:
+- PDF/CDF plots
+- Q-Q and P-P plots
+- Interactive visualizations
+- Publication-ready figures
 """
