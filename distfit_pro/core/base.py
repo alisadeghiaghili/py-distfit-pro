@@ -87,6 +87,11 @@ class BaseDistribution(ABC):
         """True if fit() has been called"""
         return self._fitted
     
+    @fitted.setter
+    def fitted(self, value: bool):
+        """Set fitted status (used by weighted fitting and manual param setting)"""
+        self._fitted = value
+    
     @property
     def params(self) -> Dict[str, float]:
         """Fitted parameter values {param_name: value}"""
