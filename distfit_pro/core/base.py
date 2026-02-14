@@ -601,10 +601,8 @@ class BaseDistribution(ABC):
             Multi-line summary with box characters and translations
         """
         if not self._fitted:
-            if VERBOSE_AVAILABLE:
-                return f"{self.info.display_name} ({t('not_fitted')})"
-            else:
-                return f"{self.info.display_name} (not fitted)"
+            # Simple unfitted message (no extra text)
+            return f"{self.info.display_name} (not fitted)"
         
         # Import translation function
         if VERBOSE_AVAILABLE:
@@ -773,7 +771,8 @@ class BaseDistribution(ABC):
         Returns brief description of what this distribution
         represents and when to use it.
         """
-        return self.info.description
+        # Include distribution name for better context
+        return f"{self.info.display_name}: {self.info.description}"
     
     # ========================================================================
     # INTERNAL
