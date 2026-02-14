@@ -593,15 +593,40 @@ class BaseDistribution(ABC):
     
     def summary(self) -> str:
         """
-        Generate beautifully formatted summary of fitted distribution with box drawing.
+        Generate beautifully formatted summary with i18n support.
         
         Returns
         -------
         summary : str
-            Multi-line summary with box characters, parameters, and statistics
+            Multi-line summary with box characters and translations
         """
         if not self._fitted:
-            return f"{self.info.display_name} (not fitted)"
+            if VERBOSE_AVAILABLE:
+                return f"{self.info.display_name} ({t('not_fitted')})"
+            else:
+                return f"{self.info.display_name} (not fitted)"
+        
+        # Import translation function
+        if VERBOSE_AVAILABLE:
+            def t_local(key):
+                return t(key)
+        else:
+            # Fallback if imports fail
+            def t_local(key):
+                fallback = {
+                    'estimated_parameters': 'ESTIMATED PARAMETERS',
+                    'location_statistics': 'LOCATION STATISTICS',
+                    'spread_statistics': 'SPREAD STATISTICS',
+                    'shape_statistics': 'SHAPE STATISTICS',
+                    'mean': 'Mean',
+                    'median': 'Median',
+                    'mode': 'Mode',
+                    'variance': 'Variance',
+                    'std_deviation': 'Std Deviation',
+                    'skewness': 'Skewness',
+                    'kurtosis': 'Kurtosis',
+                }
+                return fallback.get(key, key)
         
         lines = []
         
@@ -610,67 +635,83 @@ class BaseDistribution(ABC):
         lines.append("╔" + "═" * 62 + "╗")
         lines.append(f"║ {title:^60} ║")
         lines.append("╠" + "═" * 62 + "╣")
-        lines.append("║  📊 Estimated Parameters" + " " * 37 + "║")
+        param_header = f"║  📊 {t_local('estimated_parameters')}"
+        lines.append(param_header + " " * (64 - len(param_header)) + "║")
         lines.append("╚" + "═" * 62 + "╝")
         
-        # Parameters
+        # Parameters with display names
         for param, value in self._params.items():
-            # Get display name for parameter
-            param_display = param
+            # Get translated display name
             if param == 'loc':
-                param_display = 'μ (mean)' if self.info.name == 'normal' else 'location'
+                if self.info.name == 'normal':
+                    mean_trans = t_local('mean')
+                    param_display = f'μ ({mean_trans})' if mean_trans != 'Mean' else 'μ (mean)'
+                else:
+                    param_display = 'location'
             elif param == 'scale':
-                param_display = 'σ (std)' if self.info.name == 'normal' else 'scale'
+                if self.info.name == 'normal':
+                    std_trans = t_local('std_deviation')
+                    # Extract just first word for brevity
+                    std_short = std_trans.split()[0] if ' ' in std_trans else std_trans
+                    param_display = f'σ ({std_short})' if std_trans != 'Std Deviation' else 'σ (std)'
+                else:
+                    param_display = 'scale'
             elif param == 'alpha':
                 param_display = 'α (shape)'
             elif param == 'beta':
-                param_display = 'β (rate/scale)'
+                param_display = 'β (scale/rate)'
             elif param == 'c':
                 param_display = 'c (shape)'
             elif param == 's':
                 param_display = 's (shape)'
+            elif param == 'df':
+                param_display = 'df (degrees of freedom)'
+            else:
+                param_display = param
             
             lines.append(f"   {param_display:<30} = {value:>15.6f}")
         
         # Location Statistics box
         lines.append("")
         lines.append("╔" + "═" * 62 + "╗")
-        lines.append("║  📍 Location Statistics" + " " * 38 + "║")
+        loc_header = f"║  📍 {t_local('location_statistics')}"
+        lines.append(loc_header + " " * (64 - len(loc_header)) + "║")
         lines.append("╚" + "═" * 62 + "╝")
         
         try:
             mean_val = self.mean()
-            lines.append(f"   {'Mean':<30} = {mean_val:>15.6f}")
+            lines.append(f"   {t_local('mean'):<30} = {mean_val:>15.6f}")
         except:
             pass
         
         try:
             median_val = self.median()
-            lines.append(f"   {'Median':<30} = {median_val:>15.6f}")
+            lines.append(f"   {t_local('median'):<30} = {median_val:>15.6f}")
         except:
             pass
         
         try:
             mode_val = self.mode()
-            lines.append(f"   {'Mode':<30} = {mode_val:>15.6f}")
+            lines.append(f"   {t_local('mode'):<30} = {mode_val:>15.6f}")
         except:
             pass
         
         # Spread Statistics box
         lines.append("")
         lines.append("╔" + "═" * 62 + "╗")
-        lines.append("║  📏 Spread Statistics" + " " * 40 + "║")
+        spread_header = f"║  📏 {t_local('spread_statistics')}"
+        lines.append(spread_header + " " * (64 - len(spread_header)) + "║")
         lines.append("╚" + "═" * 62 + "╝")
         
         try:
             var_val = self.var()
-            lines.append(f"   {'Variance':<30} = {var_val:>15.6f}")
+            lines.append(f"   {t_local('variance'):<30} = {var_val:>15.6f}")
         except:
             pass
         
         try:
             std_val = self.std()
-            lines.append(f"   {'Std Deviation':<30} = {std_val:>15.6f}")
+            lines.append(f"   {t_local('std_deviation'):<30} = {std_val:>15.6f}")
         except:
             pass
         
@@ -681,10 +722,15 @@ class BaseDistribution(ABC):
             
             lines.append("")
             lines.append("╔" + "═" * 62 + "╗")
-            lines.append("║  📐 Shape Statistics" + " " * 41 + "║")
+            shape_header = f"║  📐 {t_local('shape_statistics')}"
+            lines.append(shape_header + " " * (64 - len(shape_header)) + "║")
             lines.append("╚" + "═" * 62 + "╝")
-            lines.append(f"   {'Skewness':<30} = {skew_val:>15.6f}")
-            lines.append(f"   {'Kurtosis (excess)':<30} = {kurt_val:>15.6f}")
+            lines.append(f"   {t_local('skewness'):<30} = {skew_val:>15.6f}")
+            
+            kurt_label = t_local('kurtosis')
+            if kurt_label == 'Kurtosis':
+                kurt_label = 'Kurtosis (excess)'
+            lines.append(f"   {kurt_label:<30} = {kurt_val:>15.6f}")
         except:
             pass
         
