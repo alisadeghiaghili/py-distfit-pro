@@ -1,0 +1,210 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "distfit-pro"
+version = "1.0.0"
+authors = [
+    {name = "Ali Sadeghi Aghili", email = "alisadeghiaghili@gmail.com"},
+]
+description = "Professional distribution fitting library with 25 distributions, GOF tests, bootstrap CI, and multilingual support"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Statistics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+    "Natural Language :: English",
+    "Natural Language :: Persian",
+    "Natural Language :: German",
+]
+keywords = [
+    "statistics",
+    "distribution fitting",
+    "probability distributions",
+    "parameter estimation",
+    "maximum likelihood",
+    "method of moments",
+    "goodness of fit",
+    "bootstrap",
+    "confidence intervals",
+    "diagnostics",
+    "weighted data",
+    "model selection",
+    "multilingual",
+    "visualization",
+    "data science",
+]
+
+dependencies = [
+    "numpy>=1.20.0",
+    "scipy>=1.7.0",
+    "pandas>=1.3.0",
+    "matplotlib>=3.3.0",
+    "seaborn>=0.11.0",
+    "plotly>=5.0.0",
+    "joblib>=1.0.0",
+    "tqdm>=4.60.0",
+    "arabic-reshaper>=2.1.0",
+    "python-bidi>=0.4.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+    "sphinx>=4.0.0",
+    "sphinx_rtd_theme>=1.0.0",
+    "myst-parser>=0.18.0",
+]
+stats = [
+    "statsmodels>=0.12.0",
+]
+all = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+    "sphinx>=4.0.0",
+    "sphinx_rtd_theme>=1.0.0",
+    "myst-parser>=0.18.0",
+    "statsmodels>=0.12.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/alisadeghiaghili/py-distfit-pro"
+Documentation = "https://github.com/alisadeghiaghili/py-distfit-pro/docs"
+Repository = "https://github.com/alisadeghiaghili/py-distfit-pro"
+Issues = "https://github.com/alisadeghiaghili/py-distfit-pro/issues"
+Changelog = "https://github.com/alisadeghiaghili/py-distfit-pro/blob/main/CHANGELOG.md"
+
+# ============================================================================
+# TOOL CONFIGURATIONS
+# ============================================================================
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | node_modules
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "scipy.*",
+    "matplotlib.*",
+    "seaborn.*",
+    "plotly.*",
+    "joblib.*",
+    "tqdm.*",
+    "arabic_reshaper.*",
+    "bidi.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=distfit_pro",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["distfit_pro"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/_temp.py",
+    "*/_FIXED.py",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "E266", "E501", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".eggs",
+    "*.egg-info",
+    ".tox",
+    ".venv",
+]
+per-file-ignores = [
+    "__init__.py:F401",
+]
