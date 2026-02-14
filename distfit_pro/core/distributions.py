@@ -17,6 +17,15 @@ from .base import (
     DistributionInfo
 )
 
+# Import i18n
+try:
+    from ..locales import t
+    I18N_AVAILABLE = True
+except ImportError:
+    I18N_AVAILABLE = False
+    def t(key): 
+        return key
+
 
 # ============================================================================
 # CONTINUOUS DISTRIBUTIONS (20)
@@ -35,8 +44,8 @@ class NormalDistribution(ContinuousDistribution):
             name="normal",
             scipy_name="norm",
             display_name="Normal Distribution",
-            description="Symmetric bell-shaped continuous distribution. "
-                       "Fundamental in statistics due to Central Limit Theorem.",
+            description=t('normal_description') if I18N_AVAILABLE else 
+                       "Symmetric bell-shaped continuous distribution. Fundamental in statistics due to Central Limit Theorem.",
             parameters=["loc", "scale"],
             support="(-inf, inf)",
             is_discrete=False,
@@ -73,7 +82,8 @@ class ExponentialDistribution(ContinuousDistribution):
             name="exponential",
             scipy_name="expon",
             display_name="Exponential Distribution",
-            description="Memoryless continuous distribution modeling waiting times.",
+            description=t('exponential_description') if I18N_AVAILABLE else
+                       "Memoryless continuous distribution modeling waiting times.",
             parameters=["scale"],
             support="[0, inf)",
             is_discrete=False,
@@ -116,7 +126,8 @@ class UniformDistribution(ContinuousDistribution):
             name="uniform",
             scipy_name="uniform",
             display_name="Uniform Distribution",
-            description="Constant probability over a finite interval.",
+            description=t('uniform_description') if I18N_AVAILABLE else
+                       "Constant probability over a finite interval.",
             parameters=["loc", "scale"],
             support="[a, b]",
             is_discrete=False,
@@ -152,7 +163,8 @@ class GammaDistribution(ContinuousDistribution):
             name="gamma",
             scipy_name="gamma",
             display_name="Gamma Distribution",
-            description="Flexible distribution for positive continuous data. Sum of exponentials.",
+            description=t('gamma_description') if I18N_AVAILABLE else
+                       "Flexible distribution for positive continuous data. Sum of exponentials.",
             parameters=["shape", "scale"],
             support="(0, inf)",
             is_discrete=False,
@@ -196,7 +208,8 @@ class BetaDistribution(ContinuousDistribution):
             name="beta",
             scipy_name="beta",
             display_name="Beta Distribution",
-            description="Flexible distribution for data bounded between 0 and 1.",
+            description=t('beta_description') if I18N_AVAILABLE else
+                       "Flexible distribution for data bounded between 0 and 1.",
             parameters=["alpha", "beta"],
             support="[0, 1]",
             is_discrete=False,
@@ -242,7 +255,8 @@ class WeibullDistribution(ContinuousDistribution):
             name="weibull",
             scipy_name="weibull_min",
             display_name="Weibull Distribution",
-            description="Widely used in reliability analysis and lifetime modeling.",
+            description=t('weibull_description') if I18N_AVAILABLE else
+                       "Widely used in reliability analysis and lifetime modeling.",
             parameters=["shape", "scale"],
             support="[0, inf)",
             is_discrete=False,
@@ -282,7 +296,8 @@ class LognormalDistribution(ContinuousDistribution):
             name="lognormal",
             scipy_name="lognorm",
             display_name="Lognormal Distribution",
-            description="Distribution of variable whose logarithm is normally distributed.",
+            description=t('lognormal_description') if I18N_AVAILABLE else
+                       "Distribution of variable whose logarithm is normally distributed.",
             parameters=["shape", "scale"],
             support="(0, inf)",
             is_discrete=False,
@@ -325,7 +340,8 @@ class LogisticDistribution(ContinuousDistribution):
             name="logistic",
             scipy_name="logistic",
             display_name="Logistic Distribution",
-            description="Similar to normal but with heavier tails.",
+            description=t('logistic_description') if I18N_AVAILABLE else
+                       "Similar to normal but with heavier tails.",
             parameters=["loc", "scale"],
             support="(-inf, inf)",
             is_discrete=False,
@@ -361,7 +377,8 @@ class GumbelDistribution(ContinuousDistribution):
             name="gumbel",
             scipy_name="gumbel_r",
             display_name="Gumbel Distribution",
-            description="Type I extreme value distribution.",
+            description=t('gumbel_description') if I18N_AVAILABLE else
+                       "Type I extreme value distribution.",
             parameters=["loc", "scale"],
             support="(-inf, inf)",
             is_discrete=False,
@@ -399,7 +416,8 @@ class ParetoDistribution(ContinuousDistribution):
             name="pareto",
             scipy_name="pareto",
             display_name="Pareto Distribution",
-            description="Power law distribution.",
+            description=t('pareto_description') if I18N_AVAILABLE else
+                       "Power law distribution.",
             parameters=["shape", "scale"],
             support="[scale, inf)",
             is_discrete=False,
@@ -440,7 +458,8 @@ class CauchyDistribution(ContinuousDistribution):
             name="cauchy",
             scipy_name="cauchy",
             display_name="Cauchy Distribution",
-            description="Heavy-tailed distribution with undefined mean and variance.",
+            description=t('cauchy_description') if I18N_AVAILABLE else
+                       "Heavy-tailed distribution with undefined mean and variance.",
             parameters=["loc", "scale"],
             support="(-inf, inf)",
             is_discrete=False,
@@ -477,7 +496,8 @@ class StudentTDistribution(ContinuousDistribution):
             name="studentt",
             scipy_name="t",
             display_name="Student's t Distribution",
-            description="Heavy-tailed distribution used in statistical inference.",
+            description=t('studentt_description') if I18N_AVAILABLE else
+                       "Heavy-tailed distribution used in statistical inference.",
             parameters=["df", "loc", "scale"],
             support="(-inf, inf)",
             is_discrete=False,
@@ -511,7 +531,8 @@ class ChiSquareDistribution(ContinuousDistribution):
             name="chisquare",
             scipy_name="chi2",
             display_name="Chi-Square Distribution",
-            description="Distribution of sum of squared standard normal variables.",
+            description=t('chisquare_description') if I18N_AVAILABLE else
+                       "Distribution of sum of squared standard normal variables.",
             parameters=["df"],
             support="[0, inf)",
             is_discrete=False,
@@ -551,7 +572,8 @@ class FDistribution(ContinuousDistribution):
             name="f",
             scipy_name="f",
             display_name="F Distribution",
-            description="Ratio of two chi-square distributions.",
+            description=t('f_description') if I18N_AVAILABLE else
+                       "Ratio of two chi-square distributions.",
             parameters=["dfn", "dfd"],
             support="[0, inf)",
             is_discrete=False,
@@ -590,7 +612,8 @@ class LaplaceDistribution(ContinuousDistribution):
             name="laplace",
             scipy_name="laplace",
             display_name="Laplace Distribution",
-            description="Double exponential distribution.",
+            description=t('laplace_description') if I18N_AVAILABLE else
+                       "Double exponential distribution.",
             parameters=["loc", "scale"],
             support="(-inf, inf)",
             is_discrete=False,
@@ -626,7 +649,8 @@ class RayleighDistribution(ContinuousDistribution):
             name="rayleigh",
             scipy_name="rayleigh",
             display_name="Rayleigh Distribution",
-            description="Models magnitude of 2D vector with normally distributed components.",
+            description=t('rayleigh_description') if I18N_AVAILABLE else
+                       "Models magnitude of 2D vector with normally distributed components.",
             parameters=["scale"],
             support="[0, inf)",
             is_discrete=False,
@@ -665,7 +689,8 @@ class WaldDistribution(ContinuousDistribution):
             name="wald",
             scipy_name="invgauss",
             display_name="Wald Distribution",
-            description="Inverse Gaussian distribution.",
+            description=t('wald_description') if I18N_AVAILABLE else
+                       "Inverse Gaussian distribution.",
             parameters=["mean", "scale"],
             support="(0, inf)",
             is_discrete=False,
@@ -706,7 +731,8 @@ class TriangularDistribution(ContinuousDistribution):
             name="triangular",
             scipy_name="triang",
             display_name="Triangular Distribution",
-            description="Simple distribution defined by minimum, maximum, and mode.",
+            description=t('triangular_description') if I18N_AVAILABLE else
+                       "Simple distribution defined by minimum, maximum, and mode.",
             parameters=["c", "loc", "scale"],
             support="[a, b]",
             is_discrete=False,
@@ -744,7 +770,8 @@ class BurrDistribution(ContinuousDistribution):
             name="burr",
             scipy_name="burr12",
             display_name="Burr Distribution",
-            description="Flexible distribution for modeling heavy-tailed data.",
+            description=t('burr_description') if I18N_AVAILABLE else
+                       "Flexible distribution for modeling heavy-tailed data.",
             parameters=["c", "d", "scale"],
             support="[0, inf)",
             is_discrete=False,
@@ -784,7 +811,8 @@ class GenExtremeDistribution(ContinuousDistribution):
             name="genextreme",
             scipy_name="genextreme",
             display_name="Generalized Extreme Value Distribution",
-            description="Family of distributions for modeling extreme values.",
+            description=t('genextreme_description') if I18N_AVAILABLE else
+                       "Family of distributions for modeling extreme values.",
             parameters=["shape", "loc", "scale"],
             support="varies",
             is_discrete=False,
@@ -825,7 +853,8 @@ class PoissonDistribution(DiscreteDistribution):
             name="poisson",
             scipy_name="poisson",
             display_name="Poisson Distribution",
-            description="Models count of events in fixed interval with constant rate.",
+            description=t('poisson_description') if I18N_AVAILABLE else
+                       "Models count of events in fixed interval with constant rate.",
             parameters=["mu"],
             support="{0, 1, 2, ...}",
             is_discrete=True,
@@ -861,7 +890,8 @@ class BinomialDistribution(DiscreteDistribution):
             name="binomial",
             scipy_name="binom",
             display_name="Binomial Distribution",
-            description="Number of successes in n independent Bernoulli trials.",
+            description=t('binomial_description') if I18N_AVAILABLE else
+                       "Number of successes in n independent Bernoulli trials.",
             parameters=["n", "p"],
             support="{0, 1, ..., n}",
             is_discrete=True,
@@ -897,7 +927,8 @@ class NegativeBinomialDistribution(DiscreteDistribution):
             name="negative_binomial",
             scipy_name="nbinom",
             display_name="Negative Binomial Distribution",
-            description="Number of failures before r-th success.",
+            description=t('negative_binomial_description') if I18N_AVAILABLE else
+                       "Number of failures before r-th success.",
             parameters=["n", "p"],
             support="{0, 1, 2, ...}",
             is_discrete=True,
@@ -939,7 +970,8 @@ class GeometricDistribution(DiscreteDistribution):
             name="geometric",
             scipy_name="geom",
             display_name="Geometric Distribution",
-            description="Number of trials until first success.",
+            description=t('geometric_description') if I18N_AVAILABLE else
+                       "Number of trials until first success.",
             parameters=["p"],
             support="{1, 2, 3, ...}",
             is_discrete=True,
@@ -973,7 +1005,8 @@ class HypergeometricDistribution(DiscreteDistribution):
             name="hypergeometric",
             scipy_name="hypergeom",
             display_name="Hypergeometric Distribution",
-            description="Sampling without replacement from finite population.",
+            description=t('hypergeometric_description') if I18N_AVAILABLE else
+                       "Sampling without replacement from finite population.",
             parameters=["M", "n", "N"],
             support="{max(0, n+N-M), ..., min(n, N)}",
             is_discrete=True,
