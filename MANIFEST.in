@@ -1,0 +1,68 @@
+# MANIFEST.in
+# ===========
+# Controls which files are included in source distributions
+
+# Include documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+include requirements.txt
+include requirements-dev.txt
+
+# Include package data
+include setup.py
+include pyproject.toml
+
+# Include all locale files (CRITICAL for multilingual support)
+recursive-include distfit_pro/locales *.json
+
+# Include tests
+recursive-include tests *.py
+include test_*.py
+
+# Include examples
+recursive-include examples *.py
+recursive-include examples *.ipynb
+recursive-include examples *.md
+
+# Include docs
+recursive-include docs *.rst
+recursive-include docs *.md
+recursive-include docs *.py
+recursive-include docs Makefile
+
+# Exclude compiled Python files
+global-exclude *.py[cod]
+global-exclude __pycache__
+global-exclude *.so
+global-exclude .DS_Store
+
+# Exclude version control
+global-exclude .git*
+global-exclude .hg*
+
+# Exclude temporary and backup files
+global-exclude *~
+global-exclude *.bak
+global-exclude *.swp
+global-exclude *_temp.py
+global-exclude *_FIXED.py
+global-exclude *_backup.py
+
+# Exclude build artifacts
+global-exclude *.egg-info
+prune build
+prune dist
+prune .eggs
+
+# Exclude IDE files
+prune .vscode
+prune .idea
+global-exclude *.code-workspace
+
+# Exclude coverage and test artifacts
+global-exclude .coverage
+global-exclude htmlcov
+global-exclude .pytest_cache
+global-exclude .tox
