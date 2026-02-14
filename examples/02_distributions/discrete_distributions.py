@@ -1,193 +1,244 @@
 #!/usr/bin/env python3
 """
-Discrete Distributions Gallery
+Discrete Distributions Showcase
 ===============================
 
-Demonstrates all 5 discrete distributions available in distfit_pro.
+Explore discrete distributions for count data.
 
-Discrete distributions are for count data:
-- Number of events
-- Integer-valued outcomes
-- Success/failure trials
+Author: Ali Sadeghi Aghili
 """
 
 import numpy as np
 from distfit_pro import get_distribution
+import matplotlib.pyplot as plt
+from scipy import stats
 
 np.random.seed(42)
 
 print("="*70)
-print("DISCRETE DISTRIBUTIONS GALLERY")
+print("🔢 DISCRETE DISTRIBUTIONS SHOWCASE")
 print("="*70)
-print(f"\nShowing all 5 discrete distributions...\n")
 
-# =============================================================================
-# Distribution definitions
-# =============================================================================
-discrete_dists = [
-    ('poisson', 
-     {'mu': 5},
-     "Number of events in fixed time/space",
-     "Rare events, call center arrivals, website visits"),
-    
-    ('binom', 
-     {'n': 20, 'p': 0.3},
-     "Number of successes in n trials",
-     "Quality control, survey responses, coin flips"),
-    
-    ('nbinom', 
-     {'n': 5, 'p': 0.4},
-     "Number of failures before r successes",
-     "Insurance claims, repeat purchases"),
-    
-    ('geom', 
-     {'p': 0.2},
-     "Number of trials to first success",
-     "Time to first sale, first failure"),
-    
-    ('hypergeom',
-     {'M': 50, 'n': 10, 'N': 15},
-     "Sampling without replacement",
-     "Quality inspection, lottery, defect detection"),
-]
 
-print(f"Sample size for each: 500 observations\n")
+# ============================================================================
+# 1. POISSON - Events Per Time Period
+# ============================================================================
 
-# =============================================================================
-# Fit each distribution
-# =============================================================================
-for i, (name, params, short_desc, use_cases) in enumerate(discrete_dists, 1):
-    print("="*70)
-    print(f"{i}. {name.upper()}")
-    print("="*70)
-    print(f"Description: {short_desc}")
-    print(f"Use cases: {use_cases}")
-    print("-"*70)
-    
-    try:
-        # Generate data
-        from scipy import stats
-        scipy_dist = getattr(stats, name)
-        data = scipy_dist.rvs(size=500, **params)
-        
-        # Fit distribution
-        dist = get_distribution(name)
-        dist.fit(data)
-        
-        # Show key results
-        print("\nFitted Parameters:")
-        for param, value in dist.params.items():
-            print(f"  {param}: {value:.6f}")
-        
-        print("\nData Characteristics:")
-        print(f"  Range: [{int(data.min())}, {int(data.max())}]")
-        print(f"  Sample mean: {np.mean(data):.4f}")
-        print(f"  Sample variance: {np.var(data, ddof=1):.4f}")
-        print(f"  Var/Mean ratio: {np.var(data, ddof=1)/np.mean(data):.4f}")
-        
-        print("\nFitted Distribution Statistics:")
-        try:
-            fitted_mean = dist.mean()
-            fitted_var = dist.var()
-            print(f"  Mean: {fitted_mean:.4f}")
-            print(f"  Variance: {fitted_var:.4f}")
-            print(f"  Std: {dist.std():.4f}")
-            
-            # For discrete, show mode as most probable value
-            try:
-                mode_val = dist.mode()
-                print(f"  Mode: {int(mode_val)}")
-            except:
-                pass
-        except:
-            print("  (Some statistics not available)")
-        
-        print("\nProbability Mass Function (PMF) Examples:")
-        # Show PMF for a few values
-        unique_values = np.sort(np.unique(data))[:5]  # First 5 unique values
-        for val in unique_values:
-            pmf_val = dist.pdf(val)  # For discrete, pdf returns PMF
-            print(f"  P(X = {int(val)}) = {pmf_val:.6f}")
-        
-        print("\nGoodness of Fit:")
-        print(f"  Log-Likelihood: {dist.log_likelihood():.2f}")
-        print(f"  AIC: {dist.aic():.2f}")
-        print(f"  BIC: {dist.bic():.2f}")
-        
-        print("\n✓ Success")
-        
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-    
-    print()
-
-# =============================================================================
-# Variance-to-Mean Ratio Interpretation
-# =============================================================================
 print("\n" + "="*70)
-print("VARIANCE-TO-MEAN RATIO GUIDE")
+print("1. POISSON DISTRIBUTION")
 print("="*70)
 print("""
-The variance-to-mean ratio helps select discrete distributions:
+Use when:
+  ✓ Counting events in fixed time/space
+  ✓ Website visits per hour
+  ✓ Calls to support center per day
+  ✓ Defects per product
+  ✓ Rate parameter λ = mean = variance
+""")
 
-1. Ratio ≈ 1 (Equidispersion):
-   → Use POISSON distribution
-   - Events occur independently
-   - Constant rate
+# Simulate: Average 5 customer calls per hour
+data_poisson = np.random.poisson(lam=5.0, size=1000)
+dist_poisson = get_distribution('poisson')
+dist_poisson.fit(data_poisson)
 
-2. Ratio > 1 (Overdispersion):
-   → Use NEGATIVE BINOMIAL
-   - More variability than Poisson
-   - Events are clustered
+print("Fitted parameters:")
+for param, val in dist_poisson.params.items():
+    print(f"  {param}: {val:.4f}")
 
-3. Ratio < 1 (Underdispersion):
-   → Use BINOMIAL
-   - Less variability than Poisson
-   - Fixed number of trials
+print(f"\nMean (λ):  {dist_poisson.mean():.2f}")
+print(f"Variance: {dist_poisson.var():.2f}")
+print(f"\n📊 Example: Probability of exactly 3 calls in an hour:")
+print(f"   P(X=3) = {dist_poisson.pdf(3):.4f} or {dist_poisson.pdf(3)*100:.2f}%")
 
-4. Sampling without replacement:
-   → Use HYPERGEOMETRIC
-   - Finite population
-   - No replacement
 
-5. Waiting time to event:
-   → Use GEOMETRIC
+# ============================================================================
+# 2. BINOMIAL - Success/Failure Trials
+# ============================================================================
+
+print("\n" + "="*70)
+print("2. BINOMIAL DISTRIBUTION")
+print("="*70)
+print("""
+Use when:
+  ✓ Fixed number of independent trials (n)
+  ✓ Each trial has two outcomes (success/failure)
+  ✓ Constant probability of success (p)
+  ✓ Quality control (defective items)
+  ✓ Survey responses (yes/no)
+""")
+
+# Simulate: 10 coin flips, 60% heads probability, repeated 1000 times
+data_binom = np.random.binomial(n=10, p=0.6, size=1000)
+
+# Note: binomial distribution fitting is tricky (n must be known)
+# For demo, we'll analyze the data
+print(f"Data: {len(data_binom)} trials of 10 flips each")
+print(f"  Mean successes per trial: {data_binom.mean():.2f}")
+print(f"  Std: {data_binom.std():.2f}")
+print(f"  Range: [{data_binom.min()}, {data_binom.max()}]")
+
+# Create theoretical distribution for comparison
+theoretical_binom = stats.binom(n=10, p=0.6)
+print(f"\nTheoretical (n=10, p=0.6):")
+print(f"  Mean: {theoretical_binom.mean():.2f}")
+print(f"  P(X=6) = {theoretical_binom.pmf(6):.4f}")
+
+
+# ============================================================================
+# 3. GEOMETRIC - Trials Until First Success
+# ============================================================================
+
+print("\n" + "="*70)
+print("3. GEOMETRIC DISTRIBUTION")
+print("="*70)
+print("""
+Use when:
+  ✓ Number of trials until first success
+  ✓ Probability of success is constant (p)
+  ✓ Memoryless property
+  ✓ Customer acquisition attempts
+  ✓ Equipment testing until failure
+""")
+
+# Simulate: Keep trying until success (p=0.2)
+data_geom = np.random.geometric(p=0.2, size=1000)
+
+# Fit using continuous approximation (geometric is discrete)
+print(f"Data: {len(data_geom)} trials until success")
+print(f"  Mean trials: {data_geom.mean():.2f}")
+print(f"  Median: {np.median(data_geom):.2f}")
+print(f"  Max: {data_geom.max()}")
+
+theoretical_geom = stats.geom(p=0.2)
+print(f"\nTheoretical (p=0.2):")
+print(f"  Mean: {theoretical_geom.mean():.2f}")
+print(f"  P(X=5) = {theoretical_geom.pmf(5):.4f}")
+
+
+# ============================================================================
+# 4. NEGATIVE BINOMIAL - Trials Until r Successes
+# ============================================================================
+
+print("\n" + "="*70)
+print("4. NEGATIVE BINOMIAL DISTRIBUTION")
+print("="*70)
+print("""
+Use when:
+  ✓ Number of trials until r-th success
+  ✓ Overdispersed count data (variance > mean)
+  ✓ Generalization of geometric (r=1)
+  ✓ Insurance claims
+  ✓ Ecology (species counts)
+""")
+
+# Simulate: Trials until 3rd success (p=0.3)
+data_nbinom = np.random.negative_binomial(n=3, p=0.3, size=1000)
+
+print(f"Data: {len(data_nbinom)} repetitions")
+print(f"  Mean: {data_nbinom.mean():.2f}")
+print(f"  Variance: {data_nbinom.var():.2f}")
+print(f"  Variance > Mean? {'Yes (overdispersed)' if data_nbinom.var() > data_nbinom.mean() else 'No'}")
+
+theoretical_nbinom = stats.nbinom(n=3, p=0.3)
+print(f"\nTheoretical (r=3, p=0.3):")
+print(f"  Mean: {theoretical_nbinom.mean():.2f}")
+print(f"  Variance: {theoretical_nbinom.var():.2f}")
+
+
+# ============================================================================
+# Visual Comparison
+# ============================================================================
+
+print("\n" + "="*70)
+print("📊 Creating Visual Comparison...")
+print("="*70)
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+fig.suptitle('Discrete Distributions Gallery', fontsize=16, fontweight='bold')
+
+# 1. Poisson
+ax = axes[0, 0]
+ax.hist(data_poisson, bins=range(0, max(data_poisson)+2), density=True, 
+        alpha=0.7, color='skyblue', edgecolor='black', label='Observed')
+x_poi = np.arange(0, max(data_poisson)+1)
+y_poi = dist_poisson.pdf(x_poi)
+ax.plot(x_poi, y_poi, 'ro-', linewidth=2, markersize=6, label='Fitted Poisson')
+ax.set_title('Poisson Distribution', fontweight='bold')
+ax.set_xlabel('Count')
+ax.set_ylabel('Probability')
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+# 2. Binomial
+ax = axes[0, 1]
+ax.hist(data_binom, bins=range(0, 12), density=True, 
+        alpha=0.7, color='lightgreen', edgecolor='black', label='Observed')
+x_binom = np.arange(0, 11)
+y_binom = theoretical_binom.pmf(x_binom)
+ax.plot(x_binom, y_binom, 'ro-', linewidth=2, markersize=6, label='Theoretical')
+ax.set_title('Binomial Distribution (n=10, p=0.6)', fontweight='bold')
+ax.set_xlabel('Number of Successes')
+ax.set_ylabel('Probability')
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+# 3. Geometric
+ax = axes[1, 0]
+ax.hist(data_geom, bins=range(1, min(max(data_geom)+2, 30)), density=True, 
+        alpha=0.7, color='salmon', edgecolor='black', label='Observed')
+x_geom = np.arange(1, min(max(data_geom)+1, 30))
+y_geom = theoretical_geom.pmf(x_geom)
+ax.plot(x_geom, y_geom, 'bo-', linewidth=2, markersize=6, label='Theoretical')
+ax.set_title('Geometric Distribution (p=0.2)', fontweight='bold')
+ax.set_xlabel('Trials Until Success')
+ax.set_ylabel('Probability')
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+# 4. Negative Binomial
+ax = axes[1, 1]
+ax.hist(data_nbinom, bins=range(0, min(max(data_nbinom)+2, 30)), density=True, 
+        alpha=0.7, color='plum', edgecolor='black', label='Observed')
+x_nbinom = np.arange(0, min(max(data_nbinom)+1, 30))
+y_nbinom = theoretical_nbinom.pmf(x_nbinom)
+ax.plot(x_nbinom, y_nbinom, 'go-', linewidth=2, markersize=6, label='Theoretical')
+ax.set_title('Negative Binomial (r=3, p=0.3)', fontweight='bold')
+ax.set_xlabel('Failures Before 3rd Success')
+ax.set_ylabel('Probability')
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+
+print("\n✅ Visual comparison created!")
+print("   Close the plot window to continue...")
+
+plt.show()
+
+print("\n" + "="*70)
+print("🎓 Summary")
+print("="*70)
+print("""
+Discrete Distribution Selection Guide:
+
+🔢 Poisson:
+   - Events in fixed time/space
+   - Mean = Variance
+   - Examples: calls/hour, defects/unit
+
+🎲 Binomial:
+   - Fixed trials (n), constant success probability (p)
+   - Examples: quality control, A/B testing
+
+⏳ Geometric:
+   - Trials until first success
    - Memoryless property
-   - First success
+   - Examples: customer acquisition, first failure
+
+🔄 Negative Binomial:
+   - Trials until r-th success
+   - Allows overdispersion (variance > mean)
+   - Examples: insurance claims, ecology counts
+
+Next: Check custom_parameters.py to manually set distribution params!
 """)
-
-# =============================================================================
-# Quick Reference
-# =============================================================================
-print("\n" + "="*70)
-print("QUICK REFERENCE")
-print("="*70)
-print()
-print(f"{'Distribution':<15} {'Parameters':<25} {'Mean':<20}")
-print("-"*70)
-print(f"{'Poisson':<15} {'λ (rate)':<25} {'λ':<20}")
-print(f"{'Binomial':<15} {'n (trials), p (prob)':<25} {'n·p':<20}")
-print(f"{'Negative Binom':<15} {'r (successes), p':<25} {'r(1-p)/p':<20}")
-print(f"{'Geometric':<15} {'p (success prob)':<25} {'1/p':<20}")
-print(f"{'Hypergeometric':<15} {'N, K, n (pop, good, draw)':<25} {'n·K/N':<20}")
-
-print("\n" + "="*70)
-print("EXAMPLES")
-print("="*70)
-print("""
-1. Poisson → Number of emails per hour
-   data = [3, 5, 4, 6, 2, 4, 5, 3, ...]
-   dist = get_distribution('poisson')
-   dist.fit(data)
-
-2. Binomial → Number of defective items in batch of 100
-   data = [2, 1, 3, 0, 2, 1, ...]
-   dist = get_distribution('binom')
-   dist.fit(data)
-
-3. Negative Binomial → Sales attempts before 3 successes
-   data = [5, 8, 6, 10, 7, ...]
-   dist = get_distribution('nbinom')
-   dist.fit(data)
-""")
-print("="*70)
