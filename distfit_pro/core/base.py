@@ -619,6 +619,9 @@ class BaseDistribution(ABC):
                     'spread_statistics': 'SPREAD STATISTICS',
                     'shape_statistics': 'SHAPE STATISTICS',
                     'goodness_of_fit': 'GOODNESS OF FIT',
+                    'log_likelihood': 'Log-Likelihood',
+                    'aic': 'AIC',
+                    'bic': 'BIC',
                     'mean': 'Mean',
                     'median': 'Median',
                     'mode': 'Mode',
@@ -735,7 +738,7 @@ class BaseDistribution(ABC):
         except:
             pass
         
-        # Goodness of Fit box (WITH i18n translation)
+        # Goodness of Fit box (FULLY i18n translated)
         if self._data is not None:
             lines.append("")
             lines.append("╔" + "═" * 62 + "╗")
@@ -745,19 +748,19 @@ class BaseDistribution(ABC):
             
             try:
                 ll = self.log_likelihood()
-                lines.append(f"   {'Log-Likelihood':<30} = {ll:>15.2f}")
+                lines.append(f"   {t_local('log_likelihood'):<30} = {ll:>15.2f}")
             except:
                 pass
             
             try:
                 aic_val = self.aic()
-                lines.append(f"   {'AIC':<30} = {aic_val:>15.2f}")
+                lines.append(f"   {t_local('aic'):<30} = {aic_val:>15.2f}")
             except:
                 pass
             
             try:
                 bic_val = self.bic()
-                lines.append(f"   {'BIC':<30} = {bic_val:>15.2f}")
+                lines.append(f"   {t_local('bic'):<30} = {bic_val:>15.2f}")
             except:
                 pass
         
