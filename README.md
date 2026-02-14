@@ -9,7 +9,7 @@ A comprehensive, production-ready library for statistical distribution fitting t
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/alisadeghiaghili/py-distfit-pro/releases)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://github.com/alisadeghiaghili/py-distfit-pro/docs)
 
-[English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
+[English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md) | [📋 CHANGELOG](CHANGELOG.md)
 
 ---
 
@@ -24,7 +24,18 @@ A comprehensive, production-ready library for statistical distribution fitting t
 ✅ **Weighted Data Support** (Survey data, stratified sampling, frequency counts)  
 ✅ **Multiple Estimation Methods** (MLE, Moments, Quantile matching)  
 ✅ **Multilingual** (English, فارسی, Deutsch)  
-✅ **Comprehensive Documentation** (9 tutorials + API reference + examples)  
+✅ **Comprehensive Documentation** (9 tutorials + API reference)  
+✅ **20+ Complete Examples** (8,500+ lines across 7 folders) 🆕
+
+**📚 New: [Comprehensive Examples](examples/README.md)**  
+Explore 20+ production-ready examples covering:
+- Basics & common distributions
+- Advanced fitting methods (MLE, MoM)
+- Model selection (AIC, BIC, Cross-validation)
+- Goodness-of-fit testing
+- Beautiful visualizations (PDF, CDF, Q-Q plots, interactive)
+- Real-world applications (Finance, Reliability, Quality Control)
+- Advanced topics (Mixture models, Bootstrap, Custom distributions)
 
 ---
 
@@ -49,7 +60,7 @@ A comprehensive, production-ready library for statistical distribution fitting t
 ### **Professional Quality**
 - ✅ Production-ready code
 - ✅ Comprehensive test suite
-- ✅ Full documentation (9 tutorials)
+- ✅ Full documentation (9 tutorials + 20+ examples)
 - ✅ Type hints throughout
 - ✅ Clean, maintainable architecture
 
@@ -353,12 +364,25 @@ print(dist.explain())
 8. **[Visualization](docs/source/tutorial/08_visualization.rst)** - Beautiful plots
 9. **[Advanced Topics](docs/source/tutorial/09_advanced.rst)** - Custom distributions, mixtures
 
+### **Complete Examples**
+
+**📁 [examples/](examples/README.md)** - 20+ production-ready examples (8,500+ lines)
+
+- **[01_basics/](examples/01_basics/)** - Introduction to distribution fitting
+- **[02_advanced_fitting/](examples/02_advanced_fitting/)** - MLE and Method of Moments
+- **[03_model_selection/](examples/03_model_selection/)** - AIC/BIC, Cross-validation
+- **[04_goodness_of_fit/](examples/04_goodness_of_fit/)** - KS, Chi-square, Anderson-Darling
+- **[05_visualization/](examples/05_visualization/)** - PDF/CDF, Q-Q, Interactive plots
+- **[06_real_world/](examples/06_real_world/)** - Finance, Reliability, Quality Control
+- **[07_advanced_topics/](examples/07_advanced_topics/)** - Mixture models, Bootstrap, Custom
+
 ### **Quick Links**
 
 - 📖 [Installation Guide](docs/source/installation.rst)
 - ⚡ [Quick Start](docs/source/quickstart.rst)
 - 📊 [API Reference](docs/source/api/index.rst)
-- 💡 [Examples](docs/source/examples/index.rst)
+- 💡 [Examples](examples/README.md)
+- 📋 [CHANGELOG](CHANGELOG.md)
 - ❓ [FAQ](docs/source/faq.rst)
 
 ---
@@ -390,6 +414,8 @@ outliers = Diagnostics.detect_outliers(
 print(f"Defect rate: {len(outliers.outlier_indices)/len(measurements)*100:.2f}%")
 ```
 
+**👉 See full example:** [examples/06_real_world/quality_control.py](examples/06_real_world/quality_control.py)
+
 ### **Example 2: Financial Risk Analysis**
 
 ```python
@@ -413,6 +439,8 @@ from distfit_pro.core.bootstrap import Bootstrap
 ci = Bootstrap.parametric(returns, dist, n_bootstrap=1000)
 ```
 
+**👉 See full example:** [examples/06_real_world/finance_analysis.py](examples/06_real_world/finance_analysis.py)
+
 ### **Example 3: Survival Analysis**
 
 ```python
@@ -432,6 +460,8 @@ median_survival = dist.ppf(0.5)
 print(f"Median survival: {median_survival:.1f} months")
 ```
 
+**👉 See full example:** [examples/06_real_world/reliability_engineering.py](examples/06_real_world/reliability_engineering.py)
+
 ---
 
 ## 🚀 Performance
@@ -450,9 +480,11 @@ print(f"Median survival: {median_survival:.1f} months")
 
 ---
 
-## 📋 CHANGELOG
+## 📋 Version History
 
-### **v1.0.0** - 2026-02-12 🎉
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+
+### **v1.0.0** - 2026-02-14 🎉
 **First Stable and Complete Release**
 
 #### ✨ Major Features:
@@ -463,71 +495,10 @@ print(f"Median survival: {median_survival:.1f} months")
 - ✅ **Enhanced Diagnostics** (4 residual types, influence, outlier detection)
 - ✅ **Weighted Data Support** (MLE + Moments)
 - ✅ **Multilingual** (English, فارسی, Deutsch)
-- ✅ **Comprehensive Documentation** (9 tutorials + API reference + examples)
+- ✅ **Comprehensive Documentation** (9 tutorials + API reference)
+- ✅ **20+ Complete Examples** (8,500+ lines of code)
 - ✅ **Parallel Processing** (joblib with all cores)
 - ✅ **Progress Bars** (tqdm)
-
-#### 🔧 Technical Improvements:
-- Scalable and extensible architecture
-- Complete i18n system (translation + RTL support)
-- Model selection criteria (AIC, BIC, LOO-CV)
-- Type hints throughout codebase
-- Comprehensive test suite
-
-#### 📚 Documentation:
-- 9 complete tutorials (basics to advanced topics)
-- Full API reference for all classes and functions
-- Real-world examples (QC, finance, survival)
-- FAQ
-- Contributing guide
-
-#### 🛤️ Development Journey:
-
-**Phase 1: Foundation (✅ Complete)**
-- Core distribution classes (30 distributions)
-- Basic fitting system (MLE, Moments)
-- Self-explanatory outputs
-
-**Phase 2: Advanced Statistics (✅ Complete)**
-- GOF Tests (4 tests)
-- Bootstrap CI (Parametric + Non-parametric + BCa)
-- Enhanced diagnostics
-- Weighted data support
-
-**Phase 3: Documentation (✅ Complete)**
-- Full multilingual support (EN/FA/DE)
-- 9 comprehensive tutorials
-- Complete API reference
-- Real-world examples
-
-**Phase 4: Stable v1.0.0 (🎯 Current)**
-- All features complete and tested
-- Ready for production use
-- Comprehensive documentation
-
----
-
-### Future Releases:
-
-**v1.1.0** - Planned Q2 2026
-- 🔨 Comprehensive test suite (90%+ coverage)
-- 🔨 CI/CD pipeline (GitHub Actions)
-- 🔨 PyPI package release
-- 🔨 Online documentation (Read the Docs)
-- 🔨 Interactive examples (Jupyter notebooks)
-
-**v1.2.0** - Planned Q3 2026
-- 📋 Censored/truncated data support
-- 📋 Additional GOF tests
-- 📋 Performance optimizations
-- 📋 More languages (Spanish, Chinese)
-
-**v2.0.0** - Planned 2027
-- 🚀 Bayesian inference (PyMC integration)
-- 🚀 Mixture models (EM algorithm)
-- 🚀 Copulas (multivariate dependence)
-- 🚀 GPU acceleration (CuPy)
-- 🚀 Time series of distributions
 
 ---
 
@@ -535,7 +506,9 @@ print(f"Median survival: {median_survival:.1f} months")
 
 ### **Current Status**
 
-**Version:** 1.0.0 ✅
+**Version:** 1.0.0 ✅  
+**Release Date:** 2026-02-14  
+**Status:** Stable and Production-Ready
 
 ### **Completed Features**
 
@@ -547,6 +520,7 @@ print(f"Median survival: {median_survival:.1f} months")
 - ✅ Weighted Data Support (MLE + Moments)
 - ✅ Multilingual (EN/FA/DE)
 - ✅ Comprehensive Documentation (9 tutorials)
+- ✅ 20+ Complete Examples (8,500+ lines)
 - ✅ Parallel Processing (joblib)
 - ✅ Progress Bars (tqdm)
 
@@ -562,6 +536,7 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - Performance optimizations
 - Documentation improvements
 - Translations (add your language!)
+- More real-world examples
 
 ---
 
