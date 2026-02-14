@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """
-Quality Control & SPC Example
-============================
+Quality Control: Statistical Process Control (SPC)
+==================================================
 
-Statistical Process Control (SPC) for manufacturing.
-Common in: Manufacturing, Production, Six Sigma.
+Real-world quality control examples:
+  - Process capability analysis (Cp, Cpk)
+  - Control charts
+  - Six Sigma methodology
+  - Defect rate estimation
 
 Author: Ali Sadeghi Aghili
 """
@@ -12,371 +15,434 @@ Author: Ali Sadeghi Aghili
 import numpy as np
 from distfit_pro import get_distribution
 import matplotlib.pyplot as plt
+from scipy import stats
 
 np.random.seed(42)
 
 print("="*70)
-print("🏭 QUALITY CONTROL: Statistical Process Control (SPC)")
+print("🏭 QUALITY CONTROL: STATISTICAL PROCESS CONTROL")
 print("="*70)
-print("""
-Scenario: Manufacturing precision parts
-  - Target dimension: 50.00 mm
-  - Tolerance: 50.00 ± 0.30 mm (Upper/Lower Spec Limits)
-  - Goal: Minimize defects, ensure process capability
-""")
 
 
 # ============================================================================
-# Data: Measurement Samples from Production Line
-# ============================================================================
-
-# Simulate measurements (normal process with slight shift)
-n_samples = 500
-target = 50.0
-tolerance = 0.30
-
-# Process is slightly off-center (50.05 instead of 50.00)
-measurements = np.random.normal(loc=50.05, scale=0.10, size=n_samples)
-
-USL = target + tolerance  # Upper Specification Limit
-LSL = target - tolerance  # Lower Specification Limit
-
-print(f"\n📊 Production Data: {n_samples} measurements")
-print(f"  Target:      {target:.2f} mm")
-print(f"  Tolerance:   ±{tolerance:.2f} mm")
-print(f"  LSL:         {LSL:.2f} mm")
-print(f"  USL:         {USL:.2f} mm")
-print(f"\n  Sample mean: {measurements.mean():.4f} mm")
-print(f"  Sample std:  {measurements.std():.4f} mm")
-print(f"  Range:       [{measurements.min():.4f}, {measurements.max():.4f}]")
-
-# Count defects
-defects = ((measurements < LSL) | (measurements > USL)).sum()
-print(f"\n  ⚠️  Defects: {defects}/{n_samples} ({defects/n_samples*100:.2f}%)")
-
-
-# ============================================================================
-# Fit Normal Distribution
+# Example 1: Process Capability Analysis
 # ============================================================================
 
 print("\n" + "="*70)
-print("📊 Fitting Process Distribution")
+print("EXAMPLE 1: Process Capability Analysis")
 print("="*70)
 
+print("""
+Scenario: Manufacturing bolt diameter
+  - Specification: 10.0 ± 0.5 mm
+  - Measure process capability
+  - Is process meeting specifications?
+""")
+
+# Simulate manufacturing process
+# Slightly off-center process
+target = 10.0
+USL = 10.5  # Upper Specification Limit
+LSL = 9.5   # Lower Specification Limit
+
+# Generate process data (slightly off-target)
+process_mean = 10.05  # Slightly high
+process_std = 0.12
+measurements = np.random.normal(process_mean, process_std, 500)
+
+print(f"\n📊 Process Data: {len(measurements)} measurements")
+print(f"\n  Specifications:")
+print(f"    Target:       {target:.2f} mm")
+print(f"    USL:          {USL:.2f} mm")
+print(f"    LSL:          {LSL:.2f} mm")
+print(f"    Tolerance:    ±{(USL-target):.2f} mm")
+
+print(f"\n  Process Statistics:")
+print(f"    Mean:         {measurements.mean():.3f} mm")
+print(f"    Std Dev:      {measurements.std():.3f} mm")
+print(f"    Min:          {measurements.min():.3f} mm")
+print(f"    Max:          {measurements.max():.3f} mm")
+
+# Fit normal distribution
+print(f"\n🔬 Fitting normal distribution...")
 dist = get_distribution('normal')
 dist.fit(measurements)
 
-print(dist.summary())
+mean_fit = dist.mean()
+std_fit = dist.std()
 
-process_mean = dist.mean()
-process_std = dist.std()
+print(f"\n  Fitted parameters:")
+print(f"    μ (mean):     {mean_fit:.4f} mm")
+print(f"    σ (std dev):  {std_fit:.4f} mm")
 
-print(f"\nProcess parameters:")
-print(f"  μ (mean): {process_mean:.4f} mm")
-print(f"  σ (std):  {process_std:.4f} mm")
+# Calculate Process Capability Indices
+print(f"\n📈 Process Capability Indices:")
 
-# Calculate process centering
-shift = abs(process_mean - target)
-print(f"\n  Process shift from target: {shift:.4f} mm")
-if shift > tolerance / 10:
-    print(f"  ⚠️  WARNING: Process is off-center!")
-
-
-# ============================================================================
-# Process Capability Analysis (Cp, Cpk)
-# ============================================================================
-
-print("\n" + "="*70)
-print("🎯 Process Capability Indices")
-print("="*70)
-print("""
-Process Capability Metrics:
-
-1. Cp (Process Capability):
-   - Cp = (USL - LSL) / (6σ)
-   - Measures potential capability (if perfectly centered)
-   - Cp ≥ 1.33 is typically required (4σ quality)
-   - Cp ≥ 2.00 is Six Sigma level
-
-2. Cpk (Process Capability Index):
-   - Cpk = min(CPU, CPL)
-   - CPU = (USL - μ) / (3σ)
-   - CPL = (μ - LSL) / (3σ)
-   - Accounts for process centering
-   - Cpk < Cp means process is off-center
-""")
-
-# Calculate Cp
-Cp = (USL - LSL) / (6 * process_std)
-
-# Calculate Cpk
-CPU = (USL - process_mean) / (3 * process_std)
-CPL = (process_mean - LSL) / (3 * process_std)
-Cpk = min(CPU, CPL)
-
-print(f"\nCapability Indices:")
-print(f"  Cp  = {Cp:.3f}  (potential capability if centered)")
-print(f"  Cpk = {Cpk:.3f}  (actual capability with current centering)")
-print(f"  CPU = {CPU:.3f}  (upper capability)")
-print(f"  CPL = {CPL:.3f}  (lower capability)")
-
-print(f"\n📈 Interpretation:")
-if Cpk < 1.0:
-    print(f"  ❌ Cpk < 1.0: Process is NOT capable!")
-    print(f"     Significant defects expected. Immediate action required.")
-elif Cpk < 1.33:
-    print(f"  ⚠️  1.0 ≤ Cpk < 1.33: Marginally capable")
-    print(f"     Some defects expected. Process improvement needed.")
-elif Cpk < 1.67:
-    print(f"  ✅ 1.33 ≤ Cpk < 1.67: Capable (4σ quality)")
-    print(f"     Low defect rate. Industry standard.")
-elif Cpk < 2.0:
-    print(f"  ⭐ 1.67 ≤ Cpk < 2.0: Highly capable (5σ quality)")
-    print(f"     Very low defect rate. Excellent process.")
+# Cp: Process Capability (assumes centered process)
+Cp = (USL - LSL) / (6 * std_fit)
+print(f"\n  Cp  = (USL - LSL) / (6σ) = {Cp:.3f}")
+if Cp >= 2.0:
+    print(f"       ✅ EXCELLENT (Six Sigma capable)")
+elif Cp >= 1.33:
+    print(f"       ✅ GOOD (Process capable)")
+elif Cp >= 1.0:
+    print(f"       ⚠️  MARGINAL (Process barely capable)")
 else:
-    print(f"  🏆 Cpk ≥ 2.0: World class (Six Sigma)")
-    print(f"     Negligible defects. Best-in-class process.")
+    print(f"       ❌ POOR (Process not capable)")
 
-if Cp - Cpk > 0.2:
-    print(f"\n  📊 Gap between Cp and Cpk: {Cp - Cpk:.3f}")
-    print(f"     Process is off-center! Re-centering would improve quality.")
+# Cpk: Process Capability accounting for centering
+Cpk_upper = (USL - mean_fit) / (3 * std_fit)
+Cpk_lower = (mean_fit - LSL) / (3 * std_fit)
+Cpk = min(Cpk_upper, Cpk_lower)
 
+print(f"\n  Cpk = min[(USL - μ)/(3σ), (μ - LSL)/(3σ)] = {Cpk:.3f}")
+if Cpk >= 1.67:
+    print(f"       ✅ EXCELLENT (Six Sigma capable)")
+elif Cpk >= 1.33:
+    print(f"       ✅ GOOD (Process capable)")
+elif Cpk >= 1.0:
+    print(f"       ⚠️  MARGINAL (Process barely capable)")
+else:
+    print(f"       ❌ POOR (Process not capable)")
 
-# ============================================================================
-# Defect Rate Calculation
-# ============================================================================
+print(f"\n  Centering Index:")
+centering = Cpk / Cp if Cp > 0 else 0
+print(f"    Cpk/Cp = {centering:.3f}")
+if centering >= 0.95:
+    print(f"       ✅ Well centered")
+else:
+    print(f"       ⚠️  Process off-center (adjust mean!)")
 
-print(f"\n" + "="*70)
-print("📉 Defect Rate Analysis")
-print("="*70)
+# Calculate defect rate
+print(f"\n🚨 Defect Rate Estimation:")
 
-# Calculate expected defect rates
-defect_rate_lower = dist.cdf(LSL)  # Below LSL
-defect_rate_upper = 1 - dist.cdf(USL)  # Above USL
-defect_rate_total = defect_rate_lower + defect_rate_upper
+pct_below_LSL = dist.cdf(LSL) * 100
+pct_above_USL = (1 - dist.cdf(USL)) * 100
+pct_out_of_spec = pct_below_LSL + pct_above_USL
 
-parts_per_million = defect_rate_total * 1_000_000
+print(f"  Below LSL:     {pct_below_LSL:.4f}% ({pct_below_LSL*10000:.1f} PPM)")
+print(f"  Above USL:     {pct_above_USL:.4f}% ({pct_above_USL*10000:.1f} PPM)")
+print(f"  Total defects: {pct_out_of_spec:.4f}% ({pct_out_of_spec*10000:.1f} PPM)")
 
-print(f"\nExpected Defect Rates (based on fitted distribution):")
-print(f"  Below LSL: {defect_rate_lower*100:.4f}% ({defect_rate_lower*1_000_000:.1f} ppm)")
-print(f"  Above USL: {defect_rate_upper*100:.4f}% ({defect_rate_upper*1_000_000:.1f} ppm)")
-print(f"  Total:     {defect_rate_total*100:.4f}% ({parts_per_million:.1f} ppm)")
+# Sigma level (Six Sigma methodology)
+z_score = min((USL - mean_fit) / std_fit, (mean_fit - LSL) / std_fit)
+sigma_level = z_score  # Simplified
 
-print(f"\nFor production of 100,000 parts:")
-print(f"  Expected defects: {int(defect_rate_total * 100_000)}")
-
-# Sigma level
-sigma_level = (USL - process_mean) / process_std
-print(f"\nProcess Sigma Level:")
-print(f"  Distance to USL: {sigma_level:.2f}σ")
+print(f"\n  Sigma Level: {sigma_level:.2f}σ")
 if sigma_level >= 6:
-    print(f"  → Six Sigma process! (< 3.4 defects per million)")
+    print(f"       ⭐ Six Sigma quality (3.4 PPM)")
 elif sigma_level >= 5:
-    print(f"  → Five Sigma process (< 233 defects per million)")
+    print(f"       ✅ Five Sigma (233 PPM)")
 elif sigma_level >= 4:
-    print(f"  → Four Sigma process (< 6,210 defects per million)")
+    print(f"       🟡 Four Sigma (6,210 PPM)")
 elif sigma_level >= 3:
-    print(f"  → Three Sigma process (< 66,807 defects per million)")
+    print(f"       🟠 Three Sigma (66,807 PPM)")
+else:
+    print(f"       🔴 Below Three Sigma")
 
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+fig.suptitle('Process Capability Analysis', fontsize=16, fontweight='bold')
 
-# ============================================================================
-# Recommendations for Process Improvement
-# ============================================================================
+# Plot 1: Process distribution with specs
+ax = axes[0, 0]
+ax.hist(measurements, bins=40, density=True, alpha=0.6, color='skyblue',
+        edgecolor='black', label='Measurements')
 
-print(f"\n" + "="*70)
-print("🔧 Process Improvement Recommendations")
-print("="*70)
+x = np.linspace(measurements.min(), measurements.max(), 300)
+ax.plot(x, dist.pdf(x), 'r-', linewidth=2.5, label='Fitted Distribution')
 
-if abs(process_mean - target) > 0.01:
-    shift_needed = target - process_mean
-    print(f"\n1️⃣  RE-CENTER THE PROCESS:")
-    print(f"    Current mean: {process_mean:.4f} mm")
-    print(f"    Target:       {target:.4f} mm")
-    print(f"    → Adjust by {shift_needed:+.4f} mm")
-    
-    # Calculate Cpk if centered
-    cpk_if_centered = (USL - target) / (3 * process_std)
-    improvement = cpk_if_centered - Cpk
-    print(f"    → Cpk would improve from {Cpk:.3f} to {cpk_if_centered:.3f} (+{improvement:.3f})")
+# Specification limits
+ax.axvline(target, color='green', linestyle='-', linewidth=2, label='Target')
+ax.axvline(USL, color='red', linestyle='--', linewidth=2, label='USL')
+ax.axvline(LSL, color='red', linestyle='--', linewidth=2, label='LSL')
+ax.axvspan(LSL, USL, alpha=0.1, color='green', label='Spec Range')
 
-if process_std > (USL - LSL) / 8:
-    print(f"\n2️⃣  REDUCE PROCESS VARIATION:")
-    print(f"    Current σ: {process_std:.4f} mm")
-    target_std = (USL - LSL) / 8  # For Cp = 1.33
-    print(f"    Target σ:  {target_std:.4f} mm (for Cp = 1.33)")
-    reduction = (1 - target_std/process_std) * 100
-    print(f"    → Need to reduce variation by {reduction:.1f}%")
-    print(f"    \nMethods:")
-    print(f"      - Improve machine calibration")
-    print(f"      - Better operator training")
-    print(f"      - Use higher quality raw materials")
-    print(f"      - Environmental controls (temperature, humidity)")
+# Out of spec regions
+ax.axvspan(measurements.min(), LSL, alpha=0.2, color='red')
+ax.axvspan(USL, measurements.max(), alpha=0.2, color='red')
 
-if Cpk < 1.33:
-    print(f"\n3️⃣  IMMEDIATE ACTIONS REQUIRED:")
-    print(f"    - Implement 100% inspection until Cpk ≥ 1.33")
-    print(f"    - Root cause analysis (5 Whys, Fishbone diagram)")
-    print(f"    - Consider tighter process controls (SPC charts)")
+ax.set_xlabel('Measurement (mm)', fontsize=11, fontweight='bold')
+ax.set_ylabel('Probability Density', fontsize=11, fontweight='bold')
+ax.set_title('Process Distribution vs Specifications', fontweight='bold')
+ax.legend(fontsize=8, loc='upper left')
+ax.grid(True, alpha=0.3)
 
-
-# ============================================================================
-# Visualization: SPC Dashboard
-# ============================================================================
-
-print("\n" + "="*70)
-print("📊 Creating SPC Dashboard...")
-print("="*70)
-
-fig = plt.figure(figsize=(14, 10))
-
-# 1. Process Distribution with Spec Limits
-ax1 = plt.subplot(2, 2, 1)
-ax1.hist(measurements, bins=40, density=True, alpha=0.6, color='skyblue', edgecolor='black')
-
-x = np.linspace(measurements.min(), measurements.max(), 500)
-y = dist.pdf(x)
-ax1.plot(x, y, 'r-', linewidth=2, label='Fitted distribution')
-
-ax1.axvline(LSL, color='red', linestyle='--', linewidth=2, label='LSL/USL')
-ax1.axvline(USL, color='red', linestyle='--', linewidth=2)
-ax1.axvline(target, color='green', linestyle=':', linewidth=2, label='Target')
-ax1.axvline(process_mean, color='blue', linestyle='-.', linewidth=2, label='Process mean')
-
-# Shade defect regions
-ax1.axvspan(measurements.min(), LSL, alpha=0.2, color='red')
-ax1.axvspan(USL, measurements.max(), alpha=0.2, color='red')
-
-ax1.set_xlabel('Measurement (mm)', fontsize=11)
-ax1.set_ylabel('Density', fontsize=11)
-ax1.set_title('Process Distribution & Specification Limits', fontweight='bold')
-ax1.legend(fontsize=9)
-ax1.grid(True, alpha=0.3)
-
-# 2. Control Chart (X-bar chart)
-ax2 = plt.subplot(2, 2, 2)
-
-# Simulate subgroups
-subgroup_size = 5
-subgroup_means = [measurements[i:i+subgroup_size].mean() 
-                  for i in range(0, len(measurements), subgroup_size)]
-
-ax2.plot(subgroup_means, 'o-', linewidth=1.5, markersize=4)
-ax2.axhline(target, color='green', linestyle=':', linewidth=2, label='Target')
-ax2.axhline(process_mean, color='blue', linestyle='--', linewidth=2, label='Process mean')
-
-# Control limits (3σ)
-UCL = process_mean + 3 * process_std / np.sqrt(subgroup_size)
-LCL = process_mean - 3 * process_std / np.sqrt(subgroup_size)
-ax2.axhline(UCL, color='red', linestyle='--', linewidth=1.5, label='Control limits')
-ax2.axhline(LCL, color='red', linestyle='--', linewidth=1.5)
-
-ax2.set_xlabel('Subgroup Number', fontsize=11)
-ax2.set_ylabel('Subgroup Mean (mm)', fontsize=11)
-ax2.set_title('X-bar Control Chart', fontweight='bold')
-ax2.legend(fontsize=9)
-ax2.grid(True, alpha=0.3)
-
-# 3. Process Capability Visualization
-ax3 = plt.subplot(2, 2, 3)
-
-# Show specification window and process spread
-spec_width = USL - LSL
-process_width = 6 * process_std
-
-ax3.barh(['Specification\nWindow', 'Process\nSpread (6σ)'], 
-         [spec_width, process_width], 
-         color=['green', 'blue'], alpha=0.6, edgecolor='black')
-
-ax3.set_xlabel('Width (mm)', fontsize=11)
-ax3.set_title(f'Process Capability: Cp={Cp:.2f}, Cpk={Cpk:.2f}', fontweight='bold')
-ax3.grid(True, alpha=0.3, axis='x')
-
-for i, (label, value) in enumerate([('Spec', spec_width), ('Process', process_width)]):
-    ax3.text(value/2, i, f'{value:.3f} mm', va='center', ha='center', 
-             fontweight='bold', fontsize=10)
-
-# 4. Summary Table
-ax4 = plt.subplot(2, 2, 4)
-ax4.axis('off')
+# Plot 2: Capability summary
+ax = axes[0, 1]
+ax.axis('off')
 
 summary_text = f"""
-PROCESS SUMMARY
+PROCESS CAPABILITY SUMMARY
 {'='*45}
 
-Target:         {target:.2f} mm
-Tolerance:      ±{tolerance:.2f} mm
-LSL:            {LSL:.2f} mm
-USL:            {USL:.2f} mm
+Specifications:
+  Target:       {target:.2f} mm
+  USL:          {USL:.2f} mm
+  LSL:          {LSL:.2f} mm
+  Tolerance:    ±{(USL-target):.2f} mm
 
-{'='*45}
+Process Performance:
+  Mean (μ):     {mean_fit:.4f} mm
+  Std Dev (σ):  {std_fit:.4f} mm
+  
+Capability Indices:
+  Cp:           {Cp:.3f}
+  Cpk:          {Cpk:.3f}
+  Centering:    {centering:.1%}
+  
+Defect Rate:
+  Out of spec:  {pct_out_of_spec:.4f}%
+                ({pct_out_of_spec*10000:.1f} PPM)
+  Sigma Level:  {sigma_level:.2f}σ
 
-PROCESS PARAMETERS
-{'-'*45}
-Mean (μ):       {process_mean:.4f} mm
-Std Dev (σ):    {process_std:.4f} mm
-Shift:          {process_mean - target:+.4f} mm
-
-{'='*45}
-
-CAPABILITY INDICES
-{'-'*45}
-Cp  =           {Cp:.3f}
-Cpk =           {Cpk:.3f}
-
-{'='*45}
-
-DEFECT RATE
-{'-'*45}
-Expected:       {defect_rate_total*100:.3f}%
-                ({parts_per_million:.0f} ppm)
-
-Actual sample:  {defects/n_samples*100:.2f}%
-                ({defects}/{n_samples} parts)
-
-{'='*45}
+Recommendation:
 """
 
-status_color = 'lightgreen' if Cpk >= 1.33 else 'lightyellow' if Cpk >= 1.0 else 'lightcoral'
+if Cpk < 1.33:
+    summary_text += "  ⚠️  IMPROVE PROCESS:"
+    if centering < 0.95:
+        summary_text += "\n  - Adjust process mean"
+    if Cp < 1.33:
+        summary_text += "\n  - Reduce process variation"
+else:
+    summary_text += "  ✅ Process is capable"
 
-ax4.text(0.1, 0.95, summary_text, transform=ax4.transAxes, fontsize=9,
-         verticalalignment='top', fontfamily='monospace',
-         bbox=dict(boxstyle='round', facecolor=status_color, alpha=0.5))
+ax.text(0.05, 0.95, summary_text, transform=ax.transAxes,
+        fontsize=9, verticalalignment='top', fontfamily='monospace',
+        bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.5))
 
-plt.suptitle('Statistical Process Control (SPC) Dashboard', fontsize=14, fontweight='bold')
+# Plot 3: Individual measurements (run chart)
+ax = axes[1, 0]
+ax.plot(measurements, 'b-', linewidth=1, alpha=0.7, marker='o', markersize=3)
+ax.axhline(mean_fit, color='green', linestyle='-', linewidth=2, label='Mean')
+ax.axhline(USL, color='red', linestyle='--', linewidth=2, label='USL')
+ax.axhline(LSL, color='red', linestyle='--', linewidth=2, label='LSL')
+ax.axhline(mean_fit + 3*std_fit, color='orange', linestyle=':', linewidth=1.5, 
+           alpha=0.7, label='+3σ')
+ax.axhline(mean_fit - 3*std_fit, color='orange', linestyle=':', linewidth=1.5,
+           alpha=0.7, label='-3σ')
+
+ax.set_xlabel('Sample Number', fontsize=11, fontweight='bold')
+ax.set_ylabel('Measurement (mm)', fontsize=11, fontweight='bold')
+ax.set_title('Run Chart (Individual Measurements)', fontweight='bold')
+ax.legend(fontsize=8, loc='upper right')
+ax.grid(True, alpha=0.3)
+
+# Plot 4: Normal probability plot (Q-Q)
+ax = axes[1, 1]
+percentiles = np.linspace(0.01, 0.99, len(measurements))
+theoretical_q = dist.ppf(percentiles)
+empirical_q = np.sort(measurements)
+
+ax.scatter(theoretical_q, empirical_q, alpha=0.6, s=15, color='blue')
+min_v, max_v = min(theoretical_q.min(), empirical_q.min()), \
+               max(theoretical_q.max(), empirical_q.max())
+ax.plot([min_v, max_v], [min_v, max_v], 'r--', linewidth=2)
+
+ax.set_xlabel('Theoretical Quantiles (mm)', fontsize=10)
+ax.set_ylabel('Sample Quantiles (mm)', fontsize=10)
+ax.set_title('Normal Probability Plot', fontweight='bold')
+ax.grid(True, alpha=0.3)
+
 plt.tight_layout()
+print("\n📊 Process capability analysis plots created!")
+plt.savefig('/tmp/quality_process_capability.png', dpi=150, bbox_inches='tight')
 
-print("\n✅ Dashboard created!")
+
+# ============================================================================
+# Example 2: Control Charts (X-bar and R charts)
+# ============================================================================
+
+print("\n" + "="*70)
+print("EXAMPLE 2: Control Charts (SPC)")
+print("="*70)
+
+print("""
+Scenario: Monitor process over time using control charts
+  - X-bar chart: Monitors process mean
+  - R chart: Monitors process variability
+""")
+
+# Simulate subgroup data (5 samples per subgroup, 25 subgroups)
+subgroup_size = 5
+n_subgroups = 25
+
+subgroups = []
+for i in range(n_subgroups):
+    # Add slight drift after subgroup 15
+    if i > 15:
+        subgroup = np.random.normal(10.1, 0.12, subgroup_size)  # Process shifted
+    else:
+        subgroup = np.random.normal(10.0, 0.12, subgroup_size)
+    subgroups.append(subgroup)
+
+subgroups = np.array(subgroups)
+
+print(f"\n📊 Control Chart Data:")
+print(f"  Subgroup size: {subgroup_size}")
+print(f"  Number of subgroups: {n_subgroups}")
+print(f"  Total samples: {subgroup_size * n_subgroups}")
+
+# Calculate X-bar (mean) and R (range) for each subgroup
+xbar = subgroups.mean(axis=1)
+R = subgroups.max(axis=1) - subgroups.min(axis=1)
+
+# Control limits
+# X-bar chart
+xbar_mean = xbar.mean()
+R_mean = R.mean()
+
+# Control chart constants (for n=5)
+A2 = 0.577  # for X-bar chart
+D3 = 0.0    # for R chart (lower)
+D4 = 2.114  # for R chart (upper)
+
+UCL_xbar = xbar_mean + A2 * R_mean
+LCL_xbar = xbar_mean - A2 * R_mean
+
+UCL_R = D4 * R_mean
+LCL_R = D3 * R_mean
+
+print(f"\n📊 X-bar Chart (Process Mean):")
+print(f"  Center line (X-bar-bar): {xbar_mean:.4f} mm")
+print(f"  UCL: {UCL_xbar:.4f} mm")
+print(f"  LCL: {LCL_xbar:.4f} mm")
+
+print(f"\n📊 R Chart (Process Variation):")
+print(f"  Center line (R-bar): {R_mean:.4f} mm")
+print(f"  UCL: {UCL_R:.4f} mm")
+print(f"  LCL: {LCL_R:.4f} mm")
+
+# Check for out-of-control points
+out_of_control_xbar = (xbar > UCL_xbar) | (xbar < LCL_xbar)
+out_of_control_R = (R > UCL_R) | (R < LCL_R)
+
+print(f"\n🚨 Control Status:")
+if np.any(out_of_control_xbar):
+    ooc_indices = np.where(out_of_control_xbar)[0] + 1
+    print(f"  ⚠️  X-bar chart: OUT OF CONTROL at subgroups {ooc_indices.tolist()}")
+else:
+    print(f"  ✅ X-bar chart: IN CONTROL")
+
+if np.any(out_of_control_R):
+    ooc_indices = np.where(out_of_control_R)[0] + 1
+    print(f"  ⚠️  R chart: OUT OF CONTROL at subgroups {ooc_indices.tolist()}")
+else:
+    print(f"  ✅ R chart: IN CONTROL")
+
+# Visualization: Control Charts
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+fig.suptitle('Statistical Process Control Charts', fontsize=16, fontweight='bold')
+
+# X-bar Chart
+ax1.plot(range(1, n_subgroups + 1), xbar, 'b-o', linewidth=2, markersize=6,
+         label='Subgroup Mean')
+ax1.axhline(xbar_mean, color='green', linestyle='-', linewidth=2, label='Center Line')
+ax1.axhline(UCL_xbar, color='red', linestyle='--', linewidth=2, label='UCL')
+ax1.axhline(LCL_xbar, color='red', linestyle='--', linewidth=2, label='LCL')
+
+# Mark out-of-control points
+if np.any(out_of_control_xbar):
+    ax1.scatter(np.where(out_of_control_xbar)[0] + 1, 
+                xbar[out_of_control_xbar],
+                color='red', s=150, marker='x', linewidths=3, zorder=5,
+                label='Out of Control')
+
+ax1.fill_between(range(1, n_subgroups + 1), LCL_xbar, UCL_xbar, 
+                 alpha=0.1, color='green')
+ax1.set_ylabel('X-bar (mm)', fontsize=11, fontweight='bold')
+ax1.set_title('X-bar Chart: Process Mean', fontweight='bold', loc='left')
+ax1.legend(fontsize=9, loc='upper left')
+ax1.grid(True, alpha=0.3)
+
+# R Chart
+ax2.plot(range(1, n_subgroups + 1), R, 'b-o', linewidth=2, markersize=6,
+         label='Subgroup Range')
+ax2.axhline(R_mean, color='green', linestyle='-', linewidth=2, label='Center Line')
+ax2.axhline(UCL_R, color='red', linestyle='--', linewidth=2, label='UCL')
+ax2.axhline(LCL_R, color='red', linestyle='--', linewidth=2, label='LCL')
+
+# Mark out-of-control points
+if np.any(out_of_control_R):
+    ax2.scatter(np.where(out_of_control_R)[0] + 1,
+                R[out_of_control_R],
+                color='red', s=150, marker='x', linewidths=3, zorder=5,
+                label='Out of Control')
+
+ax2.fill_between(range(1, n_subgroups + 1), LCL_R, UCL_R,
+                 alpha=0.1, color='green')
+ax2.set_xlabel('Subgroup Number', fontsize=11, fontweight='bold')
+ax2.set_ylabel('Range (mm)', fontsize=11, fontweight='bold')
+ax2.set_title('R Chart: Process Variation', fontweight='bold', loc='left')
+ax2.legend(fontsize=9, loc='upper left')
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+print("\n📊 Control charts created!")
+plt.savefig('/tmp/quality_control_charts.png', dpi=150, bbox_inches='tight')
+
 plt.show()
 
 
 print("\n" + "="*70)
-print("🎓 Key Takeaways")
+print("🎓 Key Takeaways - Quality Control")
 print("="*70)
 print("""
-1. Process Capability Indices:
-   - Cp: Potential capability (if centered)
-   - Cpk: Actual capability (accounting for centering)
-   - Target: Cpk ≥ 1.33 (4σ), Ideal: Cpk ≥ 2.0 (6σ)
+1. PROCESS CAPABILITY INDICES:
+   • Cp:  Measures potential capability (assumes centered)
+   • Cpk: Measures actual capability (accounts for centering)
+   • Target values:
+     - Cpk ≥ 1.67: Six Sigma capable
+     - Cpk ≥ 1.33: Process capable
+     - Cpk < 1.0:  Process not capable
 
-2. Two paths to improvement:
-   - Re-center process (adjust mean)
-   - Reduce variation (lower σ)
+2. CENTERING:
+   • Cpk/Cp ratio indicates centering
+   • If Cp >> Cpk: Process off-center (adjust mean)
+   • If Cp ≈ Cpk: Process well-centered
 
-3. SPC Tools:
-   - Control charts (X-bar, R charts)
-   - Histogram with spec limits
-   - Process capability studies
+3. DEFECT RATES:
+   • PPM = Parts Per Million
+   • Six Sigma: 3.4 PPM (99.99966% good)
+   • Three Sigma: 66,807 PPM (93.3% good)
 
-4. Six Sigma Levels:
-   - 3σ: 66,807 defects per million
-   - 4σ: 6,210 defects per million
-   - 5σ: 233 defects per million
-   - 6σ: 3.4 defects per million
+4. CONTROL CHARTS:
+   • X-bar chart: Monitors process mean
+   • R chart: Monitors process variability
+   • Both must be in control!
+   • Check R chart first (variation affects mean chart)
 
-5. Always check:
-   - Is process centered?
-   - Is variation acceptable?
-   - Are we meeting spec limits?
+5. OUT-OF-CONTROL SIGNALS:
+   • Point beyond control limits
+   • 7+ consecutive points on one side of center
+   • Trends, cycles, patterns
+   • Investigate and take corrective action
 
-Next: Check 07_i18n/ for multilingual output examples!
+6. IMPROVEMENT ACTIONS:
+   If Cpk too low:
+     1. Check centering (adjust mean if needed)
+     2. Reduce variation (improve process)
+     3. Widen specifications (last resort!)
+   
+   If out of control:
+     1. Identify special causes
+     2. Eliminate or control them
+     3. Update control limits after improvement
+
+7. BEST PRACTICES:
+   ✓ Verify normality assumption (Q-Q plot)
+   ✓ Use rational subgroups
+   ✓ Monitor both mean and variation
+   ✓ React to signals promptly
+   ✓ Update limits periodically
+   ✓ Focus on prevention, not detection
+
+8. REAL-WORLD IMPACT:
+   • Reduce defects and rework
+   • Lower costs
+   • Increase customer satisfaction
+   • Competitive advantage
+
+Next: See 07_advanced_topics/ for advanced techniques!
 """)
