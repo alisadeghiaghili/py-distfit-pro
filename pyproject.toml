@@ -34,22 +34,14 @@ classifiers = [
 ]
 keywords = [
     "statistics",
-    "distribution fitting",
-    "probability distributions",
-    "parameter estimation",
-    "maximum likelihood",
-    "method of moments",
-    "goodness of fit",
+    "distribution-fitting",
+    "probability-distributions",
+    "goodness-of-fit",
     "bootstrap",
-    "confidence intervals",
-    "diagnostics",
-    "weighted data",
-    "model selection",
+    "confidence-intervals",
     "multilingual",
-    "visualization",
-    "data science",
+    "data-science",
 ]
-
 dependencies = [
     "numpy>=1.20.0",
     "scipy>=1.7.0",
@@ -93,15 +85,18 @@ all = [
 Homepage = "https://github.com/alisadeghiaghili/py-distfit-pro"
 Documentation = "https://github.com/alisadeghiaghili/py-distfit-pro/docs"
 Repository = "https://github.com/alisadeghiaghili/py-distfit-pro"
-Issues = "https://github.com/alisadeghiaghili/py-distfit-pro/issues"
 Changelog = "https://github.com/alisadeghiaghili/py-distfit-pro/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/alisadeghiaghili/py-distfit-pro/issues"
 
-# ============================================================================
-# TOOL CONFIGURATIONS
-# ============================================================================
+[tool.setuptools]
+packages = ["distfit_pro"]
 
+[tool.setuptools.package-data]
+distfit_pro = ["locales/*.json", "locales/**/*.json"]
+
+# Black formatter configuration
 [tool.black]
-line-length = 88
+line-length = 100
 target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 include = '\.pyi?$'
 exclude = '''
@@ -116,19 +111,29 @@ exclude = '''
   | buck-out
   | build
   | dist
-  | node_modules
 )/
 '''
 
-[tool.isort]
-profile = "black"
-line_length = 88
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--strict-markers",
+    "--tb=short",
+    "--cov=distfit_pro",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m "not slow"')",
+    "integration: marks tests as integration tests",
+]
 
+# MyPy type checking configuration
 [tool.mypy]
 python_version = "3.8"
 warn_return_any = true
@@ -136,10 +141,12 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 check_untyped_defs = true
+disallow_untyped_decorators = false
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
+warn_unreachable = true
 strict_equality = true
 
 [[tool.mypy.overrides]]
@@ -155,56 +162,23 @@ module = [
 ]
 ignore_missing_imports = true
 
-[tool.pytest.ini_options]
-minversion = "7.0"
-addopts = [
-    "-ra",
-    "--strict-markers",
-    "--strict-config",
-    "--cov=distfit_pro",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-]
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-
+# Coverage configuration
 [tool.coverage.run]
 source = ["distfit_pro"]
 omit = [
     "*/tests/*",
     "*/test_*.py",
-    "*/_temp.py",
-    "*/_FIXED.py",
     "*/__pycache__/*",
+    "*/.*",
 ]
 
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
-    "def __str__",
     "raise AssertionError",
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
     "@abstractmethod",
-]
-
-[tool.flake8]
-max-line-length = 88
-extend-ignore = ["E203", "E266", "E501", "W503"]
-exclude = [
-    ".git",
-    "__pycache__",
-    "build",
-    "dist",
-    ".eggs",
-    "*.egg-info",
-    ".tox",
-    ".venv",
-]
-per-file-ignores = [
-    "__init__.py:F401",
 ]
