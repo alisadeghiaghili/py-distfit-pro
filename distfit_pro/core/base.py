@@ -618,6 +618,7 @@ class BaseDistribution(ABC):
                     'location_statistics': 'LOCATION STATISTICS',
                     'spread_statistics': 'SPREAD STATISTICS',
                     'shape_statistics': 'SHAPE STATISTICS',
+                    'goodness_of_fit': 'GOODNESS OF FIT',
                     'mean': 'Mean',
                     'median': 'Median',
                     'mode': 'Mode',
@@ -734,11 +735,12 @@ class BaseDistribution(ABC):
         except:
             pass
         
-        # Goodness of Fit box
+        # Goodness of Fit box (WITH i18n translation)
         if self._data is not None:
             lines.append("")
             lines.append("╔" + "═" * 62 + "╗")
-            lines.append("║  ✅ Goodness of Fit" + " " * 42 + "║")
+            gof_header = f"║  ✅ {t_local('goodness_of_fit')}"
+            lines.append(gof_header + " " * (64 - len(gof_header)) + "║")
             lines.append("╚" + "═" * 62 + "╝")
             
             try:
