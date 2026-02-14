@@ -35,6 +35,11 @@ EN_TRANSLATIONS = {
     'goodness_of_fit': 'GOODNESS OF FIT',
     'warning': 'Warning',
     
+    # Goodness of fit metrics
+    'log_likelihood': 'Log-Likelihood',
+    'aic': 'AIC',
+    'bic': 'BIC',
+    
     # Section headers for verbose mode
     'section_fitting': 'Fitting',
     'section_fitted_parameters': 'Fitted Parameters',
@@ -131,6 +136,11 @@ FA_TRANSLATIONS = {
     'goodness_of_fit': 'نیکویی برازش',
     'warning': 'هشدار',
     
+    # Goodness of fit metrics
+    'log_likelihood': 'لگاریتم درستنمایی',
+    'aic': 'معیار اطلاعات آکائیکه (AIC)',
+    'bic': 'معیار اطلاعات بیزی (BIC)',
+    
     # Section headers
     'section_fitting': 'فیت کردن',
     'section_fitted_parameters': 'پارامترهای فیت شده',
@@ -226,6 +236,11 @@ DE_TRANSLATIONS = {
     'characteristics': 'EIGENSCHAFTEN',
     'goodness_of_fit': 'ANPASSUNGSGÜTE',
     'warning': 'Warnung',
+    
+    # Goodness of fit metrics
+    'log_likelihood': 'Log-Likelihood',
+    'aic': 'AIC',
+    'bic': 'BIC',
     
     # Section headers for verbose mode
     'section_fitting': 'Anpassung',
