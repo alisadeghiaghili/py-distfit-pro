@@ -83,13 +83,14 @@ all = [
 
 [project.urls]
 Homepage = "https://github.com/alisadeghiaghili/py-distfit-pro"
-Documentation = "https://github.com/alisadeghiaghili/py-distfit-pro/docs"
+Documentation = "https://github.com/alisadeghiaghili/py-distfit-pro#readme"
 Repository = "https://github.com/alisadeghiaghili/py-distfit-pro"
 Changelog = "https://github.com/alisadeghiaghili/py-distfit-pro/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/alisadeghiaghili/py-distfit-pro/issues"
 
-[tool.setuptools]
-packages = ["distfit_pro"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["distfit_pro*"]
 
 [tool.setuptools.package-data]
 distfit_pro = ["locales/*.json", "locales/**/*.json"]
@@ -124,12 +125,9 @@ addopts = [
     "--verbose",
     "--strict-markers",
     "--tb=short",
-    "--cov=distfit_pro",
-    "--cov-report=term-missing",
-    "--cov-report=html",
 ]
 markers = [
-    "slow: marks tests as slow (deselect with '-m "not slow"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
 ]
 
