@@ -5,7 +5,7 @@ from __future__ import annotations
 import unittest
 from collections.abc import Iterator
 
-from veridist.engine.pass_budget import PassBudgetError, PassEnforcer
+from veridist.engine.pass_budget import PassBudgetError, PassEnforcer, PassObservation
 
 
 class InstrumentedIterator(Iterator[int]):
@@ -93,6 +93,33 @@ class PassBudgetContractTests(unittest.TestCase):
         self.assertEqual(provenance["actual_pass_count"], 2)
         with self.assertRaises(TypeError):
             provenance["actual_pass_count"] = 0  # type: ignore[index]
+
+    def test_ds12_pass_enforcer_exposes_a_closed_typed_observation(self) -> None:
+        enforcer = PassEnforcer(max_passes=3)
+        list(enforcer.begin_pass(CountingSource(1)))
+
+        observation = enforcer.observation
+
+        self.assertIsInstance(observation, PassObservation)
+        self.assertEqual(observation.max_passes, 3)
+        self.assertEqual(observation.actual_pass_count, 1)
+        self.assertFalse(hasattr(observation, "__dict__"))
+        with self.assertRaises(AttributeError):
+            observation.actual_pass_count = 0  # type: ignore[misc]
+
+    def test_ds12_pass_observation_rejects_invalid_counters(self) -> None:
+        invalid = (
+            (True, 0),
+            (0, 0),
+            (1.0, 0),
+            (1, True),
+            (1, -1),
+            (1, 0.0),
+            (1, 2),
+        )
+        for values in invalid:
+            with self.subTest(values=values), self.assertRaises(ValueError):
+                PassObservation(*values)  # type: ignore[arg-type]
 
     def test_ds07_failed_and_cancelled_iterations_remain_counted(self) -> None:
         failing_source = CountingSource(1, 2, fail_after=1)
