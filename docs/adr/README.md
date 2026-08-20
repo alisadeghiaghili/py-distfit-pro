@@ -29,7 +29,7 @@ needed.
 | 0012 | Competitive coverage strategy | Accepted |
 | 0013 | Documentation toolchain | Accepted |
 | 0014 | Evidence freezing and competitive claims | Proposed |
-| 0015 | Retry/checkpoint transactional guarantees | Proposed |
+| 0015 | Retry/checkpoint transactional guarantees | Accepted |
 
 ## Dependency notes
 

@@ -1,6 +1,6 @@
 # ADR-0015: Retry/checkpoint transactional guarantees
 
-Status: Proposed
+Status: Accepted
 
 Owner: Ali Sadeghi Aghili
 
@@ -76,6 +76,9 @@ encryption scheme, secret store, network protocol or automatic schema
 migration system.
 
 ## Evidence
+
+Decision evidence: Ali Sadeghi Aghili directly approved this decision on
+2026-08-20.
 
 Required evidence identifiers are:
 
