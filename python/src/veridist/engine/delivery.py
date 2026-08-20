@@ -243,10 +243,53 @@ class BufferedChunk:
             callback()
 
 
+@dataclass(frozen=True, slots=True)
+class BufferObservation:
+    """Historical byte-bound and backpressure facts owned by a chunk buffer."""
+
+    chunk_bytes: int
+    max_inflight_bytes: int
+    peak_inflight_bytes: int
+    largest_retained_chunk_bytes: int
+    backpressure_event_count: int
+
+    def __post_init__(self) -> None:
+        values = (
+            self.chunk_bytes,
+            self.max_inflight_bytes,
+            self.peak_inflight_bytes,
+            self.largest_retained_chunk_bytes,
+            self.backpressure_event_count,
+        )
+        if any(isinstance(value, bool) or not isinstance(value, int) for value in values):
+            raise TypeError("buffer observation counters must be integers")
+        if self.chunk_bytes <= 0 or self.max_inflight_bytes <= 0:
+            raise ValueError("buffer byte budgets must be positive")
+        if self.max_inflight_bytes < self.chunk_bytes:
+            raise ValueError("max_inflight_bytes must cover one allowed chunk")
+        if min(
+            self.peak_inflight_bytes,
+            self.largest_retained_chunk_bytes,
+            self.backpressure_event_count,
+        ) < 0:
+            raise ValueError("buffer observations must be non-negative")
+        if self.peak_inflight_bytes > self.max_inflight_bytes:
+            raise ValueError("peak inflight bytes exceeded the declared bound")
+        if self.largest_retained_chunk_bytes > self.chunk_bytes:
+            raise ValueError("largest retained chunk exceeded the declared bound")
+
+
 class BoundedChunkBuffer:
     """Condition-backed FIFO with hard byte bounds and explicit cancellation."""
 
     def __init__(self, *, chunk_bytes: int, max_inflight_bytes: int) -> None:
+        if (
+            isinstance(chunk_bytes, bool)
+            or not isinstance(chunk_bytes, int)
+            or isinstance(max_inflight_bytes, bool)
+            or not isinstance(max_inflight_bytes, int)
+        ):
+            raise TypeError("buffer byte budgets must be integers")
         if chunk_bytes <= 0:
             raise ValueError("chunk_bytes must be positive")
         if max_inflight_bytes < chunk_bytes:
@@ -257,6 +300,8 @@ class BoundedChunkBuffer:
         self._queue: deque[BufferedChunk] = deque()
         self._inflight_bytes = 0
         self._peak_inflight_bytes = 0
+        self._largest_retained_chunk_bytes = 0
+        self._backpressure_event_count = 0
         self._waiting_producers = 0
         self._cancelled = False
 
@@ -269,6 +314,19 @@ class BoundedChunkBuffer:
     def peak_inflight_bytes(self) -> int:
         with self._condition:
             return self._peak_inflight_bytes
+
+    @property
+    def observation(self) -> BufferObservation:
+        """Return an immutable snapshot whose peaks survive queue draining."""
+
+        with self._condition:
+            return BufferObservation(
+                chunk_bytes=self.chunk_bytes,
+                max_inflight_bytes=self.max_inflight_bytes,
+                peak_inflight_bytes=self._peak_inflight_bytes,
+                largest_retained_chunk_bytes=self._largest_retained_chunk_bytes,
+                backpressure_event_count=self._backpressure_event_count,
+            )
 
     @property
     def queued_chunks(self) -> int:
@@ -306,7 +364,11 @@ class BoundedChunkBuffer:
         deadline = None if timeout is None else time.monotonic() + timeout
         with self._condition:
             self._raise_if_cancelled()
+            counted_backpressure = False
             while self._inflight_bytes + byte_size > self.max_inflight_bytes:
+                if not counted_backpressure:
+                    self._backpressure_event_count += 1
+                    counted_backpressure = True
                 self._waiting_producers += 1
                 try:
                     remaining = None if deadline is None else deadline - time.monotonic()
@@ -322,6 +384,10 @@ class BoundedChunkBuffer:
             self._queue.append(item)
             self._inflight_bytes += byte_size
             self._peak_inflight_bytes = max(self._peak_inflight_bytes, self._inflight_bytes)
+            self._largest_retained_chunk_bytes = max(
+                self._largest_retained_chunk_bytes,
+                byte_size,
+            )
             self._condition.notify_all()
 
     def read_and_put(
@@ -379,6 +445,7 @@ __all__ = [
     "AdapterCapabilities",
     "AdapterKind",
     "BoundedChunkBuffer",
+    "BufferObservation",
     "BufferedChunk",
     "ChunkEnvelope",
     "DeliveryContractError",

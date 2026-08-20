@@ -120,6 +120,7 @@ class ExecutionPlan:
     required_passes: int
     spool_requirements: SpoolPolicy | None
     provenance: Mapping[str, object]
+    replayability: Replayability
 
     @property
     def spool_enabled(self) -> bool:
@@ -164,6 +165,7 @@ def plan_passes(
         required_passes=required_passes,
         spool_requirements=spool_requirements,
         provenance=MappingProxyType(provenance),
+        replayability=metadata.replayability,
     )
 
 

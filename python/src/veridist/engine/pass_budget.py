@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator, Mapping
+from dataclasses import dataclass
 from threading import Lock
 from types import MappingProxyType
 from typing import TypeVar
@@ -14,6 +15,30 @@ Item = TypeVar("Item")
 
 class PassBudgetError(EngineContractError):
     """A stable, localization-independent pass-budget failure."""
+
+
+@dataclass(frozen=True, slots=True)
+class PassObservation:
+    """A closed immutable snapshot of declared and consumed source passes."""
+
+    max_passes: int
+    actual_pass_count: int
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.max_passes, bool)
+            or not isinstance(self.max_passes, int)
+            or self.max_passes < 1
+        ):
+            raise ValueError("max_passes must be a positive integer")
+        if (
+            isinstance(self.actual_pass_count, bool)
+            or not isinstance(self.actual_pass_count, int)
+            or self.actual_pass_count < 0
+        ):
+            raise ValueError("actual_pass_count must be a non-negative integer")
+        if self.actual_pass_count > self.max_passes:
+            raise ValueError("actual_pass_count cannot exceed max_passes")
 
 
 class PassEnforcer:
@@ -53,6 +78,13 @@ class PassEnforcer:
                 }
             )
 
+    @property
+    def observation(self) -> PassObservation:
+        """Return a closed typed snapshot for public execution provenance."""
+
+        with self._lock:
+            return PassObservation(self._max_passes, self._actual_pass_count)
+
     def begin_pass(self, source: Iterable[Item]) -> Iterator[Item]:
         """Reserve a pass before acquiring and returning the source iterator."""
 
@@ -71,4 +103,4 @@ class PassEnforcer:
         return iter(source)
 
 
-__all__ = ["PassBudgetError", "PassEnforcer"]
+__all__ = ["PassBudgetError", "PassEnforcer", "PassObservation"]
