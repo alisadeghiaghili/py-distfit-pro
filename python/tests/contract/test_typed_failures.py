@@ -3,17 +3,25 @@
 from __future__ import annotations
 
 import unittest
+from collections.abc import Mapping
 from enum import StrEnum
 from math import inf, nan
 from pathlib import Path
 from types import MappingProxyType
 
-from veridist.engine.data_source import DataSourceCapabilityError
+from veridist.engine.data_source import (
+    CheckpointMetadata,
+    DataSourceCapabilityError,
+    DataSourceMetadata,
+    Replayability,
+    plan_passes,
+)
 from veridist.engine.delivery import (
     BoundedChunkBuffer,
     BufferedChunk,
     ChunkEnvelope,
     DeliveryContractError,
+    DeliveryValidator,
 )
 from veridist.engine.errors import EngineContractError, FailureCode
 from veridist.engine.pass_budget import PassBudgetError
@@ -54,6 +62,20 @@ EXPECTED_FAILURE_CODES = {
 
 class ContextLabel(StrEnum):
     VALUE = "safe-label"
+
+
+def context_strings(value: object) -> tuple[str, ...]:
+    if isinstance(value, str):
+        return (value,)
+    if isinstance(value, Mapping):
+        return tuple(
+            item
+            for nested in value.values()
+            for item in context_strings(nested)
+        )
+    if isinstance(value, tuple):
+        return tuple(item for nested in value for item in context_strings(nested))
+    return ()
 
 
 class TypedFailureSurfaceTests(unittest.TestCase):
@@ -181,6 +203,52 @@ class TypedFailureSurfaceTests(unittest.TestCase):
         self.assertIs(caught.exception.code, FailureCode.BUFFER_TIMEOUT)
         self.assertNotEqual(caught.exception.code, FailureCode.CANCELLED)
         self.assertEqual(caught.exception.context, {"operation": "get"})
+
+    def test_ds10_public_contexts_redact_raw_source_chunk_and_schema_identifiers(self) -> None:
+        sentinel = "file:///private/source.csv?credential=secret"
+
+        validator = DeliveryValidator(f"expected:{sentinel}")
+        with self.assertRaises(DeliveryContractError) as delivery_error:
+            validator.accept(
+                ChunkEnvelope(
+                    source_id=f"actual:{sentinel}",
+                    chunk_id=f"chunk:{sentinel}",
+                    sequence_number=0,
+                    row_start=0,
+                    row_stop=1,
+                    byte_size=1,
+                )
+            )
+
+        class Source:
+            metadata = DataSourceMetadata(
+                source_id=f"expected:{sentinel}",
+                schema_version="source-v1",
+                provenance_schema_version="1",
+                replayability=Replayability.CHECKPOINT_REPLAYABLE,
+                source_hash="redacted-test-hash",
+                checkpoint_schema_version=f"expected-schema:{sentinel}",
+            )
+
+        checkpoint_cases = (
+            CheckpointMetadata(f"actual:{sentinel}", Source.metadata.checkpoint_schema_version),
+            CheckpointMetadata(Source.metadata.source_id, f"actual-schema:{sentinel}"),
+        )
+        errors = [delivery_error.exception]
+        for checkpoint in checkpoint_cases:
+            with self.subTest(checkpoint=checkpoint), self.assertRaises(
+                DataSourceCapabilityError
+            ) as checkpoint_error:
+                plan_passes(Source(), required_passes=2, checkpoint=checkpoint)
+            errors.append(checkpoint_error.exception)
+
+        for error in errors:
+            with self.subTest(code=error.code):
+                self.assertFalse(
+                    any(sentinel in value for value in context_strings(error.context))
+                )
+                self.assertNotIn(sentinel, str(error))
+                self.assertNotIn(sentinel, repr(error))
 
 
 if __name__ == "__main__":
