@@ -182,18 +182,12 @@ def _validate_checkpoint(
     if checkpoint.source_id != metadata.source_id:
         raise DataSourceCapabilityError(
             FailureCode.CHECKPOINT_SOURCE_ID_MISMATCH,
-            {
-                "source_id": metadata.source_id,
-                "checkpoint_source_id": checkpoint.source_id,
-            },
+            {"stage": "checkpoint_preflight"},
         )
     if checkpoint.schema_version != metadata.checkpoint_schema_version:
         raise DataSourceCapabilityError(
             FailureCode.CHECKPOINT_SCHEMA_MISMATCH,
-            {
-                "expected_schema_version": metadata.checkpoint_schema_version,
-                "checkpoint_schema_version": checkpoint.schema_version,
-            },
+            {"stage": "checkpoint_preflight"},
         )
 
 

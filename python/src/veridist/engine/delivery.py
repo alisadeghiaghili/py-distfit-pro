@@ -138,7 +138,6 @@ class DeliveryValidator:
         """Accept exactly the next source range or fail without state mutation."""
 
         context = {
-            "chunk_id": envelope.chunk_id,
             "expected_offset": self._next_offset,
             "expected_sequence": self._next_sequence,
             "sequence_number": envelope.sequence_number,
@@ -148,7 +147,7 @@ class DeliveryValidator:
         if envelope.source_id != self._source_id:
             raise DeliveryContractError(
                 FailureCode.SOURCE_MISMATCH,
-                {**context, "expected_source_id": self._source_id, "source_id": envelope.source_id},
+                {"stage": "delivery_validation", **context},
             )
         if envelope.sequence_number < self._next_sequence:
             raise DeliveryContractError(FailureCode.DUPLICATE_CHUNK, context)
