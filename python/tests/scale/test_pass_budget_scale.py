@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import unittest
 
-from veridist.engine.pass_budget import PassEnforcer
-
 from tests.contract.test_pass_budget import CountingSource
+from veridist.engine.pass_budget import PassEnforcer
 
 
 class PassBudgetScaleTests(unittest.TestCase):
