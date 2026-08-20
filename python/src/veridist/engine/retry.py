@@ -13,7 +13,7 @@ from veridist.engine.checkpoint import (
     CheckpointRecord,
     CheckpointStore,
 )
-from veridist.engine.errors import EngineContractError, FailureCode
+from veridist.engine.errors import EngineContractError, FailureCode, safe_exception_type
 
 Accumulator = TypeVar("Accumulator")
 
@@ -174,10 +174,6 @@ def _commit_with_reconciliation(
     raise EngineContractError(FailureCode.RETRY_EXHAUSTED, context)
 
 
-def _safe_exception_type(exc: Exception) -> str:
-    return type(exc).__name__ if type(exc).__module__ == "builtins" else "Exception"
-
-
 def apply_pure_update(
     *,
     store: CheckpointStore,
@@ -230,7 +226,7 @@ def apply_pure_update(
     except Exception as exc:
         raise EngineContractError(
             FailureCode.REDUCER_FAILURE,
-            {"exception_type": _safe_exception_type(exc)},
+            {"exception_type": safe_exception_type(exc)},
         ) from None
     candidate = base.next_generation(
         cursor=row_stop,
@@ -288,7 +284,7 @@ def apply_sink_update(
     except Exception as exc:
         raise EngineContractError(
             FailureCode.SINK_FAILURE,
-            {"exception_type": _safe_exception_type(exc)},
+            {"exception_type": safe_exception_type(exc)},
         ) from None
     if result not in (SinkResult.APPLIED, SinkResult.ALREADY_APPLIED):
         raise EngineContractError(FailureCode.SINK_FAILURE)

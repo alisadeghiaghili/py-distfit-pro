@@ -26,6 +26,12 @@ from veridist.engine.delivery import (
 )
 from veridist.engine.errors import EngineContractError, FailureCode
 from veridist.engine.pass_budget import PassBudgetError, PassEnforcer
+from veridist.engine.resume import (
+    PublicResumeMetadata,
+    ResumedCheckpoint,
+    ResumeExpectation,
+    resume_checkpoint,
+)
 from veridist.engine.retry import (
     EffectStatus,
     IdempotentSink,
@@ -58,10 +64,14 @@ __all__ = [
     "PassBudgetError",
     "PassEnforcer",
     "PureReducer",
+    "PublicResumeMetadata",
     "Replayability",
+    "ResumedCheckpoint",
+    "ResumeExpectation",
     "SpoolPolicy",
     "SinkResult",
     "apply_pure_update",
     "apply_sink_update",
     "plan_passes",
+    "resume_checkpoint",
 ]

@@ -7,10 +7,9 @@ import sys
 import unittest
 from dataclasses import replace
 
-from veridist.engine.resume import ResumeExpectation, resume_checkpoint
-
 from veridist.engine.checkpoint import CheckpointRecord, InMemoryCheckpointStore
 from veridist.engine.errors import EngineContractError, FailureCode
+from veridist.engine.resume import ResumeExpectation, resume_checkpoint
 from veridist.engine.retry import PureReducer, apply_pure_update
 
 SOURCE_ID = "dataset:resume-001"
@@ -19,7 +18,7 @@ SOURCE_REVISION = "private-etag-91"
 PLAN_DIGEST = hashlib.sha256(b"resume-plan-v1").hexdigest()
 
 
-def sha256(value: bytes) -> str:
+def sha256(value: bytes | bytearray) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
@@ -94,7 +93,8 @@ class CheckpointResumeContractTests(unittest.TestCase):
         store = InMemoryCheckpointStore(checkpoint())
         resumed = resume_checkpoint(store=store, expected=expectation(), reducer=reducer)
 
-        self.assertEqual(resumed.accumulator, 1)
+        canonical_prefix = sum((1,))
+        self.assertEqual(resumed.accumulator, canonical_prefix)
         self.assertEqual(resumed.cursor, 1)
         self.assertEqual(resumed.committed_ranges, ((0, 1),))
         self.assertEqual(reducer.decode_calls, 1)
@@ -184,6 +184,23 @@ class CheckpointResumeContractTests(unittest.TestCase):
         self.assertIsNone(caught.exception.__cause__)
         self.assertEqual(store.write_count, 0)
 
+    def test_ds09_missing_private_revision_fails_before_checkpoint_read(self) -> None:
+        for revision in (None, " "):
+            store = InMemoryCheckpointStore(checkpoint())
+            reducer = IntegerSumReducer()
+            with self.subTest(revision=revision), self.assertRaises(
+                EngineContractError
+            ) as caught:
+                resume_checkpoint(
+                    store=store,
+                    expected=expectation(source_revision=revision),
+                    reducer=reducer,
+                )
+            self.assertIs(caught.exception.code, FailureCode.SOURCE_REVISION_UNAVAILABLE)
+            self.assertEqual(store.read_count, 0)
+            self.assertEqual(store.write_count, 0)
+            self.assertEqual(reducer.decode_calls, 0)
+
     def test_ds09_unknown_version_is_rejected_without_automigration(self) -> None:
         record = checkpoint(format_version=7)
         store = InMemoryCheckpointStore(record)
@@ -226,17 +243,19 @@ class CheckpointResumeContractTests(unittest.TestCase):
         )
 
         for index in range(1, 2_049):
-            payload = b"1"
+            payload = bytearray(b"1")
             current = apply_pure_update(
                 store=store,
                 source_revision=SOURCE_REVISION,
-                payload=payload,
+                payload=payload,  # type: ignore[arg-type]
                 payload_sha256=sha256(payload),
                 row_start=index - 1,
                 row_stop=index,
                 operation_token=f"chunk-{index}",
                 reducer=reducer,
             )
+            payload[0] = ord("9")
+            self.assertEqual(int(current.state), index)
             self.assertLessEqual(len(current.committed_ranges), 1)
 
         final = store.read()

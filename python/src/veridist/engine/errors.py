@@ -13,6 +13,7 @@ class FailureCode(StrEnum):
     RETRY_NOT_ADMISSIBLE = "RETRY_NOT_ADMISSIBLE"
     PAYLOAD_CHECKSUM_MISMATCH = "PAYLOAD_CHECKSUM_MISMATCH"
     SOURCE_REVISION_MISMATCH = "SOURCE_REVISION_MISMATCH"
+    SOURCE_REVISION_UNAVAILABLE = "SOURCE_REVISION_UNAVAILABLE"
     RETRY_EXHAUSTED = "RETRY_EXHAUSTED"
     CHECKPOINT_CONFLICT = "CHECKPOINT_CONFLICT"
     OPERATION_DIGEST_CONFLICT = "OPERATION_DIGEST_CONFLICT"
@@ -35,3 +36,9 @@ class EngineContractError(Exception):
         super().__init__(code.value)
         self.code = code
         self.context: Mapping[str, object] = MappingProxyType(dict(context or {}))
+
+
+def safe_exception_type(exc: Exception) -> str:
+    """Return an allowlist-safe type label without exposing exception text."""
+
+    return type(exc).__name__ if type(exc).__module__ == "builtins" else "Exception"
