@@ -157,6 +157,19 @@ class DeliveryValidationContractTests(unittest.TestCase):
         self.assertEqual(validator.accepted_rows, 4)
         self.assertEqual(validator.accepted_chunks, 4)
 
+    def test_ds05_validator_and_finish_reject_invalid_bounds(self) -> None:
+        with self.assertRaises(ValueError):
+            DeliveryValidator("")
+        with self.assertRaises(ValueError):
+            DeliveryValidator("dataset:delivery-001", initial_offset=-1)
+
+        validator = DeliveryValidator("dataset:delivery-001", initial_offset=2)
+        with self.assertRaises(ValueError):
+            validator.finish(expected_row_stop=-1)
+        with self.assertRaises(DeliveryContractError) as caught:
+            validator.finish(expected_row_stop=1)
+        self.assertEqual(caught.exception.code, "OUT_OF_ORDER_CHUNK")
+
     def test_ds05_duplicate_chunk_has_stable_code_and_no_double_count(self) -> None:
         validator = DeliveryValidator("dataset:delivery-001")
         accepted = chunk("same", 0, 2)
@@ -272,11 +285,24 @@ class BoundedBufferContractTests(unittest.TestCase):
 
         buffer.cancel()
         buffer.cancel()
+        first.release()
 
         self.assertEqual(released, ["first"])
         self.assertTrue(first.released)
         self.assertEqual(buffer.inflight_bytes, 0)
         self.assertEqual(buffer.queued_chunks, 0)
+
+    def test_ds06_full_buffer_put_timeout_is_bounded(self) -> None:
+        buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
+        first = buffered(chunk("first", 0, 1, byte_size=4))
+        buffer.put(first)
+
+        with self.assertRaises(TimeoutError):
+            buffer.put(buffered(chunk("timeout", 1, 2, byte_size=4)), timeout=0.01)
+
+        self.assertEqual(buffer.inflight_bytes, 4)
+        self.assertEqual(buffer.queued_chunks, 1)
+        self.assertEqual(buffer.get(timeout=0.1), first)
 
     def test_ds06_cancel_wakes_waiter_and_stops_future_put_get(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
