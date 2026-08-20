@@ -1,0 +1,15 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: veridist 0.0.0.dev0\n"
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "API narrative"
+msgstr "شرح API"
+
+msgid "NOT IMPLEMENTED: the public statistical API narrative will be written only after callable interfaces and capability evidence exist."
+msgstr "پیاده‌سازی نشده: شرح API آماری عمومی فقط پس از وجود رابط‌های قابل فراخوانی و شواهد قابلیت نوشته خواهد شد."
+
+msgid "No function, class, parameter, or return contract is advertised on this page."
+msgstr "در این صفحه هیچ تابع، کلاس، پارامتر یا قرارداد خروجی معرفی نمی‌شود."

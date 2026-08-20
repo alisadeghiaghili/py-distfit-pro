@@ -1,0 +1,47 @@
+name: v1-foundation
+
+on:
+  pull_request:
+    paths:
+      - "python/**"
+      - ".github/workflows/v1-ci.yml"
+  push:
+    branches:
+      - v1-foundation
+    paths:
+      - "python/**"
+      - ".github/workflows/v1-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  quality:
+    name: quality (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install the isolated v1 test and lint extras
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test,lint]"
+      - name: Lint
+        run: python -m ruff check src tests docs tools
+      - name: Type check
+        run: python -m mypy src
+      - name: Test with branch coverage
+        run: >
+          python -m pytest --cov=veridist --cov-branch
+          --cov-report=json:coverage.json
+      - name: Enforce non-gameable coverage gates
+        run: >
+          python tools/check_coverage.py --project-root .
+          --manifest quality/coverage-manifest.json --coverage-json coverage.json
