@@ -1,0 +1,27 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: veridist 0.0.0.dev0\n"
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Veridist documentation"
+msgstr "مستندات وریدیست"
+
+msgid "Evidence-first distribution fitting."
+msgstr "برازش توزیع با اولویت شواهد."
+
+msgid "Status"
+msgstr "وضعیت"
+
+msgid "This documentation toolchain is implemented; the statistical fitting API is not implemented yet."
+msgstr "زنجیرهٔ ابزار مستندات پیاده‌سازی شده است؛ API برازش آماری هنوز پیاده‌سازی نشده است."
+
+msgid "Quick structural example"
+msgstr "مثال ساختاری سریع"
+
+msgid "The example below has one canonical executable source and does not claim a public fitting API."
+msgstr "مثال زیر یک منبع اجرایی مرجع دارد و ادعایی دربارهٔ API عمومی برازش نمی‌کند."
+
+msgid "Canonical executable example"
+msgstr "مثال اجرایی مرجع"

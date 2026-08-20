@@ -1,0 +1,15 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: veridist 0.0.0.dev0\n"
+"Language: de\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "API narrative"
+msgstr "API-Beschreibung"
+
+msgid "NOT IMPLEMENTED: the public statistical API narrative will be written only after callable interfaces and capability evidence exist."
+msgstr "NICHT IMPLEMENTIERT: Die öffentliche statistische API-Beschreibung wird erst erstellt, wenn aufrufbare Schnittstellen und Nachweise für ihre Fähigkeiten vorliegen."
+
+msgid "No function, class, parameter, or return contract is advertised on this page."
+msgstr "Auf dieser Seite wird kein Funktions-, Klassen-, Parameter- oder Rückgabevertrag beworben."
