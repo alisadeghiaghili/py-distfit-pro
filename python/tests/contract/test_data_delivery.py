@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 import time
 import unittest
+from sys import getsizeof
 
 from veridist.engine.data_source import Replayability
 from veridist.engine.delivery import (
@@ -24,11 +25,13 @@ def chunk(
     start: int,
     stop: int,
     *,
+    sequence_number: int = 0,
     byte_size: int = 1,
 ) -> ChunkEnvelope:
     return ChunkEnvelope(
         source_id="dataset:delivery-001",
         chunk_id=chunk_id,
+        sequence_number=sequence_number,
         row_start=start,
         row_stop=stop,
         byte_size=byte_size,
@@ -98,10 +101,18 @@ class AdapterAndIdentityContractTests(unittest.TestCase):
 
     def test_ds04_envelope_rejects_invalid_identity_offsets_and_sizes(self) -> None:
         invalid = (
-            {"source_id": "", "chunk_id": "x", "row_start": 0, "row_stop": 1, "byte_size": 1},
+            {
+                "source_id": "",
+                "chunk_id": "x",
+                "sequence_number": 0,
+                "row_start": 0,
+                "row_stop": 1,
+                "byte_size": 1,
+            },
             {
                 "source_id": "dataset:delivery-001",
                 "chunk_id": "",
+                "sequence_number": 0,
                 "row_start": 0,
                 "row_stop": 1,
                 "byte_size": 1,
@@ -109,6 +120,7 @@ class AdapterAndIdentityContractTests(unittest.TestCase):
             {
                 "source_id": "dataset:delivery-001",
                 "chunk_id": "x",
+                "sequence_number": 0,
                 "row_start": -1,
                 "row_stop": 1,
                 "byte_size": 1,
@@ -116,6 +128,7 @@ class AdapterAndIdentityContractTests(unittest.TestCase):
             {
                 "source_id": "dataset:delivery-001",
                 "chunk_id": "x",
+                "sequence_number": 0,
                 "row_start": 2,
                 "row_stop": 1,
                 "byte_size": 1,
@@ -123,9 +136,18 @@ class AdapterAndIdentityContractTests(unittest.TestCase):
             {
                 "source_id": "dataset:delivery-001",
                 "chunk_id": "x",
+                "sequence_number": 0,
                 "row_start": 0,
                 "row_stop": 1,
                 "byte_size": -1,
+            },
+            {
+                "source_id": "dataset:delivery-001",
+                "chunk_id": "x",
+                "sequence_number": -1,
+                "row_start": 0,
+                "row_stop": 1,
+                "byte_size": 1,
             },
         )
         for arguments in invalid:
@@ -146,14 +168,15 @@ class DeliveryValidationContractTests(unittest.TestCase):
         validator = DeliveryValidator("dataset:delivery-001")
 
         for envelope in (
-            chunk("empty-start", 0, 0, byte_size=0),
-            chunk("first", 0, 1),
-            chunk("empty-middle", 1, 1, byte_size=0),
-            chunk("ragged", 1, 4),
+            chunk("empty-start", 0, 0, sequence_number=0, byte_size=0),
+            chunk("first", 0, 1, sequence_number=1),
+            chunk("empty-middle", 1, 1, sequence_number=2, byte_size=0),
+            chunk("ragged", 1, 4, sequence_number=3),
         ):
             validator.accept(envelope)
 
         self.assertEqual(validator.next_offset, 4)
+        self.assertEqual(validator.next_sequence, 4)
         self.assertEqual(validator.accepted_rows, 4)
         self.assertEqual(validator.accepted_chunks, 4)
 
@@ -162,17 +185,26 @@ class DeliveryValidationContractTests(unittest.TestCase):
             DeliveryValidator("")
         with self.assertRaises(ValueError):
             DeliveryValidator("dataset:delivery-001", initial_offset=-1)
+        with self.assertRaises(ValueError):
+            DeliveryValidator("dataset:delivery-001", initial_sequence=-1)
 
         validator = DeliveryValidator("dataset:delivery-001", initial_offset=2)
         with self.assertRaises(ValueError):
             validator.finish(expected_row_stop=-1)
+        with self.assertRaises(ValueError):
+            validator.finish(expected_row_stop=2, expected_chunk_count=-1)
         with self.assertRaises(DeliveryContractError) as caught:
             validator.finish(expected_row_stop=1)
         self.assertEqual(caught.exception.code, "OUT_OF_ORDER_CHUNK")
 
+        resumed = DeliveryValidator("dataset:delivery-001", initial_sequence=2)
+        with self.assertRaises(DeliveryContractError) as excess_chunks:
+            resumed.finish(expected_row_stop=0, expected_chunk_count=1)
+        self.assertEqual(excess_chunks.exception.code, "OUT_OF_ORDER_CHUNK")
+
     def test_ds05_duplicate_chunk_has_stable_code_and_no_double_count(self) -> None:
         validator = DeliveryValidator("dataset:delivery-001")
-        accepted = chunk("same", 0, 2)
+        accepted = chunk("same", 0, 2, sequence_number=0)
         validator.accept(accepted)
 
         with self.assertRaises(DeliveryContractError) as caught:
@@ -185,26 +217,31 @@ class DeliveryValidationContractTests(unittest.TestCase):
 
     def test_ds05_missing_and_out_of_order_codes_are_distinct_and_recoverable(self) -> None:
         validator = DeliveryValidator("dataset:delivery-001")
-        validator.accept(chunk("first", 0, 2))
+        validator.accept(chunk("first", 0, 2, sequence_number=0))
 
         with self.assertRaises(DeliveryContractError) as missing:
-            validator.accept(chunk("gap", 4, 5))
+            validator.accept(chunk("gap", 4, 5, sequence_number=1))
         self.assertEqual(missing.exception.code, "MISSING_CHUNK")
         self.assertEqual(missing.exception.context["expected_offset"], 2)
 
         with self.assertRaises(DeliveryContractError) as out_of_order:
-            validator.accept(chunk("late", 1, 2))
+            validator.accept(chunk("late", 1, 2, sequence_number=1))
         self.assertEqual(out_of_order.exception.code, "OUT_OF_ORDER_CHUNK")
         self.assertEqual(out_of_order.exception.context["expected_offset"], 2)
 
-        validator.accept(chunk("recovery", 2, 4))
+        with self.assertRaises(DeliveryContractError) as skipped_sequence:
+            validator.accept(chunk("skipped", 2, 4, sequence_number=2))
+        self.assertEqual(skipped_sequence.exception.code, "OUT_OF_ORDER_CHUNK")
+
+        validator.accept(chunk("recovery", 2, 4, sequence_number=1))
         self.assertEqual(validator.next_offset, 4)
+        self.assertEqual(validator.next_sequence, 2)
         self.assertEqual(validator.accepted_rows, 4)
         self.assertEqual(validator.accepted_chunks, 2)
 
     def test_ds05_finish_detects_tail_loss_with_typed_missing_code(self) -> None:
         validator = DeliveryValidator("dataset:delivery-001")
-        validator.accept(chunk("first", 0, 2))
+        validator.accept(chunk("first", 0, 2, sequence_number=0))
 
         with self.assertRaises(DeliveryContractError) as missing:
             validator.finish(expected_row_stop=4)
@@ -212,12 +249,47 @@ class DeliveryValidationContractTests(unittest.TestCase):
         self.assertEqual(missing.exception.code, "MISSING_CHUNK")
         self.assertEqual(missing.exception.context["expected_offset"], 2)
         self.assertEqual(missing.exception.context["expected_row_stop"], 4)
-        validator.accept(chunk("tail", 2, 4))
-        validator.finish(expected_row_stop=4)
+        validator.accept(chunk("tail", 2, 4, sequence_number=1))
+        validator.finish(expected_row_stop=4, expected_chunk_count=2)
+
+    def test_ds05_finish_detects_missing_empty_tail_by_chunk_count(self) -> None:
+        validator = DeliveryValidator("dataset:delivery-001")
+        validator.accept(chunk("data", 0, 2, sequence_number=0))
+
+        with self.assertRaises(DeliveryContractError) as missing:
+            validator.finish(expected_row_stop=2, expected_chunk_count=2)
+
+        self.assertEqual(missing.exception.code, "MISSING_CHUNK")
+        self.assertEqual(missing.exception.context["expected_sequence"], 1)
+        self.assertEqual(missing.exception.context["expected_chunk_count"], 2)
+
+    def test_ds05_validator_state_is_constant_size_in_chunk_count(self) -> None:
+        validator = DeliveryValidator("dataset:delivery-001")
+        initial_state_bytes = getsizeof(validator) + sum(
+            getsizeof(getattr(validator, slot)) for slot in validator.__slots__
+        )
+
+        for sequence_number in range(2_048):
+            validator.accept(
+                chunk(
+                    f"empty-{sequence_number}",
+                    0,
+                    0,
+                    sequence_number=sequence_number,
+                    byte_size=0,
+                )
+            )
+
+        self.assertEqual(validator.next_sequence, 2_048)
+        self.assertEqual(validator.accepted_chunks, 2_048)
+        final_state_bytes = getsizeof(validator) + sum(
+            getsizeof(getattr(validator, slot)) for slot in validator.__slots__
+        )
+        self.assertEqual(final_state_bytes, initial_state_bytes)
 
     def test_ds05_source_mismatch_is_typed_and_preflight_only(self) -> None:
         validator = DeliveryValidator("dataset:delivery-001")
-        other_source = ChunkEnvelope("dataset:other", "other", 0, 1, 1)
+        other_source = ChunkEnvelope("dataset:other", "other", 0, 0, 1, 1)
 
         with self.assertRaises(DeliveryContractError) as caught:
             validator.accept(other_source)
@@ -239,6 +311,10 @@ class BoundedBufferContractTests(unittest.TestCase):
                 BoundedChunkBuffer(**arguments)
 
         buffer = BoundedChunkBuffer(chunk_bytes=3, max_inflight_bytes=6)
+        with self.assertRaises(DeliveryContractError) as unaccounted:
+            buffer.put(buffered(chunk("unaccounted", 0, 0, byte_size=0)), timeout=0.1)
+        self.assertEqual(unaccounted.exception.code, "INVALID_RETAINED_BYTES")
+
         with self.assertRaises(DeliveryContractError) as caught:
             buffer.put(buffered(chunk("oversized", 0, 1, byte_size=4)), timeout=0.1)
         self.assertEqual(caught.exception.code, "CHUNK_TOO_LARGE")
@@ -369,6 +445,50 @@ class BoundedBufferContractTests(unittest.TestCase):
             buffer.read_and_put(read_next, timeout=0.1)
         self.assertEqual(caught.exception.code, "CANCELLED")
         self.assertEqual(read_count, 1)
+
+    def test_ds06_cancel_does_not_wait_for_external_read_callback(self) -> None:
+        buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
+        read_started = threading.Event()
+        allow_read_return = threading.Event()
+        cancel_returned = threading.Event()
+        released: list[str] = []
+        outcome: list[str] = []
+
+        def blocking_read() -> BufferedChunk:
+            read_started.set()
+            if not allow_read_return.wait(1.0):
+                raise AssertionError("test did not release the read callback")
+            return BufferedChunk(
+                envelope=chunk("read-after-cancel", 0, 1, byte_size=4),
+                payload=object(),
+                release_callback=lambda: released.append("read-after-cancel"),
+            )
+
+        def produce() -> None:
+            try:
+                buffer.read_and_put(blocking_read, timeout=1.0)
+            except DeliveryContractError as error:
+                outcome.append(error.code)
+
+        def cancel() -> None:
+            buffer.cancel()
+            cancel_returned.set()
+
+        producer = threading.Thread(target=produce, name="blocked-external-reader")
+        canceller = threading.Thread(target=cancel, name="nonblocking-canceller")
+        producer.start()
+        self.assertTrue(read_started.wait(1.0))
+        canceller.start()
+        returned_while_read_blocked = cancel_returned.wait(0.2)
+        allow_read_return.set()
+        canceller.join(timeout=1.0)
+        producer.join(timeout=1.0)
+
+        self.assertTrue(returned_while_read_blocked)
+        self.assertFalse(canceller.is_alive())
+        self.assertFalse(producer.is_alive())
+        self.assertEqual(outcome, ["CANCELLED"])
+        self.assertEqual(released, ["read-after-cancel"])
 
     def test_ds06_empty_queue_timeout_is_bounded(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)

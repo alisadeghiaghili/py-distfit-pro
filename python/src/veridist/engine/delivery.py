@@ -43,10 +43,17 @@ class AdapterCapabilities:
 
 @dataclass(frozen=True, slots=True)
 class ChunkEnvelope:
-    """Stable source/offset identity and byte accounting for one chunk."""
+    """Stable sequence/offset identity and retained-byte accounting for one chunk.
+
+    ``byte_size`` is the total memory retained while the chunk is buffered, not
+    merely the serialized or payload byte length. Validation-only empty chunks
+    may report zero; a :class:`BoundedChunkBuffer` rejects such leases because
+    they cannot participate safely in a byte-only bound.
+    """
 
     source_id: str
     chunk_id: str
+    sequence_number: int
     row_start: int
     row_stop: int
     byte_size: int
@@ -56,6 +63,8 @@ class ChunkEnvelope:
             raise ValueError("source_id must be non-empty")
         if not self.chunk_id.strip():
             raise ValueError("chunk_id must be non-empty")
+        if self.sequence_number < 0:
+            raise ValueError("sequence_number must be non-negative")
         if self.row_start < 0:
             raise ValueError("row_start must be non-negative")
         if self.row_stop < self.row_start:
@@ -91,24 +100,36 @@ class DeliveryValidator:
         "_accepted_chunks",
         "_accepted_rows",
         "_next_offset",
-        "_seen_chunk_ids",
+        "_next_sequence",
         "_source_id",
     )
 
-    def __init__(self, source_id: str, *, initial_offset: int = 0) -> None:
+    def __init__(
+        self,
+        source_id: str,
+        *,
+        initial_offset: int = 0,
+        initial_sequence: int = 0,
+    ) -> None:
         if not source_id.strip():
             raise ValueError("source_id must be non-empty")
         if initial_offset < 0:
             raise ValueError("initial_offset must be non-negative")
+        if initial_sequence < 0:
+            raise ValueError("initial_sequence must be non-negative")
         self._source_id = source_id
         self._next_offset = initial_offset
+        self._next_sequence = initial_sequence
         self._accepted_rows = 0
         self._accepted_chunks = 0
-        self._seen_chunk_ids: set[str] = set()
 
     @property
     def next_offset(self) -> int:
         return self._next_offset
+
+    @property
+    def next_sequence(self) -> int:
+        return self._next_sequence
 
     @property
     def accepted_rows(self) -> int:
@@ -124,6 +145,8 @@ class DeliveryValidator:
         context = {
             "chunk_id": envelope.chunk_id,
             "expected_offset": self._next_offset,
+            "expected_sequence": self._next_sequence,
+            "sequence_number": envelope.sequence_number,
             "row_start": envelope.row_start,
             "row_stop": envelope.row_stop,
         }
@@ -132,23 +155,48 @@ class DeliveryValidator:
                 "SOURCE_MISMATCH",
                 {**context, "expected_source_id": self._source_id, "source_id": envelope.source_id},
             )
-        if envelope.chunk_id in self._seen_chunk_ids:
+        if envelope.sequence_number < self._next_sequence:
             raise DeliveryContractError("DUPLICATE_CHUNK", context)
+        if envelope.sequence_number > self._next_sequence:
+            raise DeliveryContractError("OUT_OF_ORDER_CHUNK", context)
         if envelope.row_start > self._next_offset:
             raise DeliveryContractError("MISSING_CHUNK", context)
         if envelope.row_start < self._next_offset:
             raise DeliveryContractError("OUT_OF_ORDER_CHUNK", context)
 
-        self._seen_chunk_ids.add(envelope.chunk_id)
+        self._next_sequence += 1
         self._next_offset = envelope.row_stop
         self._accepted_rows += envelope.row_count
         self._accepted_chunks += 1
 
-    def finish(self, *, expected_row_stop: int) -> None:
+    def finish(
+        self,
+        *,
+        expected_row_stop: int,
+        expected_chunk_count: int | None = None,
+    ) -> None:
         """Detect a missing terminal range that no subsequent chunk can reveal."""
 
         if expected_row_stop < 0:
             raise ValueError("expected_row_stop must be non-negative")
+        if expected_chunk_count is not None and expected_chunk_count < 0:
+            raise ValueError("expected_chunk_count must be non-negative")
+        if expected_chunk_count is not None and self._next_sequence < expected_chunk_count:
+            raise DeliveryContractError(
+                "MISSING_CHUNK",
+                {
+                    "expected_sequence": self._next_sequence,
+                    "expected_chunk_count": expected_chunk_count,
+                },
+            )
+        if expected_chunk_count is not None and self._next_sequence > expected_chunk_count:
+            raise DeliveryContractError(
+                "OUT_OF_ORDER_CHUNK",
+                {
+                    "expected_sequence": expected_chunk_count,
+                    "sequence_number": self._next_sequence,
+                },
+            )
         if self._next_offset < expected_row_stop:
             raise DeliveryContractError(
                 "MISSING_CHUNK",
@@ -251,6 +299,11 @@ class BoundedChunkBuffer:
         """Queue an item, blocking while its bytes would exceed the hard bound."""
 
         byte_size = item.envelope.byte_size
+        if byte_size <= 0:
+            raise DeliveryContractError(
+                "INVALID_RETAINED_BYTES",
+                {"byte_size": byte_size},
+            )
         if byte_size > self.chunk_bytes:
             raise DeliveryContractError(
                 "CHUNK_TOO_LARGE",
@@ -284,7 +337,7 @@ class BoundedChunkBuffer:
 
         with self._condition:
             self._raise_if_cancelled()
-            item = read_next()
+        item = read_next()
         try:
             self.put(item, timeout=timeout)
         except BaseException:
