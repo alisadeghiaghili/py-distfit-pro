@@ -7,7 +7,6 @@ import subprocess
 import unittest
 from pathlib import Path
 
-
 PYTHON_ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = PYTHON_ROOT / "quality" / "coverage-manifest.json"
 
