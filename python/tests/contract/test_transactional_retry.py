@@ -165,6 +165,12 @@ class TransactionalRetryContractTests(unittest.TestCase):
             )
 
         self.assertIs(caught.exception.code, FailureCode.PAYLOAD_CHECKSUM_MISMATCH)
+        self.assertEqual(
+            dict(caught.exception.context),
+            {"integrity_check": "sha256", "match": False},
+        )
+        self.assertNotIn(digest(b"2"), repr(caught.exception.context))
+        self.assertNotIn(digest(b"different"), repr(caught.exception.context))
         self.assertEqual(store.read_count, 0)
         self.assertEqual(store.write_count, 0)
         self.assertEqual(reducer.decode_calls, 0)
