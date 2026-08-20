@@ -1,0 +1,24 @@
+{
+  "production_root": "src/veridist",
+  "production_files": [
+    "src/veridist/__init__.py",
+    "src/veridist/domain/__init__.py",
+    "src/veridist/engine/__init__.py",
+    "src/veridist/families/__init__.py",
+    "src/veridist/statistics/__init__.py"
+  ],
+  "critical_modules": [
+    "domain",
+    "statistics",
+    "families",
+    "engine"
+  ],
+  "expected_denominators": {
+    "src/veridist/__init__.py": {"statements": 2, "branches": 0},
+    "src/veridist/domain/__init__.py": {"statements": 0, "branches": 0},
+    "src/veridist/engine/__init__.py": {"statements": 0, "branches": 0},
+    "src/veridist/families/__init__.py": {"statements": 0, "branches": 0},
+    "src/veridist/statistics/__init__.py": {"statements": 0, "branches": 0}
+  },
+  "accepted_exceptions": []
+}

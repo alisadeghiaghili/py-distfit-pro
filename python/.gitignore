@@ -1,5 +1,6 @@
 .coverage
-coverage*.json
+/coverage.json
+/coverage-runtime.json
 coverage*.xml
 htmlcov/
 .ruff_cache/
