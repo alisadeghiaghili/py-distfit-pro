@@ -253,12 +253,12 @@ class RetryValidationProbeTests(unittest.TestCase):
         with self.assertRaises(EngineContractError) as reducer_error:
             self._pure(InMemoryCheckpointStore(record()), failing)
         self.assertIs(reducer_error.exception.code, FailureCode.REDUCER_FAILURE)
-        self.assertEqual(reducer_error.exception.context["exception_type"], "RuntimeError")
+        self.assertEqual(reducer_error.exception.context["failure_type"], "RuntimeError")
         self.assertIsNone(reducer_error.exception.__cause__)
 
         with self.assertRaises(EngineContractError) as local_error:
             self._pure(InMemoryCheckpointStore(record()), LocalFailureReducer())
-        self.assertEqual(local_error.exception.context["exception_type"], "Exception")
+        self.assertEqual(local_error.exception.context["failure_type"], "Exception")
 
     def test_same_operation_is_returned_without_second_reduce_or_write(self) -> None:
         store = InMemoryCheckpointStore(record())

@@ -7,18 +7,13 @@ from threading import Lock
 from types import MappingProxyType
 from typing import TypeVar
 
+from veridist.engine.errors import EngineContractError, FailureCode
+
 Item = TypeVar("Item")
 
 
-class PassBudgetError(Exception):
+class PassBudgetError(EngineContractError):
     """A stable, localization-independent pass-budget failure."""
-
-    __slots__ = ("code", "context")
-
-    def __init__(self, code: str, context: Mapping[str, object]) -> None:
-        super().__init__(code)
-        self.code = code
-        self.context: Mapping[str, object] = MappingProxyType(dict(context))
 
 
 class PassEnforcer:
@@ -65,7 +60,7 @@ class PassEnforcer:
             attempted_pass = self._actual_pass_count + 1
             if attempted_pass > self._max_passes:
                 raise PassBudgetError(
-                    "PASS_BUDGET_EXCEEDED",
+                    FailureCode.PASS_BUDGET_EXCEEDED,
                     {
                         "max_passes": self._max_passes,
                         "actual_pass_count": self._actual_pass_count,

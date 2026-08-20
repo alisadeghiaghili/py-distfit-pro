@@ -167,7 +167,7 @@ def _commit_with_reconciliation(
                 raise EngineContractError(FailureCode.CHECKPOINT_CONFLICT) from None
     context: dict[str, object] = {
         "attempts": max_attempts,
-        "operation_token": candidate.operation_token,
+        "operation_id_present": candidate.operation_token is not None,
     }
     if effect_status is not None:
         context["effect_status"] = effect_status.value
@@ -226,7 +226,7 @@ def apply_pure_update(
     except Exception as exc:
         raise EngineContractError(
             FailureCode.REDUCER_FAILURE,
-            {"exception_type": safe_exception_type(exc)},
+            {"failure_type": safe_exception_type(exc)},
         ) from None
     candidate = base.next_generation(
         cursor=row_stop,
@@ -284,7 +284,7 @@ def apply_sink_update(
     except Exception as exc:
         raise EngineContractError(
             FailureCode.SINK_FAILURE,
-            {"exception_type": safe_exception_type(exc)},
+            {"failure_type": safe_exception_type(exc)},
         ) from None
     if result not in (SinkResult.APPLIED, SinkResult.ALREADY_APPLIED):
         raise EngineContractError(FailureCode.SINK_FAILURE)

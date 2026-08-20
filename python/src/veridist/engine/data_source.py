@@ -12,6 +12,8 @@ from enum import StrEnum
 from types import MappingProxyType
 from typing import Protocol
 
+from veridist.engine.errors import EngineContractError, FailureCode
+
 SUPPORTED_PROVENANCE_SCHEMA_VERSIONS = frozenset({"1"})
 
 
@@ -23,13 +25,8 @@ class Replayability(StrEnum):
     CHECKPOINT_REPLAYABLE = "checkpoint_replayable"
 
 
-class DataSourceCapabilityError(Exception):
+class DataSourceCapabilityError(EngineContractError):
     """A stable, localization-independent planner capability failure."""
-
-    def __init__(self, code: str, context: Mapping[str, object]) -> None:
-        super().__init__(code)
-        self.code = code
-        self.context: Mapping[str, object] = MappingProxyType(dict(context))
 
 
 @dataclass(frozen=True, slots=True)
@@ -179,18 +176,21 @@ def _validate_checkpoint(
         return
     if checkpoint is None:
         raise DataSourceCapabilityError(
-            "CHECKPOINT_REQUIRED",
+            FailureCode.CHECKPOINT_REQUIRED,
             {"required_passes": required_passes, "replayability": metadata.replayability.value},
         )
-    if (
-        checkpoint.source_id != metadata.source_id
-        or checkpoint.schema_version != metadata.checkpoint_schema_version
-    ):
+    if checkpoint.source_id != metadata.source_id:
         raise DataSourceCapabilityError(
-            "CHECKPOINT_INCOMPATIBLE",
+            FailureCode.CHECKPOINT_SOURCE_ID_MISMATCH,
             {
                 "source_id": metadata.source_id,
                 "checkpoint_source_id": checkpoint.source_id,
+            },
+        )
+    if checkpoint.schema_version != metadata.checkpoint_schema_version:
+        raise DataSourceCapabilityError(
+            FailureCode.CHECKPOINT_SCHEMA_MISMATCH,
+            {
                 "expected_schema_version": metadata.checkpoint_schema_version,
                 "checkpoint_schema_version": checkpoint.schema_version,
             },
@@ -206,7 +206,7 @@ def _spool_requirements(
         return None
     if spool is None or not spool.enabled:
         raise DataSourceCapabilityError(
-            "SPOOL_REQUIRED",
+            FailureCode.SPOOL_REQUIRED,
             {
                 "required_passes": required_passes,
                 "replayability": metadata.replayability.value,

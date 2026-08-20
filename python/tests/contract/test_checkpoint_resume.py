@@ -180,7 +180,7 @@ class CheckpointResumeContractTests(unittest.TestCase):
             resume_checkpoint(store=store, expected=expectation(), reducer=reducer)
 
         self.assertIs(caught.exception.code, FailureCode.REDUCER_FAILURE)
-        self.assertEqual(caught.exception.context["exception_type"], "RuntimeError")
+        self.assertEqual(caught.exception.context["failure_type"], "RuntimeError")
         self.assertIsNone(caught.exception.__cause__)
         self.assertEqual(store.write_count, 0)
 

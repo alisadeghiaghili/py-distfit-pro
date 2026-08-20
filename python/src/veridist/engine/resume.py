@@ -78,7 +78,7 @@ class ResumedCheckpoint(Generic[Accumulator]):
 def _validate_compatibility(
     record: CheckpointRecord,
     expected: ResumeExpectation,
-    reducer: PureReducer[object],
+    reducer: PureReducer[Accumulator],
 ) -> None:
     """Validate checksum, format, source, revision, accumulator, plan and range."""
 
@@ -128,7 +128,7 @@ def resume_checkpoint(
     except Exception as exc:
         raise EngineContractError(
             FailureCode.REDUCER_FAILURE,
-            {"exception_type": safe_exception_type(exc)},
+            {"failure_type": safe_exception_type(exc)},
         ) from None
     public = PublicResumeMetadata(
         format_version=record.format_version,
