@@ -1,47 +1,142 @@
-name: v1-foundation
+name: veridist-ci
 
 on:
-  pull_request:
-    paths:
-      - "python/**"
-      - ".github/workflows/v1-ci.yml"
   push:
-    branches:
-      - v1-foundation
-    paths:
-      - "python/**"
-      - ".github/workflows/v1-ci.yml"
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: python
+
 jobs:
-  quality:
-    name: quality (${{ matrix.python-version }})
+  static:
+    name: veridist / static
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install lint and type-check dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[lint]"
+      - name: Lint
+        run: python -m ruff check src tests docs tools
+      - name: Type check
+        run: python -m mypy src
+
+  tests:
+    name: veridist / tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
-    defaults:
-      run:
-        working-directory: python
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install the isolated v1 test and lint extras
+      - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[test,lint]"
-      - name: Lint
-        run: python -m ruff check src tests docs tools
-      - name: Type check
-        run: python -m mypy src
+          python -m pip install -e ".[test]"
       - name: Test with branch coverage
         run: >
           python -m pytest --cov=veridist --cov-branch
           --cov-report=json:coverage.json
-      - name: Enforce non-gameable coverage gates
+      - name: Enforce coverage gates
         run: >
           python tools/check_coverage.py --project-root .
-          --manifest quality/coverage-manifest.json --coverage-json coverage.json
+          --manifest quality/coverage-manifest.json
+          --coverage-json coverage.json
+
+  package:
+    name: veridist / package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build and check distributions
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "build>=1.2,<2" "twine>=6,<7"
+          python -m build --sdist --wheel
+          python -m twine check dist/*
+      - name: Install and inspect the wheel outside the checkout
+        run: |
+          python -m venv "$RUNNER_TEMP/veridist-wheel"
+          "$RUNNER_TEMP/veridist-wheel/bin/python" -m pip install --upgrade pip
+          "$RUNNER_TEMP/veridist-wheel/bin/python" -m pip install dist/*.whl
+          "$RUNNER_TEMP/veridist-wheel/bin/python" -m pip check
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/veridist-wheel/bin/python" -c "import importlib.metadata as metadata; import importlib.resources as resources; import veridist; assert metadata.version('veridist') == veridist.__version__ == '0.0.0.dev0'; assert resources.files('veridist').joinpath('py.typed').is_file()"
+
+  docs:
+    name: veridist / docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install documentation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[docs,test]"
+      - name: Validate catalogs and executable examples
+        run: |
+          python -m unittest discover -s tests/docs -p "test_*.py" -v
+          python docs/toolchain.py check
+      - name: Build gettext and all required locales
+        run: |
+          sphinx-build -b gettext -W -n docs/source docs/_build/gettext
+          sphinx-build -b html -W -n docs/source docs/_build/en/html -D language=en
+          sphinx-build -b html -W -n docs/source docs/_build/fa/html -D language=fa
+          sphinx-build -b html -W -n docs/source docs/_build/de/html -D language=de
+      - name: Check links and rendered locale direction
+        run: |
+          sphinx-build -b linkcheck -W -n docs/source docs/_build/linkcheck -D language=en
+          python docs/toolchain.py render docs/_build/en/html en
+          python docs/toolchain.py render docs/_build/fa/html fa
+          python docs/toolchain.py render docs/_build/de/html de
+      - name: Retain rendered documentation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: veridist-documentation
+          path: |
+            python/docs/_build/en/html
+            python/docs/_build/fa/html
+            python/docs/_build/de/html
+            python/docs/_build/linkcheck
+          if-no-files-found: error
+
+  veridist-gate:
+    name: veridist / gate
+    needs: [static, tests, package, docs]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce aggregate result
+        shell: bash
+        env:
+          STATIC_RESULT: ${{ needs.static.result }}
+          TEST_RESULT: ${{ needs.tests.result }}
+          PACKAGE_RESULT: ${{ needs.package.result }}
+          DOCS_RESULT: ${{ needs.docs.result }}
+        run: |
+          set -euo pipefail
+          for result in "$STATIC_RESULT" "$TEST_RESULT" "$PACKAGE_RESULT" "$DOCS_RESULT"; do
+            if [[ "$result" != "success" ]]; then
+              echo "required Veridist validation did not succeed" >&2
+              exit 1
+            fi
+          done
