@@ -18,6 +18,7 @@ from veridist.engine.delivery import (
     DeliveryValidator,
     OrderingGuarantee,
 )
+from veridist.engine.pass_budget import PassBudgetError, PassEnforcer
 
 __all__ = [
     "AdapterCapabilities",
@@ -31,6 +32,8 @@ __all__ = [
     "DeliveryContractError",
     "DeliveryValidator",
     "OrderingGuarantee",
+    "PassBudgetError",
+    "PassEnforcer",
     "Replayability",
     "SpoolPolicy",
     "plan_passes",
