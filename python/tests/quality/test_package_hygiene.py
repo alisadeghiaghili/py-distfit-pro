@@ -57,6 +57,18 @@ class PackageHygieneTests(unittest.TestCase):
         test_extra = project["project"]["optional-dependencies"]["test"]
         self.assertIn("pytest-cov>=6,<8", test_extra)
 
+    def test_project_metadata_declares_human_authorship(self) -> None:
+        project = tomllib.loads((PYTHON_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        self.assertEqual(
+            project["project"]["authors"],
+            [
+                {
+                    "name": "Ali Sadeghi Aghili",
+                    "email": "alisadeghiaghili@gmail.com",
+                }
+            ],
+        )
+
     def test_workflow_lints_documentation_python_sources(self) -> None:
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
         self.assertIn("python -m ruff check src tests docs tools", workflow)
