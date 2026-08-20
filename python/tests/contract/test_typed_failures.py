@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import unittest
 from enum import StrEnum
+from math import inf, nan
 from pathlib import Path
 from types import MappingProxyType
 
@@ -24,8 +25,9 @@ EXPECTED_FAILURE_CODES = {
     "CHECKPOINT_CHECKSUM_MISMATCH",
     "CHECKPOINT_CONFLICT",
     "CHECKPOINT_FORMAT_UNSUPPORTED",
-    "CHECKPOINT_INCOMPATIBLE",
     "CHECKPOINT_REQUIRED",
+    "CHECKPOINT_SCHEMA_MISMATCH",
+    "CHECKPOINT_SOURCE_ID_MISMATCH",
     "CHUNK_TOO_LARGE",
     "DUPLICATE_CHUNK",
     "INVALID_RETAINED_BYTES",
@@ -77,50 +79,77 @@ class TypedFailureSurfaceTests(unittest.TestCase):
                     error_type(code.value, {})  # type: ignore[arg-type]
 
     def test_ds10_context_is_recursively_immutable_and_enum_normalized(self) -> None:
-        source = {"nested": {"labels": (ContextLabel.VALUE, 2)}, "complete": False}
+        source = {
+            "nested": {"labels": (ContextLabel.VALUE,)},
+            "complete": False,
+            "estimate": 1.5,
+        }
         error = EngineContractError(FailureCode.RANGE_MISMATCH, source)
 
         self.assertIsInstance(error.context, MappingProxyType)
         nested = error.context["nested"]
         self.assertIsInstance(nested, MappingProxyType)
-        self.assertEqual(nested["labels"], ("safe-label", 2))
+        self.assertEqual(nested["labels"], ("safe-label",))
+        self.assertEqual(error.context["estimate"], 1.5)
 
         source["nested"]["labels"] = ("changed",)  # type: ignore[index]
-        self.assertEqual(nested["labels"], ("safe-label", 2))
+        self.assertEqual(nested["labels"], ("safe-label",))
         with self.assertRaises(TypeError):
             error.context["new"] = "value"  # type: ignore[index]
         with self.assertRaises(TypeError):
             nested["new"] = "value"  # type: ignore[index]
 
     def test_ds10_context_rejects_unsafe_keys_and_values(self) -> None:
-        unsafe_contexts = (
+        unsafe_contexts: tuple[object, ...] = (
             ["not a mapping"],
             {1: "non-string key"},
             {"payload": b"raw"},
-            {"path": Path("private/source.csv")},
+            {"file": Path("private/source.csv")},
             {"items": [1, 2]},
             {"items": {1, 2}},
             {"exception": RuntimeError("private payload")},
             {"object": object()},
+            {"estimate": nan},
+            {"estimate": inf},
+            {"estimate": -inf},
         )
         for context in unsafe_contexts:
             with self.subTest(context_type=type(context).__name__):
                 with self.assertRaises(TypeError):
                     EngineContractError(FailureCode.RANGE_MISMATCH, context)  # type: ignore[arg-type]
 
-    def test_ds10_text_surfaces_only_code_and_frozen_safe_context(self) -> None:
+    def test_ds10_sensitive_context_keys_are_rejected_even_for_strings(self) -> None:
+        sensitive_keys = (
+            "payload",
+            "path",
+            "uri",
+            "query",
+            "dsn",
+            "credential",
+            "password",
+            "token",
+            "source_revision",
+            "checksum",
+            "digest",
+            "exception",
+            "message",
+            "traceback",
+        )
+        for key in sensitive_keys:
+            with self.subTest(key=key), self.assertRaises(TypeError):
+                EngineContractError(FailureCode.RANGE_MISMATCH, {key: "private-value"})
+
+    def test_ds10_text_surfaces_code_but_never_context(self) -> None:
+        sentinel = "C:/private/source.csv?credential=secret"
         error = EngineContractError(
             FailureCode.RANGE_MISMATCH,
-            {"expected": (0, 4), "actual": (0, 3)},
+            {"expected": sentinel, "actual": (0, 3)},
         )
 
-        for rendered in (str(error), repr(error)):
-            self.assertIn("RANGE_MISMATCH", rendered)
-            self.assertIn("expected", rendered)
-            self.assertIn("actual", rendered)
-            self.assertNotIn("Traceback", rendered)
-            self.assertNotIn("File ", rendered)
-        self.assertNotIn("veridist.engine", repr(error))
+        self.assertEqual(str(error), "RANGE_MISMATCH")
+        self.assertEqual(repr(error), "EngineContractError(code=RANGE_MISMATCH)")
+        self.assertNotIn(sentinel, str(error))
+        self.assertNotIn(sentinel, repr(error))
 
     def test_ds10_buffer_timeouts_use_one_typed_distinct_code(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
