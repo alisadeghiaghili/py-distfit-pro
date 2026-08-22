@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -103,9 +104,11 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("defaults:\n  run:\n    working-directory: python", self.workflow)
         for job in ("static", "tests", "package", "docs"):
             with self.subTest(job=job):
-                job_start = self.workflow.index(f"  {job}:")
-                job_end = self.workflow.index("\n  ", job_start + 3)
-                self.assertIn("working-directory: python", self.workflow[job_start:job_end])
+                job_block = re.search(
+                    rf"(?ms)^  {job}:$(.*?)(?=^  \S|\Z)", self.workflow
+                )
+                self.assertIsNotNone(job_block)
+                self.assertIn("working-directory: python", job_block.group(0))
 
         gate_start = self.workflow.index("  veridist-gate:")
         self.assertNotIn("working-directory:", self.workflow[gate_start:])
