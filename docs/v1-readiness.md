@@ -53,6 +53,12 @@ as a statement about uninspected current files.
 - The formal mutation runner and score, retained DS pass/byte trace artifact,
   browser screenshot of Persian rendering, actual source adapters, persistent
   checkpoint backend and production orchestrator are **NOT IMPLEMENTED**.
+- ADR-0016 now provides an evidence-gated migration ledger, a dependency-free
+  semantic/hash checker, AST/dynamic-import isolation checks and built-artifact
+  payload inspection in the configured package job. This is governance only:
+  no legacy runtime code, statistical implementation, compatibility surface or
+  browser RTL screenshot has been delivered. A ledger entry is a candidate,
+  not evidence of mathematical correctness.
 - Every exact numeric defect magnitude, benchmark, release status, competitor
   feature count, name/trademark availability, and SQL-export novelty remains
   unverified unless a current command or primary source is attached.
@@ -73,6 +79,7 @@ as a statement about uninspected current files.
 | Uncertainty | Bootstrap failure accounting and coverage evidence only for declared regular scenarios |
 | Censoring | Explicit likelihood semantics and reference tests; unsupported family combinations fail loudly |
 | Localization | Keep implemented EN/FA/DE parity and canonical example checks; verify remote `-W` builds/linkcheck and add browser-rendered RTL QA |
+| Migration | Keep ADR-0016 ledger hashes current; require independent specs/RED tests per candidate and retain `distfit_pro` import/package isolation |
 | Quality | Global >=95% line and branch; numerical `domain`/`statistics`/`families`/`engine` paths >=98% line and branch; every production file >=90% of both absent ADR; executable mutation >=80% for that scope |
 | Competitive evidence | Every public `supported`/`not_supported` claim cell source-locked at 100% coverage; source-lock registry/checker currently NOT IMPLEMENTED |
 | Release | Reproducible PyPI artifact, conda-forge publication readiness, valid `CITATION.cff`, Zenodo DOI release metadata, all CI tiers, changelog, security/license review, and public limitations/calibration report |

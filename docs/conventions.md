@@ -85,6 +85,27 @@ claim an unimplemented capability publicly.
   explicit and visible to callers.
 - Persian documentation is rendered RTL and visually smoke-tested.  Examples
   are executable from one canonical source or parity-tested across locales.
+- Every Persian HTML/PDF report must declare `lang="fa"` and `dir="rtl"` at
+  its document boundary. Code, formulae, URLs, API names and other Latin runs
+  require explicit LTR isolation; direction alone is not adequate mixed-script
+  layout evidence. A browser screenshot review of tables, code and formulae is
+  required before a rendered-RTL claim. The present structural checks are not
+  that browser evidence.
+
+## Legacy migration boundary -- Binding under ADR-0016
+
+- `veridist` is the sole runtime namespace and release artifact. Source code,
+  build metadata, wheel and sdist must not import, depend on, dynamically load,
+  or ship `distfit_pro`; legacy results are not an oracle or fallback.
+- Reuse starts with evidence, not copying. Every considered legacy component
+  has a Draft 2020-12 ledger entry with source commit/path/blob/SHA-256,
+  license, independent evidence, reviewers, limits and exactly one
+  disposition: `modify_port`, `rewrite`, or `archive`. A changed `origin/main`
+  source hash makes the evidence stale.
+- A `modify_port` entry is only a candidate; it needs an independent v1
+  specification and RED tests before implementation. Translated legacy content
+  is reviewed-content input, never behavioural authority. Exponential is a
+  rewrite.
 
 ## Git discipline -- Binding repository process
 
