@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridist.dev/schemas/legacy-salvage-ledger.schema.json",
+  "title": "veridist legacy salvage ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "target_namespace", "legacy_package", "entries"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "target_namespace": {"const": "veridist"},
+    "legacy_package": {"const": "distfit_pro"},
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["component", "disposition", "source", "license", "evidence", "reviews", "limits"],
+        "properties": {
+          "component": {"type": "string", "minLength": 1},
+          "disposition": {"enum": ["modify_port", "rewrite", "archive"]},
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["commit", "path", "blob", "sha256"],
+            "properties": {
+              "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+              "path": {"type": "string", "pattern": "^distfit_pro/"},
+              "blob": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+              "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+            }
+          },
+          "license": {"const": "MIT"},
+          "evidence": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "reviews": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "limits": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    }
+  }
+}

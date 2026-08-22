@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "target_namespace": "veridist",
+  "legacy_package": "distfit_pro",
+  "entries": [
+    {
+      "component": "diagnostic-taxonomy",
+      "disposition": "modify_port",
+      "source": {
+        "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",
+        "path": "distfit_pro/core/diagnostics.py",
+        "blob": "f6ed9d6fb567b1cbd58e8b77d71a4acb22673412",
+        "sha256": "c192c57d6a681eb7bab57e89baaffb677c16e0b8e53ad0c6ce8b42522ad7e365"
+      },
+      "license": "MIT",
+      "evidence": ["docs/v1-readiness.md#static-verified-legacy-defects"],
+      "reviews": ["ADR-0016"],
+      "limits": ["Candidate only; no legacy runtime import, result oracle, or API compatibility approval."]
+    },
+    {
+      "component": "exponential",
+      "disposition": "rewrite",
+      "source": {
+        "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",
+        "path": "distfit_pro/fitting/fitter.py",
+        "blob": "8228c607a9df4cfc8f5edb2062594d6ad12ce5b5",
+        "sha256": "e2f5fa81206e113d18875472408ec542fa969d7d4fc9679d094885b9e9843198"
+      },
+      "license": "MIT",
+      "evidence": ["docs/v1-test-plan.md#core-and-numerical-tests"],
+      "reviews": ["ADR-0016"],
+      "limits": ["Implement from an independent specification; legacy output is not a numerical oracle."]
+    },
+    {
+      "component": "legacy-package-marker",
+      "disposition": "archive",
+      "source": {
+        "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",
+        "path": "distfit_pro/__init__.py",
+        "blob": "abd8ab0fb24ba041254cc31f166790a8cdf3b43a",
+        "sha256": "441c1c2b6c5c9f5d4e88a97b629b0defc75a01540f13ca8414d5af9dab8a4746"
+      },
+      "license": "MIT",
+      "evidence": ["docs/adr/ADR-0001-greenfield-python-first-and-legacy-policy.md"],
+      "reviews": ["ADR-0016"],
+      "limits": ["Read-only historical context; not package content or a compatibility shim."]
+    }
+  ]
+}
