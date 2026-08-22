@@ -78,6 +78,15 @@ class LegacyIsolationTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("legacy dependency", result.stderr)
 
+    def test_checker_normalizes_pep503_legacy_dependency_names(self) -> None:
+        for name in ("distfit_pro[docs]; python_version >= '3.11'", "distfit.pro>=1"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary_directory:
+                wheel = Path(temporary_directory) / "veridist-0.0.0-py3-none-any.whl"
+                with zipfile.ZipFile(wheel, "w") as archive:
+                    archive.writestr("veridist-0.0.0.dist-info/METADATA", f"Requires-Dist: {name}\n")
+                result = self._run("--artifact", str(wheel))
+                self.assertNotEqual(result.returncode, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

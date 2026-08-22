@@ -46,6 +46,9 @@ class MigrationLedgerTests(unittest.TestCase):
         for entry in entries:
             self.assertEqual(set(entry["isolation"].values()), {False})
             self.assertEqual(set(entry["reviews"]), {"license", "statistical", "scale", "i18n"})
+            self.assertEqual(set(entry["license"]), {"spdx", "basis"})
+            self.assertEqual(entry["license"]["spdx"], "MIT")
+            self.assertEqual(entry["license"]["basis"], "LICENSE")
         exponential = next(entry for entry in entries if entry["component"] == "exponential")
         self.assertEqual(exponential["disposition"], "rewrite")
 
@@ -93,6 +96,20 @@ class MigrationLedgerTests(unittest.TestCase):
             )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("archive", result.stderr)
+
+    def test_checker_rejects_extra_keys_and_invalid_review_value(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_ledger = Path(temporary_directory) / "ledger.json"
+            ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+            ledger["entries"][0]["unexpected"] = True
+            temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
+            extra = subprocess.run([sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)], cwd=REPOSITORY_ROOT, check=False, capture_output=True, text=True)
+            ledger["entries"][0].pop("unexpected")
+            ledger["entries"][0]["reviews"]["license"] = "unknown"
+            temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
+            review = subprocess.run([sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)], cwd=REPOSITORY_ROOT, check=False, capture_output=True, text=True)
+        self.assertNotEqual(extra.returncode, 0)
+        self.assertNotEqual(review.returncode, 0)
 
 
 if __name__ == "__main__":
