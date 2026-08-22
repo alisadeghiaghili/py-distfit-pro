@@ -89,6 +89,26 @@ class LegacyIsolationTests(unittest.TestCase):
                 result = self._run("--artifact", str(wheel))
                 self.assertNotEqual(result.returncode, 0)
 
+    def test_checker_scans_sdist_pkg_info_dependencies_without_false_positives(self) -> None:
+        cases = (
+            ("distfit_pro[docs]; python_version >= '3.11'", True),
+            ("distfit.pro>=1", True),
+            ("distfit-project>=1", False),
+        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            for index, (requirement, rejected) in enumerate(cases):
+                with self.subTest(requirement=requirement):
+                    sdist = directory / f"veridist-{index}.tar.gz"
+                    pkg_info = directory / "PKG-INFO"
+                    pkg_info.write_text(
+                        f"Metadata-Version: 2.3\nRequires-Dist: {requirement}\n", encoding="utf-8"
+                    )
+                    with tarfile.open(sdist, "w:gz") as archive:
+                        archive.add(pkg_info, arcname=f"veridist-{index}/PKG-INFO")
+                    result = self._run("--artifact", str(sdist))
+                    self.assertEqual(result.returncode != 0, rejected, result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

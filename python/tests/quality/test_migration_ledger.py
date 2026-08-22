@@ -52,6 +52,24 @@ class MigrationLedgerTests(unittest.TestCase):
         exponential = next(entry for entry in entries if entry["component"] == "exponential")
         self.assertEqual(exponential["disposition"], "rewrite")
 
+    def test_schema_closes_and_types_every_nested_ledger_contract(self) -> None:
+        schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+        entry = schema["properties"]["entries"]["items"]
+        self.assertFalse(entry["additionalProperties"])
+        for field in ("target", "source", "evidence", "reviews", "isolation", "license"):
+            nested = entry["properties"][field]
+            self.assertEqual(nested["type"], "object")
+            self.assertFalse(nested["additionalProperties"])
+            self.assertTrue(nested["required"])
+        self.assertEqual(
+            entry["properties"]["source"]["properties"]["path"]["pattern"],
+            "^(?:distfit_pro|tests|examples)/",
+        )
+        self.assertEqual(
+            entry["properties"]["reviews"]["properties"]["license"]["enum"],
+            ["reviewed", "review_pending", "not_applicable"],
+        )
+
     def test_checker_rejects_a_stale_hash_and_cross_field_policy_violation(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_ledger = Path(temporary_directory) / "ledger.json"
@@ -92,7 +110,10 @@ class MigrationLedgerTests(unittest.TestCase):
             temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
             result = subprocess.run(
                 [sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)],
-                cwd=REPOSITORY_ROOT, check=False, capture_output=True, text=True,
+                cwd=REPOSITORY_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
             )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("archive", result.stderr)
@@ -115,6 +136,38 @@ class MigrationLedgerTests(unittest.TestCase):
             )
         self.assertNotEqual(extra.returncode, 0)
         self.assertNotEqual(review.returncode, 0)
+
+    def test_checker_rejects_schema_contract_drift_and_wrong_nested_types(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+            schema["properties"]["entries"]["items"]["properties"]["reviews"].pop(
+                "additionalProperties"
+            )
+            temporary_schema = directory / "schema.json"
+            temporary_schema.write_text(json.dumps(schema), encoding="utf-8")
+            drift = subprocess.run(
+                [sys.executable, str(CHECKER_PATH), "--schema", str(temporary_schema)],
+                cwd=REPOSITORY_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+            ledger["entries"][0]["target"]["public_surface"] = "false"
+            temporary_ledger = directory / "ledger.json"
+            temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
+            wrong_type = subprocess.run(
+                [sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)],
+                cwd=REPOSITORY_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertNotEqual(drift.returncode, 0)
+        self.assertIn("schema", drift.stderr)
+        self.assertNotEqual(wrong_type.returncode, 0)
+        self.assertIn("target", wrong_type.stderr)
 
 
 if __name__ == "__main__":
