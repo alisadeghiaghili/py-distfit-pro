@@ -19,10 +19,144 @@ LEDGER_PATH = MIGRATION_ROOT / "legacy-salvage-ledger.json"
 ALLOWED_DISPOSITIONS = frozenset({"modify_port", "rewrite", "archive"})
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
+RELEASE = re.compile(r"^(?:unplanned|0\.[0-9]+\.[0-9]+(?:a[0-9]+)?)$")
+REVIEW_VALUES = ["reviewed", "review_pending", "not_applicable"]
 
 
 class LedgerError(ValueError):
     """Raised when a ledger claim cannot be independently verified."""
+
+
+def _schema_value(schema: dict[str, Any], path: str) -> Any:
+    value: Any = schema
+    if not path:
+        return value
+    for part in path.split("."):
+        if not isinstance(value, dict) or part not in value:
+            raise LedgerError(f"schema contract missing {path}")
+        value = value[part]
+    return value
+
+
+def _require_schema(schema: dict[str, Any], path: str, **expected: Any) -> None:
+    value = _schema_value(schema, path)
+    if not isinstance(value, dict) or any(
+        value.get(key) != wanted for key, wanted in expected.items()
+    ):
+        raise LedgerError(f"schema contract drift at {path}")
+
+
+def _validate_schema_contract(schema: dict[str, Any]) -> None:
+    """Check the enforced Draft 2020-12 contract using only the standard library."""
+    if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+        raise LedgerError("schema must declare JSON Schema Draft 2020-12")
+    _require_schema(schema, "", type="object", additionalProperties=False)
+    properties = _schema_value(schema, "properties")
+    required_root = {"schema_version", "target_namespace", "legacy_package", "entries"}
+    if not isinstance(properties, dict) or set(properties) != required_root:
+        raise LedgerError("schema contract drift at root properties")
+    for name, constant in (
+        ("schema_version", "1.0"),
+        ("target_namespace", "veridist"),
+        ("legacy_package", "distfit_pro"),
+    ):
+        _require_schema(schema, f"properties.{name}", type="string", const=constant)
+    _require_schema(schema, "properties.entries", type="array", minItems=1)
+    entry_path = "properties.entries.items"
+    _require_schema(schema, entry_path, type="object", additionalProperties=False)
+    entry = _schema_value(schema, entry_path)
+    expected_fields = {
+        "id",
+        "component",
+        "component_kind",
+        "target",
+        "status",
+        "disposition",
+        "source",
+        "license",
+        "evidence",
+        "reviews",
+        "isolation",
+        "limits",
+    }
+    if (
+        set(entry.get("required", [])) != expected_fields
+        or set(entry.get("properties", {})) != expected_fields
+    ):
+        raise LedgerError("schema contract drift at entry fields")
+    for name in ("target", "source", "license", "evidence", "reviews", "isolation"):
+        nested_path = f"{entry_path}.properties.{name}"
+        _require_schema(schema, nested_path, type="object", additionalProperties=False)
+        nested = _schema_value(schema, nested_path)
+        if set(nested.get("required", [])) != set(nested.get("properties", {})):
+            raise LedgerError(f"schema contract drift at {name} fields")
+    _require_schema(
+        schema,
+        f"{entry_path}.properties.source.properties.path",
+        type="string",
+        pattern="^(?:distfit_pro|tests|examples)/",
+        minLength=1,
+    )
+    _require_schema(
+        schema,
+        f"{entry_path}.properties.target.properties.path",
+        type="string",
+        pattern="^python/(?:src/veridist|docs)/",
+        minLength=1,
+    )
+    _require_schema(
+        schema, f"{entry_path}.properties.target.properties.public_surface", type="boolean"
+    )
+    _require_schema(
+        schema,
+        f"{entry_path}.properties.target.properties.release",
+        type="string",
+        pattern=RELEASE.pattern,
+    )
+    for name in ("commit", "blob"):
+        _require_schema(
+            schema,
+            f"{entry_path}.properties.source.properties.{name}",
+            type="string",
+            pattern="^[0-9a-f]{40}$",
+        )
+    _require_schema(
+        schema,
+        f"{entry_path}.properties.source.properties.sha256",
+        type="string",
+        pattern="^[0-9a-f]{64}$",
+    )
+    for name, constant in (("spdx", "MIT"), ("basis", "LICENSE")):
+        _require_schema(
+            schema,
+            f"{entry_path}.properties.license.properties.{name}",
+            type="string",
+            const=constant,
+        )
+    for name in ("license", "statistical", "scale", "i18n"):
+        _require_schema(
+            schema,
+            f"{entry_path}.properties.reviews.properties.{name}",
+            type="string",
+            enum=REVIEW_VALUES,
+        )
+    for name in (
+        "runtime_import",
+        "runtime_dependency",
+        "dynamic_fallback",
+        "package_content",
+        "oracle",
+    ):
+        _require_schema(
+            schema,
+            f"{entry_path}.properties.isolation.properties.{name}",
+            type="boolean",
+            const=False,
+        )
+    for name in ("limits", "evidence.scenario_ids", "evidence.test_ids", "evidence.reference_ids"):
+        schema_path = f"{entry_path}.properties.{name.replace('.', '.properties.')}"
+        _require_schema(schema, schema_path, type="array", minItems=1)
+        _require_schema(schema, f"{schema_path}.items", type="string", minLength=1)
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -74,8 +208,7 @@ def _require_strings(entry: dict[str, Any], key: str) -> list[str]:
 def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -> None:
     schema = _read_json(schema_path)
     ledger = _read_json(ledger_path)
-    if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
-        raise LedgerError("schema must declare JSON Schema Draft 2020-12")
+    _validate_schema_contract(schema)
     if ledger.get("schema_version") != "1.0":
         raise LedgerError("unsupported ledger schema_version")
     if (
@@ -136,7 +269,15 @@ def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -
         target_keys = {"path", "public_surface", "release"}
         if not isinstance(target, dict) or set(target) != target_keys:
             raise LedgerError(f"{component}: target must declare path/public_surface/release")
-        if not isinstance(target["path"], str) or not isinstance(target["public_surface"], bool):
+        if (
+            not isinstance(target["path"], str)
+            or not target["path"].startswith(("python/src/veridist/", "python/docs/"))
+            or Path(target["path"]).is_absolute()
+            or ".." in Path(target["path"]).parts
+            or not isinstance(target["public_surface"], bool)
+            or not isinstance(target["release"], str)
+            or not RELEASE.fullmatch(target["release"])
+        ):
             raise LedgerError(f"{component}: target types are invalid")
         evidence = entry.get("evidence")
         if not isinstance(evidence, dict) or set(evidence) != {
@@ -160,7 +301,7 @@ def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -
             "i18n",
         }:
             raise LedgerError(f"{component}: reviews must be categorized")
-        review_values = {"reviewed", "review_pending", "not_applicable"}
+        review_values = set(REVIEW_VALUES)
         if any(value not in review_values for value in reviews.values()):
             raise LedgerError(f"{component}: review values are invalid")
         isolation = entry.get("isolation")
@@ -174,7 +315,7 @@ def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -
         if (
             not isinstance(isolation, dict)
             or set(isolation) != isolation_keys
-            or any(isolation.values())
+            or any(value is not False for value in isolation.values())
         ):
             raise LedgerError(f"{component}: all legacy isolation booleans must be false")
         source = entry.get("source")

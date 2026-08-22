@@ -1,46 +1,173 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://veridist.dev/schemas/legacy-salvage-ledger.schema.json",
-  "title": "veridist legacy salvage ledger",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["schema_version", "target_namespace", "legacy_package", "entries"],
-  "properties": {
-    "schema_version": {"const": "1.0"},
-    "target_namespace": {"const": "veridist"},
-    "legacy_package": {"const": "distfit_pro"},
-    "entries": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["id", "component", "component_kind", "target", "status", "disposition", "source", "license", "evidence", "reviews", "isolation", "limits"],
-        "properties": {
-          "id": {"type": "string", "pattern": "^LM-[0-9]{3}$"},
-          "component": {"type": "string", "minLength": 1},
-          "component_kind": {"type": "string", "minLength": 1},
-          "target": {"type": "object"},
-          "status": {"enum": ["review_pending", "archived"]},
-          "disposition": {"enum": ["modify_port", "rewrite", "archive"]},
-          "source": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["commit", "path", "blob", "sha256"],
-            "properties": {
-              "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-              "path": {"type": "string", "pattern": "^distfit_pro/"},
-              "blob": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-              "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://veridist.dev/schemas/legacy-salvage-ledger.schema.json",
+    "title": "veridist legacy salvage ledger",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["schema_version", "target_namespace", "legacy_package", "entries"],
+    "properties": {
+        "schema_version": {"type": "string", "const": "1.0"},
+        "target_namespace": {"type": "string", "const": "veridist"},
+        "legacy_package": {"type": "string", "const": "distfit_pro"},
+        "entries": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "component",
+                    "component_kind",
+                    "target",
+                    "status",
+                    "disposition",
+                    "source",
+                    "license",
+                    "evidence",
+                    "reviews",
+                    "isolation",
+                    "limits"
+                ],
+                "properties": {
+                    "id": {"type": "string", "pattern": "^LM-[0-9]{3}$"},
+                    "component": {"type": "string", "minLength": 1},
+                    "component_kind": {"type": "string", "minLength": 1},
+                    "target": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["path", "public_surface", "release"],
+                        "properties": {
+                            "path": {
+                                "type": "string",
+                                "pattern": "^python/(?:src/veridist|docs)/",
+                                "minLength": 1
+                            },
+                            "public_surface": {"type": "boolean"},
+                            "release": {
+                                "type": "string",
+                                "pattern": "^(?:unplanned|0\\.[0-9]+\\.[0-9]+(?:a[0-9]+)?)$"
+                            }
+                        }
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": ["review_pending", "archived"]
+                    },
+                    "disposition": {
+                        "type": "string",
+                        "enum": ["modify_port", "rewrite", "archive"]
+                    },
+                    "source": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["commit", "path", "blob", "sha256"],
+                        "properties": {
+                            "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                            "path": {
+                                "type": "string",
+                                "pattern": "^(?:distfit_pro|tests|examples)/",
+                                "minLength": 1
+                            },
+                            "blob": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                            "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+                        }
+                    },
+                    "license": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["spdx", "basis"],
+                        "properties": {
+                            "spdx": {"type": "string", "const": "MIT"},
+                            "basis": {"type": "string", "const": "LICENSE"}
+                        }
+                    },
+                    "evidence": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["scenario_ids", "test_ids", "reference_ids"],
+                        "properties": {
+                            "scenario_ids": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {"type": "string", "minLength": 1}
+                            },
+                            "test_ids": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {"type": "string", "minLength": 1}
+                            },
+                            "reference_ids": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {"type": "string", "minLength": 1}
+                            }
+                        }
+                    },
+                    "reviews": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["license", "statistical", "scale", "i18n"],
+                        "properties": {
+                            "license": {
+                                "type": "string",
+                                "enum": [
+                                    "reviewed",
+                                    "review_pending",
+                                    "not_applicable"
+                                ]
+                            },
+                            "statistical": {
+                                "type": "string",
+                                "enum": [
+                                    "reviewed",
+                                    "review_pending",
+                                    "not_applicable"
+                                ]
+                            },
+                            "scale": {
+                                "type": "string",
+                                "enum": [
+                                    "reviewed",
+                                    "review_pending",
+                                    "not_applicable"
+                                ]
+                            },
+                            "i18n": {
+                                "type": "string",
+                                "enum": [
+                                    "reviewed",
+                                    "review_pending",
+                                    "not_applicable"
+                                ]
+                            }
+                        }
+                    },
+                    "isolation": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "runtime_import",
+                            "runtime_dependency",
+                            "dynamic_fallback",
+                            "package_content",
+                            "oracle"
+                        ],
+                        "properties": {
+                            "runtime_import": {"type": "boolean", "const": false},
+                            "runtime_dependency": {"type": "boolean", "const": false},
+                            "dynamic_fallback": {"type": "boolean", "const": false},
+                            "package_content": {"type": "boolean", "const": false},
+                            "oracle": {"type": "boolean", "const": false}
+                        }
+                    },
+                    "limits": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {"type": "string", "minLength": 1}
+                    }
+                }
             }
-          },
-          "license": {"const": "MIT"},
-          "evidence": {"type": "object"},
-          "reviews": {"type": "object"},
-          "isolation": {"type": "object"},
-          "limits": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
         }
-      }
     }
-  }
 }
