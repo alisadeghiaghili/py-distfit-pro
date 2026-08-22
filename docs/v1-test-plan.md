@@ -51,10 +51,12 @@ parallel speedup is a universal unit-test assertion.
 This is the binding test design for the DataSource rules in
 [conventions.md](conventions.md) and ADR-0005. IDs are stable: an ADR or
 implementation may add tests, but may not weaken or rename an ID without a
-superseding ADR. The harness and fixtures below are **NOT IMPLEMENTED**; no
-current command, adapter or production result is implied.
+superseding ADR. The contract fixtures below are implemented using in-memory
+sources and test doubles in commits `d846fc8` through `1345666`. This does not
+imply an actual file/database adapter, persistent checkpoint backend,
+production orchestrator or scale result.
 
-| ID | Contract | Planned test fixture | Observable assertion |
+| ID | Contract | Contract test fixture | Observable assertion |
 | --- | --- | --- | --- |
 | DS-01 | Identity, schema and redaction | metadata-contract fixture | Source ID is stable; schema/provenance versions are non-empty and supported; either a source hash is present or an explicit redaction reason is present. |
 | DS-02 | Replayability plan | one `single_pass`, one `replayable`, one `checkpoint_replayable` fake source | Planner accepts within-budget plans only; it rejects a second pass on `single_pass` before iteration; checkpoint replay is accepted only with compatible checkpoint metadata. |
@@ -69,10 +71,11 @@ current command, adapter or production result is implied.
 | DS-11 | Partial-result labelling | failure after a known offset range | A returned partial result has `complete=False`, exact missing ranges and a typed cause; a complete result cannot contain missing ranges or a partial cause. |
 | DS-12 | Full provenance | completed, cancelled, retried and redacted runs | Provenance validates schema/version, source ID/hash-or-redaction, row ranges/count, chunk/pass/budget settings, adapter/library versions, estimator/RNG/approximation and checkpoint metadata; raw input is absent under redaction. |
 
-The first vertical slice must implement this matrix as executable tests before
-advertising a DataSource adapter or a scale tier. The matrix harness is also a
-release artifact: it must emit fixture version, observed pass/byte traces and
-the typed-result/provenance record needed to audit each assertion.
+The executable contract matrix is a prerequisite, not evidence that a
+DataSource adapter or scale tier exists. Before either is advertised, the same
+matrix must run against the actual adapter/orchestrator and retain fixture
+version, observed pass/byte traces and the typed-result/provenance record needed
+to audit each assertion. That retained scale artifact is not implemented.
 
 ## Statistical evidence
 
@@ -103,14 +106,14 @@ probability that a model is true.
 
 ## CI tiers and checker contract
 
-PR CI will run core, DS-01--DS-12 scale-contract, docs/i18n and example tests
-from the first vertical slice on Python 3.10, 3.11, 3.12 and 3.13 on Linux;
-release CI adds supported Windows and macOS. Pin dependencies and record
-Python, NumPy, SciPy and locale/rendering versions. CI configuration, commands,
-coverage parser, mutation runner and documentation toolchain are all **Planned
-/ NOT IMPLEMENTED**. No executable command is claimed here.
+The pushed PR workflow configures Ruff, strict source type checking,
+DS-01--DS-12 contracts, branch coverage, package build/clean-wheel smoke and
+EN/FA/DE documentation checks on Linux. Tests run on Python 3.11, 3.12, 3.13
+and 3.14. The aggregate checks are configured in `e23cda5` through `89202c6`;
+their remote execution remains **UNVERIFIED**. A supported Windows/macOS
+release matrix is not implemented.
 
-The planned checker contract is exact: its coverage input must identify every
+The implemented coverage checker contract is exact: its input must identify every
 production file and report separate line and branch percentages; it fails when
 global line <95%, global branch <95%, a numerical production path in
 `domain`, `statistics`, `families` or `engine` has line or branch <98%, or any
@@ -124,8 +127,11 @@ cover`, import-only execution, test-only helpers, and configuration exclusions
 cannot reduce a denominator unless an accepted ADR supplies an exact path,
 rationale, owner and expiry.
 
-The planned docs checker builds EN, FA and DE with warnings fatal, checks links,
-executes canonical examples/parity tests and captures an RTL smoke artifact.
-The planned scale checker executes DS-01--DS-12 and retains pass/byte traces.
-Calibration, scale, docs/i18n/example and rendered-RTL artifacts are continuous
-gates, not skipped placeholders or late-release work.
+The documentation job is configured to build EN, FA and DE with warnings fatal,
+check links, execute canonical examples/parity tests, validate direction and
+retain rendered HTML. Structural/parity checks pass locally; the complete local
+Sphinx and remote job results remain unverified, and a browser screenshot is
+not implemented. The formal mutation runner and the scale checker that retains
+pass/byte traces are also not implemented. Calibration, scale,
+docs/i18n/example and rendered-RTL artifacts remain required continuous gates,
+not skipped placeholders or late-release work.

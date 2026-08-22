@@ -44,3 +44,19 @@ vertical slice.
 ## Consequences
 
 Documentation/i18n/examples become continuous gates, not late release work.
+
+## Implementation evidence addendum -- 2026-08-22
+
+The Sphinx/MyST/gettext structure, stable parity manifest, EN/FA/DE catalogs,
+RTL stylesheet, canonical executable example and strict rendered-direction
+checker are now present. Structural documentation tests and locale parity pass
+locally. The pushed CI configuration installs the declared documentation extra,
+builds gettext and all three HTML locales with warnings fatal, runs linkcheck,
+validates rendered direction and retains HTML artifacts.
+
+The complete local Sphinx run remains **UNVERIFIED**: on 2026-08-22, the
+available Sphinx 8.2.3 environment failed before the gettext build because it
+lacked the declared `myst_parser` dependency. The remote CI result is also
+unverified. Browser-rendered Persian screenshot evidence is not
+implemented, so this addendum does not claim complete visual RTL QA or complete
+v1 documentation.
