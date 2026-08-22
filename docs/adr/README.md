@@ -30,9 +30,13 @@ needed.
 | 0013 | Documentation toolchain | Accepted |
 | 0014 | Evidence freezing and competitive claims | Proposed |
 | 0015 | Retry/checkpoint transactional guarantees | Accepted |
+| 0016 | Evidence-gated legacy salvage and migration ledger | Accepted; partially supersedes ADR-0001's no-port prohibition only |
 
 ## Dependency notes
 
 - ADR-0015 depends on Accepted ADR-0005, ADR-0006 and ADR-0010. Any public
   durability, security or encryption claim also depends on a separate Accepted
   persistent-backend/security ADR; that record does not yet exist.
+- ADR-0016 partially supersedes ADR-0001 only by permitting evidence-gated
+  legacy salvage. ADR-0001's Python-first, independent-golden, and
+  no-legacy-oracle decisions remain binding.
