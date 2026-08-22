@@ -653,7 +653,11 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
             pass
 
         extended = ExtendedReport(value.outcome, value.provenance)
-        extended.payload = "private"
+        # A frozen/slotted base can reject this direct assignment with a
+        # CPython-version-specific setter exception.  Build the adversarial
+        # subclass payload directly so this contract always exercises the
+        # serializer's exact-type rejection.
+        object.__setattr__(extended, "payload", "private")
         with self.assertRaises(TypeError):
             to_canonical_json_bytes(extended)
         with self.assertRaises(TypeError):
