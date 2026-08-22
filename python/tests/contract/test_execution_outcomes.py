@@ -195,14 +195,19 @@ class ExecutionOutcomeContractTests(unittest.TestCase):
             FailureRecord("MISSING_CHUNK", FailureStage.DELIVERY)  # type: ignore[arg-type]
         with self.assertRaises(TypeError):
             FailureRecord(FailureCode.MISSING_CHUNK, "delivery")  # type: ignore[arg-type]
-        with self.assertRaises(FrozenInstanceError):
+        # CPython's generated frozen/slotted dataclass setter differs for a
+        # subclass instance across supported versions.  The public record must
+        # still be immutable; its exact implementation exception is not data.
+        with self.assertRaises((FrozenInstanceError, TypeError)):
             failure.code = FailureCode.CANCELLED  # type: ignore[misc]
 
         class ExtendedFailure(FailureRecord):
             pass
 
         extended = ExtendedFailure(FailureCode.MISSING_CHUNK, FailureStage.DELIVERY)
-        extended.context = {"payload": "private"}
+        # Build an adversarial subclass payload without depending on the
+        # version-specific generated __setattr__ implementation above.
+        object.__setattr__(extended, "context", {"payload": "private"})
         with self.assertRaises(TypeError):
             FailedOutcome(known(1), extended)
 

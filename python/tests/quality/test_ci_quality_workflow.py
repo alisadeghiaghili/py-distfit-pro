@@ -99,6 +99,17 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("continue-on-error", self.workflow)
         self.assertNotIn("|| true", self.workflow)
 
+    def test_aggregate_gate_runs_from_the_checkout_root_without_a_checkout(self) -> None:
+        self.assertNotIn("defaults:\n  run:\n    working-directory: python", self.workflow)
+        for job in ("static", "tests", "package", "docs"):
+            with self.subTest(job=job):
+                job_start = self.workflow.index(f"  {job}:")
+                job_end = self.workflow.index("\n  ", job_start + 3)
+                self.assertIn("working-directory: python", self.workflow[job_start:job_end])
+
+        gate_start = self.workflow.index("  veridist-gate:")
+        self.assertNotIn("working-directory:", self.workflow[gate_start:])
+
 
 if __name__ == "__main__":
     unittest.main()

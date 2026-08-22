@@ -528,11 +528,11 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
             replace(base.source, mutation_status="verified")  # type: ignore[arg-type]
         with self.assertRaises(ValueError):
             replace(base, schema_version="2")
-        with self.assertRaises(FrozenInstanceError):
+        with self.assertRaises((FrozenInstanceError, TypeError)):
             base.source.schema_version = "schema-v2"  # type: ignore[misc]
-        with self.assertRaises(FrozenInstanceError):
+        with self.assertRaises((FrozenInstanceError, TypeError)):
             base.execution.buffer.peak_inflight_bytes = 0  # type: ignore[misc]
-        with self.assertRaises(FrozenInstanceError):
+        with self.assertRaises((FrozenInstanceError, TypeError)):
             base.checkpoint = CheckpointNotUsed()  # type: ignore[misc]
 
     def test_ds12_rng_policy_enforces_seed_and_algorithm_invariants(self) -> None:
