@@ -8,7 +8,7 @@
       "component": "diagnostic-taxonomy",
       "component_kind": "diagnostic-scenario",
       "target": {"path": "python/src/veridist/engine/errors.py", "public_surface": false, "release": "unplanned"},
-      "status": "review_pending",
+      "status": "archived",
       "disposition": "archive",
       "source": {
         "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",

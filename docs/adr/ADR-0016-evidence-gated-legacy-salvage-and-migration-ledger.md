@@ -2,7 +2,7 @@
 
 Status: Accepted
 
-Owner: Ali Sadeghi
+Owner: Ali Sadeghi Aghili
 
 ## Context
 
@@ -55,7 +55,7 @@ string workaround cannot bypass the rule.
 
 ## Dependencies
 
-ADR-0001, ADR-0006, ADR-0011, ADR-0013; a later accepted family ADR is needed
+ADR-0001, ADR-0005, ADR-0006, ADR-0010, ADR-0011, ADR-0013; a later accepted family ADR is needed
 before any statistical implementation is advertised.
 
 ## Consequences

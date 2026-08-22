@@ -124,6 +124,11 @@ def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -
         if disposition not in ALLOWED_DISPOSITIONS:
             raise LedgerError(f"{component}: unsupported disposition")
         seen_dispositions.add(disposition)
+        status = entry.get("status")
+        if disposition == "archive" and status != "archived":
+            raise LedgerError(f"{component}: archive disposition requires archived status")
+        if disposition in {"rewrite", "modify_port"} and status != "review_pending":
+            raise LedgerError(f"{component}: active disposition requires review_pending status")
         if entry.get("license") != "MIT":
             raise LedgerError(f"{component}: license must be independently recorded as MIT")
         _require_strings(entry, "limits")
