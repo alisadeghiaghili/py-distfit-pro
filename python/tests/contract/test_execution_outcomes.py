@@ -235,9 +235,13 @@ class ExecutionOutcomeContractTests(unittest.TestCase):
         outcome = PartialOutcome(coverage, self.cancelled)
 
         self.assertIs(outcome.coverage, coverage)
-        with self.assertRaises(FrozenInstanceError):
+        # Frozen/slotted dataclasses reject direct mutation on every supported
+        # CPython version.  Their generated setter can surface either
+        # FrozenInstanceError or TypeError, so the exception class is not part
+        # of the public outcome contract.
+        with self.assertRaises((FrozenInstanceError, TypeError)):
             outcome.coverage = known(2, RowRange(0, 2))  # type: ignore[misc]
-        with self.assertRaises(FrozenInstanceError):
+        with self.assertRaises((FrozenInstanceError, TypeError)):
             coverage.processed_ranges = ()  # type: ignore[misc]
 
     def test_ds11_classifier_table_is_exhaustive_for_known_final_states(self) -> None:
