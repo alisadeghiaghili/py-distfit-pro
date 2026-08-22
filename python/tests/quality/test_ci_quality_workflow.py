@@ -44,6 +44,14 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn("--manifest quality/coverage-manifest.json", self.workflow)
         self.assertIn("--coverage-json coverage.json", self.workflow)
 
+    def test_tests_job_fetches_history_for_immutable_ledger_evidence(self) -> None:
+        job_block = re.search(r"(?ms)^  tests:$(.*?)(?=^  \S|\Z)", self.workflow)
+        self.assertIsNotNone(job_block)
+        self.assertIn(
+            "uses: actions/checkout@v4\n        with:\n          fetch-depth: 0",
+            job_block.group(0),
+        )
+
     def test_package_job_builds_checks_and_installs_the_wheel_outside_checkout(self) -> None:
         self.assertIn("  package:", self.workflow)
         self.assertIn("name: veridist / package", self.workflow)

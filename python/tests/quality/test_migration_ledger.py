@@ -169,6 +169,22 @@ class MigrationLedgerTests(unittest.TestCase):
         self.assertNotEqual(wrong_type.returncode, 0)
         self.assertIn("target", wrong_type.stderr)
 
+    def test_checker_distinguishes_unavailable_evidence_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_ledger = Path(temporary_directory) / "ledger.json"
+            ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+            ledger["entries"][0]["source"]["commit"] = "0" * 40
+            temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)],
+                cwd=REPOSITORY_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("source.commit unavailable", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
