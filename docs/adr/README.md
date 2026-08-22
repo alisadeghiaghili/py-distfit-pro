@@ -29,3 +29,10 @@ needed.
 | 0012 | Competitive coverage strategy | Accepted |
 | 0013 | Documentation toolchain | Accepted |
 | 0014 | Evidence freezing and competitive claims | Proposed |
+| 0015 | Retry/checkpoint transactional guarantees | Accepted |
+
+## Dependency notes
+
+- ADR-0015 depends on Accepted ADR-0005, ADR-0006 and ADR-0010. Any public
+  durability, security or encryption claim also depends on a separate Accepted
+  persistent-backend/security ADR; that record does not yet exist.

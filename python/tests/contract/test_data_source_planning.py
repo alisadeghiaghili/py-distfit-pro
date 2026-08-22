@@ -145,13 +145,22 @@ class ReplayabilityPlanningContractTests(unittest.TestCase):
             plan_passes(source, required_passes=2)
         self.assertEqual(required.exception.code, "CHECKPOINT_REQUIRED")
 
-        with self.assertRaises(DataSourceCapabilityError) as incompatible:
-            plan_passes(
-                source,
-                required_passes=2,
-                checkpoint=CheckpointMetadata("dataset:other", "checkpoint-v2"),
-            )
-        self.assertEqual(incompatible.exception.code, "CHECKPOINT_INCOMPATIBLE")
+        mismatches = (
+            (
+                CheckpointMetadata("dataset:other", "checkpoint-v1"),
+                "CHECKPOINT_SOURCE_ID_MISMATCH",
+            ),
+            (
+                CheckpointMetadata("dataset:example-001", "checkpoint-v2"),
+                "CHECKPOINT_SCHEMA_MISMATCH",
+            ),
+        )
+        for checkpoint, expected_code in mismatches:
+            with self.subTest(expected_code=expected_code), self.assertRaises(
+                DataSourceCapabilityError
+            ) as incompatible:
+                plan_passes(source, required_passes=2, checkpoint=checkpoint)
+            self.assertEqual(incompatible.exception.code, expected_code)
         self.assertEqual(source.read_count, 0)
 
     def test_ds02_invalid_pass_budget_is_rejected_before_iteration(self) -> None:

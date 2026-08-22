@@ -1,16 +1,25 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "veridist"
 version = "0.0.0.dev0"
-description = "Greenfield, evidence-first distribution fitting"
+description = "Evidence-first distribution fitting with explicit execution contracts"
+readme = { file = "README.md", content-type = "text/markdown" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Ali Sadeghi Aghili", email = "alisadeghiaghili@gmail.com" },
 ]
 requires-python = ">=3.11"
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/alisadeghiaghili/py-distfit-pro"
+Documentation = "https://github.com/alisadeghiaghili/py-distfit-pro/tree/main/python/docs"
+Repository = "https://github.com/alisadeghiaghili/py-distfit-pro"
+Issues = "https://github.com/alisadeghiaghili/py-distfit-pro/issues"
 
 [project.optional-dependencies]
 test = [

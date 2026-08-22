@@ -53,3 +53,18 @@ checkpoint compatibility, bounded state/inflight bytes, cancellation and
 redacted provenance. The DS-01--DS-12 test harness specified in the v1 test
 plan is **NOT IMPLEMENTED**; a scale claim is not deferred to a late
 performance phase and cannot be advertised before the relevant tests exist.
+
+## Implementation evidence addendum -- 2026-08-22
+
+The preceding status sentence records the implementation state when this ADR
+was accepted. DS-01--DS-12 contract tests are now present in commits `d846fc8`
+through `1345666`. They exercise in-memory sources and test doubles for
+planning, bounded delivery, pass enforcement, transactional retry/checkpoint
+boundaries, typed failures, execution outcomes and closed redacted provenance.
+
+This evidence does not establish an actual CSV, Parquet, Arrow, dataframe or
+database adapter; a persistent checkpoint backend; a production orchestrator;
+or an end-to-end statistical fit. The contract suite has not yet emitted a
+retained adapter pass/byte trace or production-scale memory result. Therefore
+no adapter, durability or scale tier is implemented or advertised by this
+addendum.

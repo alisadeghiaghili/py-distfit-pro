@@ -373,8 +373,10 @@ class BoundedBufferContractTests(unittest.TestCase):
         first = buffered(chunk("first", 0, 1, byte_size=4))
         buffer.put(first)
 
-        with self.assertRaises(TimeoutError):
+        with self.assertRaises(DeliveryContractError) as caught:
             buffer.put(buffered(chunk("timeout", 1, 2, byte_size=4)), timeout=0.01)
+        self.assertEqual(caught.exception.code, "BUFFER_TIMEOUT")
+        self.assertEqual(caught.exception.context, {"operation": "put"})
 
         self.assertEqual(buffer.inflight_bytes, 4)
         self.assertEqual(buffer.queued_chunks, 1)
@@ -492,8 +494,10 @@ class BoundedBufferContractTests(unittest.TestCase):
 
     def test_ds06_empty_queue_timeout_is_bounded(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
-        with self.assertRaises(TimeoutError):
+        with self.assertRaises(DeliveryContractError) as caught:
             buffer.get(timeout=0.01)
+        self.assertEqual(caught.exception.code, "BUFFER_TIMEOUT")
+        self.assertEqual(caught.exception.context, {"operation": "get"})
 
 
 if __name__ == "__main__":

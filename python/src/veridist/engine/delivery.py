@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import time
 from collections import deque
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from threading import Condition, Lock
-from types import MappingProxyType
 
 from veridist.engine.data_source import Replayability
+from veridist.engine.errors import EngineContractError, FailureCode
 
 
 class AdapterKind(StrEnum):
@@ -84,13 +84,8 @@ class ChunkEnvelope:
         return self.source_id, self.row_start + local_index
 
 
-class DeliveryContractError(Exception):
+class DeliveryContractError(EngineContractError):
     """Stable, localization-independent delivery contract failure."""
-
-    def __init__(self, code: str, context: Mapping[str, object]) -> None:
-        super().__init__(code)
-        self.code = code
-        self.context: Mapping[str, object] = MappingProxyType(dict(context))
 
 
 class DeliveryValidator:
@@ -143,7 +138,6 @@ class DeliveryValidator:
         """Accept exactly the next source range or fail without state mutation."""
 
         context = {
-            "chunk_id": envelope.chunk_id,
             "expected_offset": self._next_offset,
             "expected_sequence": self._next_sequence,
             "sequence_number": envelope.sequence_number,
@@ -152,17 +146,17 @@ class DeliveryValidator:
         }
         if envelope.source_id != self._source_id:
             raise DeliveryContractError(
-                "SOURCE_MISMATCH",
-                {**context, "expected_source_id": self._source_id, "source_id": envelope.source_id},
+                FailureCode.SOURCE_MISMATCH,
+                {"stage": "delivery_validation", **context},
             )
         if envelope.sequence_number < self._next_sequence:
-            raise DeliveryContractError("DUPLICATE_CHUNK", context)
+            raise DeliveryContractError(FailureCode.DUPLICATE_CHUNK, context)
         if envelope.sequence_number > self._next_sequence:
-            raise DeliveryContractError("OUT_OF_ORDER_CHUNK", context)
+            raise DeliveryContractError(FailureCode.OUT_OF_ORDER_CHUNK, context)
         if envelope.row_start > self._next_offset:
-            raise DeliveryContractError("MISSING_CHUNK", context)
+            raise DeliveryContractError(FailureCode.MISSING_CHUNK, context)
         if envelope.row_start < self._next_offset:
-            raise DeliveryContractError("OUT_OF_ORDER_CHUNK", context)
+            raise DeliveryContractError(FailureCode.OUT_OF_ORDER_CHUNK, context)
 
         self._next_sequence += 1
         self._next_offset = envelope.row_stop
@@ -183,7 +177,7 @@ class DeliveryValidator:
             raise ValueError("expected_chunk_count must be non-negative")
         if expected_chunk_count is not None and self._next_sequence < expected_chunk_count:
             raise DeliveryContractError(
-                "MISSING_CHUNK",
+                FailureCode.MISSING_CHUNK,
                 {
                     "expected_sequence": self._next_sequence,
                     "expected_chunk_count": expected_chunk_count,
@@ -191,7 +185,7 @@ class DeliveryValidator:
             )
         if expected_chunk_count is not None and self._next_sequence > expected_chunk_count:
             raise DeliveryContractError(
-                "OUT_OF_ORDER_CHUNK",
+                FailureCode.OUT_OF_ORDER_CHUNK,
                 {
                     "expected_sequence": expected_chunk_count,
                     "sequence_number": self._next_sequence,
@@ -199,7 +193,7 @@ class DeliveryValidator:
             )
         if self._next_offset < expected_row_stop:
             raise DeliveryContractError(
-                "MISSING_CHUNK",
+                FailureCode.MISSING_CHUNK,
                 {
                     "expected_offset": self._next_offset,
                     "expected_row_stop": expected_row_stop,
@@ -207,7 +201,7 @@ class DeliveryValidator:
             )
         if self._next_offset > expected_row_stop:
             raise DeliveryContractError(
-                "OUT_OF_ORDER_CHUNK",
+                FailureCode.OUT_OF_ORDER_CHUNK,
                 {
                     "expected_offset": expected_row_stop,
                     "row_stop": self._next_offset,
@@ -249,10 +243,53 @@ class BufferedChunk:
             callback()
 
 
+@dataclass(frozen=True, slots=True)
+class BufferObservation:
+    """Historical byte-bound and backpressure facts owned by a chunk buffer."""
+
+    chunk_bytes: int
+    max_inflight_bytes: int
+    peak_inflight_bytes: int
+    largest_retained_chunk_bytes: int
+    backpressure_event_count: int
+
+    def __post_init__(self) -> None:
+        values = (
+            self.chunk_bytes,
+            self.max_inflight_bytes,
+            self.peak_inflight_bytes,
+            self.largest_retained_chunk_bytes,
+            self.backpressure_event_count,
+        )
+        if any(isinstance(value, bool) or not isinstance(value, int) for value in values):
+            raise TypeError("buffer observation counters must be integers")
+        if self.chunk_bytes <= 0 or self.max_inflight_bytes <= 0:
+            raise ValueError("buffer byte budgets must be positive")
+        if self.max_inflight_bytes < self.chunk_bytes:
+            raise ValueError("max_inflight_bytes must cover one allowed chunk")
+        if min(
+            self.peak_inflight_bytes,
+            self.largest_retained_chunk_bytes,
+            self.backpressure_event_count,
+        ) < 0:
+            raise ValueError("buffer observations must be non-negative")
+        if self.peak_inflight_bytes > self.max_inflight_bytes:
+            raise ValueError("peak inflight bytes exceeded the declared bound")
+        if self.largest_retained_chunk_bytes > self.chunk_bytes:
+            raise ValueError("largest retained chunk exceeded the declared bound")
+
+
 class BoundedChunkBuffer:
     """Condition-backed FIFO with hard byte bounds and explicit cancellation."""
 
     def __init__(self, *, chunk_bytes: int, max_inflight_bytes: int) -> None:
+        if (
+            isinstance(chunk_bytes, bool)
+            or not isinstance(chunk_bytes, int)
+            or isinstance(max_inflight_bytes, bool)
+            or not isinstance(max_inflight_bytes, int)
+        ):
+            raise TypeError("buffer byte budgets must be integers")
         if chunk_bytes <= 0:
             raise ValueError("chunk_bytes must be positive")
         if max_inflight_bytes < chunk_bytes:
@@ -263,6 +300,8 @@ class BoundedChunkBuffer:
         self._queue: deque[BufferedChunk] = deque()
         self._inflight_bytes = 0
         self._peak_inflight_bytes = 0
+        self._largest_retained_chunk_bytes = 0
+        self._backpressure_event_count = 0
         self._waiting_producers = 0
         self._cancelled = False
 
@@ -275,6 +314,19 @@ class BoundedChunkBuffer:
     def peak_inflight_bytes(self) -> int:
         with self._condition:
             return self._peak_inflight_bytes
+
+    @property
+    def observation(self) -> BufferObservation:
+        """Return an immutable snapshot whose peaks survive queue draining."""
+
+        with self._condition:
+            return BufferObservation(
+                chunk_bytes=self.chunk_bytes,
+                max_inflight_bytes=self.max_inflight_bytes,
+                peak_inflight_bytes=self._peak_inflight_bytes,
+                largest_retained_chunk_bytes=self._largest_retained_chunk_bytes,
+                backpressure_event_count=self._backpressure_event_count,
+            )
 
     @property
     def queued_chunks(self) -> int:
@@ -293,7 +345,7 @@ class BoundedChunkBuffer:
 
     def _raise_if_cancelled(self) -> None:
         if self._cancelled:
-            raise DeliveryContractError("CANCELLED", {})
+            raise DeliveryContractError(FailureCode.CANCELLED, {})
 
     def put(self, item: BufferedChunk, *, timeout: float | None = None) -> None:
         """Queue an item, blocking while its bytes would exceed the hard bound."""
@@ -301,23 +353,30 @@ class BoundedChunkBuffer:
         byte_size = item.envelope.byte_size
         if byte_size <= 0:
             raise DeliveryContractError(
-                "INVALID_RETAINED_BYTES",
+                FailureCode.INVALID_RETAINED_BYTES,
                 {"byte_size": byte_size},
             )
         if byte_size > self.chunk_bytes:
             raise DeliveryContractError(
-                "CHUNK_TOO_LARGE",
+                FailureCode.CHUNK_TOO_LARGE,
                 {"byte_size": byte_size, "chunk_bytes": self.chunk_bytes},
             )
         deadline = None if timeout is None else time.monotonic() + timeout
         with self._condition:
             self._raise_if_cancelled()
+            counted_backpressure = False
             while self._inflight_bytes + byte_size > self.max_inflight_bytes:
+                if not counted_backpressure:
+                    self._backpressure_event_count += 1
+                    counted_backpressure = True
                 self._waiting_producers += 1
                 try:
                     remaining = None if deadline is None else deadline - time.monotonic()
                     if remaining is not None and remaining <= 0:
-                        raise TimeoutError("timed out waiting for buffer capacity")
+                        raise DeliveryContractError(
+                            FailureCode.BUFFER_TIMEOUT,
+                            {"operation": "put"},
+                        )
                     self._condition.wait(remaining)
                 finally:
                     self._waiting_producers -= 1
@@ -325,6 +384,10 @@ class BoundedChunkBuffer:
             self._queue.append(item)
             self._inflight_bytes += byte_size
             self._peak_inflight_bytes = max(self._peak_inflight_bytes, self._inflight_bytes)
+            self._largest_retained_chunk_bytes = max(
+                self._largest_retained_chunk_bytes,
+                byte_size,
+            )
             self._condition.notify_all()
 
     def read_and_put(
@@ -353,7 +416,10 @@ class BoundedChunkBuffer:
                 self._raise_if_cancelled()
                 remaining = None if deadline is None else deadline - time.monotonic()
                 if remaining is not None and remaining <= 0:
-                    raise TimeoutError("timed out waiting for a buffered chunk")
+                    raise DeliveryContractError(
+                        FailureCode.BUFFER_TIMEOUT,
+                        {"operation": "get"},
+                    )
                 self._condition.wait(remaining)
             item = self._queue.popleft()
             self._inflight_bytes -= item.envelope.byte_size
@@ -379,6 +445,7 @@ __all__ = [
     "AdapterCapabilities",
     "AdapterKind",
     "BoundedChunkBuffer",
+    "BufferObservation",
     "BufferedChunk",
     "ChunkEnvelope",
     "DeliveryContractError",

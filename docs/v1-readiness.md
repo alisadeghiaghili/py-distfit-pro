@@ -1,7 +1,8 @@
 # veridist v1 readiness ledger
 
-This is a planning ledger, not a release checklist for `distfit_pro`.  v1 is a
-greenfield product; nothing in the legacy package counts as v1 complete.
+This is a planning ledger, not a release checklist for `distfit_pro`. v1 uses
+the `veridist` namespace. Legacy assets count only after an explicit,
+evidence-backed disposition and validation under the v1 contracts.
 
 ## Evidence already obtained
 
@@ -28,21 +29,38 @@ as a statement about uninspected current files.
 
 ## Runtime claims still UNVERIFIED
 
-- Current repository test, coverage, mutation, packaging, PyPI, license, and
-  CI state have not been re-executed for this v1 work.
+- On 2026-08-22, local generic discovery executed 156 tests. The deterministic
+  coverage checker accepted all 14 enumerated production files with 100%
+  observed coverage, against frozen denominators of 1,293 statements and 444
+  branches and no accepted exceptions. This is structural and contract
+  evidence, not statistical correctness or scale evidence.
+- The DS-01--DS-12 contract suite now exercises in-memory sources, bounded
+  delivery, pass enforcement, retry/checkpoint boundaries, typed failures,
+  outcome classification and closed redacted provenance. The implementation
+  span is `d846fc8` through `1345666`.
+- On 2026-08-22, local PEP 517 builds produced an sdist and wheel. Inspection
+  found the MIT license and package metadata in the wheel and the MIT license,
+  manifest and all three package landing pages in the sdist. A clean wheel
+  environment passed dependency, import, version, `py.typed` and `pip check`.
+- CI lane isolation and the Linux Python 3.11--3.14 quality, package and
+  documentation jobs are configured in `e23cda5` through `89202c6` and pushed.
+  Their remote execution result remains **UNVERIFIED**.
+- Structural documentation tests and EN/FA/DE catalog parity pass locally.
+  A complete local Sphinx build remains **UNVERIFIED**: on 2026-08-22, the
+  available Sphinx 8.2.3 environment failed before gettext because it did not
+  contain the declared `myst_parser` dependency. The configured CI job installs
+  the declared documentation extra, but its remote result is also unverified.
+- The formal mutation runner and score, retained DS pass/byte trace artifact,
+  browser screenshot of Persian rendering, actual source adapters, persistent
+  checkpoint backend and production orchestrator are **NOT IMPLEMENTED**.
 - Every exact numeric defect magnitude, benchmark, release status, competitor
   feature count, name/trademark availability, and SQL-export novelty remains
   unverified unless a current command or primary source is attached.
-- No streaming equivalence, calibration, bootstrap coverage, language render,
-  reference agreement, or memory/pass budget has been run for v1 because v1
-  production code does not yet exist.
-- The Sphinx/MyST/gettext documentation toolchain, locale builds, doctest,
-  linkcheck, RTL screenshots, source adapters, DataSource DS-01--DS-12 test
-  harness, pass-enforcer and source-lock tool are **NOT IMPLEMENTED**. The
-  checker contracts in the test plan and evidence policy are planned, not
-  existing commands.
+- Statistical streaming equivalence, calibration, bootstrap coverage,
+  reference agreement, production-scale memory bounds, PyPI publication and
+  source-lock checking remain unverified.
 
-## Greenfield v1 TODO and release evidence
+## Remaining v1 work and release evidence
 
 | Area | Required v1 evidence |
 | --- | --- |
@@ -50,11 +68,11 @@ as a statement about uninspected current files.
 | First vertical | Reliability + censoring + big-data: selected reliability families, cited censored likelihood cells, DS-01--DS-12 evidence and visible failure diagnostics |
 | Families | Any family beyond the first reliability vertical passes support/CDF/PPF/log-density/reference tests with cited specifications |
 | Estimation | MLE applicability, convergence/restart diagnostics, and failures that remain visible |
-| Scale | DataSource replayability, explicit spool, chunk IDs/offsets, pass-enforcer, retry/checkpoint and bounded-memory evidence from first slice; executable DS-01--DS-12 harness |
+| Scale | Promote the implemented DS-01--DS-12 contract fixtures into actual adapters and an orchestrator; retain measured pass/byte traces and production-scale memory evidence |
 | Inference | Refit Monte-Carlo GoF and published calibration scope; no analytic p-value without a family/estimator source |
 | Uncertainty | Bootstrap failure accounting and coverage evidence only for declared regular scenarios |
 | Censoring | Explicit likelihood semantics and reference tests; unsupported family combinations fail loudly |
-| Localization | ADR-0013 toolchain, EN/FA/DE parity, RTL QA, `-W` builds, linkcheck and canonical executable examples |
+| Localization | Keep implemented EN/FA/DE parity and canonical example checks; verify remote `-W` builds/linkcheck and add browser-rendered RTL QA |
 | Quality | Global >=95% line and branch; numerical `domain`/`statistics`/`families`/`engine` paths >=98% line and branch; every production file >=90% of both absent ADR; executable mutation >=80% for that scope |
 | Competitive evidence | Every public `supported`/`not_supported` claim cell source-locked at 100% coverage; source-lock registry/checker currently NOT IMPLEMENTED |
 | Release | Reproducible PyPI artifact, conda-forge publication readiness, valid `CITATION.cff`, Zenodo DOI release metadata, all CI tiers, changelog, security/license review, and public limitations/calibration report |

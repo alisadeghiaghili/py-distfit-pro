@@ -1,62 +1,145 @@
-name: CI
+name: legacy-ci
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   release:
-    types: [ published ]
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  legacy-scope:
+    name: legacy / scope
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.classify.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - id: classify
+        name: Classify changed paths
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "release" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ ! "$BASE_SHA" =~ ^[0-9a-fA-F]{40}$ ]] ||
+             [[ ! "$HEAD_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "invalid revision metadata" >&2
+            exit 2
+          fi
+          if [[ "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed_paths="$RUNNER_TEMP/changed-paths.bin"
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            git diff --no-renames --name-only -z --diff-filter=ACMRTD "${BASE_SHA}...${HEAD_SHA}" -- > "$changed_paths"
+          elif [[ "$EVENT_NAME" == "push" ]]; then
+            git diff --no-renames --name-only -z --diff-filter=ACMRTD "${BASE_SHA}..${HEAD_SHA}" -- > "$changed_paths"
+          else
+            echo "unsupported event" >&2
+            exit 2
+          fi
+          relevant="$(python python/tools/ci_scope.py classify --nul < "$changed_paths")"
+          if [[ "$relevant" != "true" && "$relevant" != "false" ]]; then
+            echo "invalid classifier output" >&2
+            exit 2
+          fi
+          echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
+
+  legacy-test:
+    name: legacy / tests (${{ matrix.python-version }})
+    needs: legacy-scope
+    if: needs.legacy-scope.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .[dev]
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
 
-    - name: Lint with flake8
-      run: |
-        flake8 distfit_pro --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Lint with flake8
+        run: |
+          flake8 distfit_pro --count --select=E9,F63,F7,F82 --show-source --statistics
 
-    - name: Test with pytest
-      run: |
-        pytest tests/ -v --tb=short -m "not slow" --ignore=tests/test_bootstrap_complete.py --ignore=tests/test_distributions_advanced2.py --ignore=tests/test_distributions_advanced3.py --ignore=tests/test_edge_cases_integration.py --ignore=tests/test_gof_complete.py --ignore=tests/test_visualization_complete.py
+      - name: Test with pytest
+        run: |
+          pytest tests/ -v --tb=short -m "not slow" --ignore=tests/test_bootstrap_complete.py --ignore=tests/test_distributions_advanced2.py --ignore=tests/test_distributions_advanced3.py --ignore=tests/test_edge_cases_integration.py --ignore=tests/test_gof_complete.py --ignore=tests/test_visualization_complete.py
+
+  legacy-gate:
+    name: legacy / gate
+    needs: [legacy-scope, legacy-test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Enforce aggregate result
+        env:
+          RELEVANT: ${{ needs.legacy-scope.outputs.relevant }}
+          SCOPE_RESULT: ${{ needs.legacy-scope.result }}
+          TEST_RESULT: ${{ needs.legacy-test.result }}
+        run: >
+          python python/tools/ci_scope.py legacy-gate
+          --relevant "$RELEVANT"
+          --scope-result "$SCOPE_RESULT"
+          --test-result "$TEST_RESULT"
 
   publish:
-    needs: test
+    needs: [legacy-test, legacy-gate]
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: >
+      github.event_name == 'release' &&
+      github.event.action == 'published' &&
+      needs.legacy-test.result == 'success' &&
+      needs.legacy-gate.result == 'success'
     environment: pypi
     permissions:
       id-token: write
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    - name: Install build
-      run: pip install build
+      - name: Install build
+        run: python -m pip install build
 
-    - name: Build package
-      run: python -m build
+      - name: Build package
+        run: python -m build
 
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

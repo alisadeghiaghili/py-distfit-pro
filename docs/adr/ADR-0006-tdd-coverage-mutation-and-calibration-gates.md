@@ -35,3 +35,19 @@ or command is currently configured.
 Monte-Carlo gates report replicate count, seed and uncertainty; a failing
 calibration changes procedure/claim rather than being hidden by a looser
 tolerance or placeholder skip.
+
+## Implementation evidence addendum -- 2026-08-22
+
+The deterministic coverage checker is now implemented. On 2026-08-22, local
+generic discovery executed 156 tests and the checker accepted 14 enumerated
+production files with 100% observed coverage against frozen denominators of
+1,293 statements and 444 branches, no accepted exceptions, and the binding
+95/98/90 thresholds intact. CI configuration for
+Ruff, strict source type checking, Python 3.11--3.14 tests, coverage, package
+inspection and documentation checks is present in `e23cda5` through `89202c6`
+and pushed; its remote result remains **UNVERIFIED**.
+
+The formal mutation runner required by this ADR is still **NOT IMPLEMENTED**.
+Temporary targeted probes used during development are not an enumerated mutant
+set and do not establish the required 80% score. Statistical calibration and
+retained production-scale evidence also remain unimplemented.

@@ -1,0 +1,118 @@
+"""Contracts for the complete Veridist pull-request validation workflow."""
+
+from __future__ import annotations
+
+import re
+import unittest
+from pathlib import Path
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "v1-ci.yml"
+
+
+class VeridistWorkflowContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    def test_workflow_runs_for_every_push_and_main_pull_request(self) -> None:
+        self.assertIn("name: veridist-ci", self.workflow)
+        self.assertIn("  push:", self.workflow)
+        self.assertIn("  pull_request:\n    branches: [main]", self.workflow)
+        self.assertIn("  workflow_dispatch:", self.workflow)
+        self.assertNotIn("v1-foundation", self.workflow)
+        self.assertNotIn("paths:", self.workflow)
+
+    def test_static_job_runs_declared_lint_and_strict_type_checks(self) -> None:
+        self.assertIn("  static:", self.workflow)
+        self.assertIn("name: veridist / static", self.workflow)
+        self.assertIn('python-version: "3.11"', self.workflow)
+        self.assertIn('python -m pip install -e ".[lint]"', self.workflow)
+        self.assertIn("python -m ruff check src tests docs tools", self.workflow)
+        self.assertIn("python -m mypy src", self.workflow)
+
+    def test_test_matrix_enforces_branch_coverage_on_all_supported_pythons(self) -> None:
+        self.assertIn("  tests:", self.workflow)
+        self.assertIn("name: veridist / tests (${{ matrix.python-version }})", self.workflow)
+        self.assertIn(
+            'python-version: ["3.11", "3.12", "3.13", "3.14"]', self.workflow
+        )
+        self.assertIn('python -m pip install -e ".[test]"', self.workflow)
+        self.assertIn("python -m pytest --cov=veridist --cov-branch", self.workflow)
+        self.assertIn("--cov-report=json:coverage.json", self.workflow)
+        self.assertIn("python tools/check_coverage.py --project-root .", self.workflow)
+        self.assertIn("--manifest quality/coverage-manifest.json", self.workflow)
+        self.assertIn("--coverage-json coverage.json", self.workflow)
+
+    def test_package_job_builds_checks_and_installs_the_wheel_outside_checkout(self) -> None:
+        self.assertIn("  package:", self.workflow)
+        self.assertIn("name: veridist / package", self.workflow)
+        self.assertIn(
+            'python -m pip install "build>=1.2,<2" "twine>=6,<7"', self.workflow
+        )
+        self.assertIn("python -m build --sdist --wheel", self.workflow)
+        self.assertIn("python -m twine check dist/*", self.workflow)
+        self.assertIn('python -m venv "$RUNNER_TEMP/veridist-wheel"', self.workflow)
+        self.assertIn(
+            '"$RUNNER_TEMP/veridist-wheel/bin/python" -m pip install dist/*.whl',
+            self.workflow,
+        )
+        self.assertIn('"$RUNNER_TEMP/veridist-wheel/bin/python" -m pip check', self.workflow)
+        self.assertIn('cd "$RUNNER_TEMP"', self.workflow)
+        self.assertIn("importlib.metadata", self.workflow)
+        self.assertIn("py.typed", self.workflow)
+
+    def test_docs_job_runs_the_actual_three_locale_toolchain(self) -> None:
+        self.assertIn("  docs:", self.workflow)
+        self.assertIn("name: veridist / docs", self.workflow)
+        self.assertIn('python -m pip install -e ".[docs,test]"', self.workflow)
+        commands = (
+            'python -m unittest discover -s tests/docs -p "test_*.py" -v',
+            "python docs/toolchain.py check",
+            "sphinx-build -b gettext -W -n docs/source docs/_build/gettext",
+            "sphinx-build -b html -W -n docs/source docs/_build/en/html -D language=en",
+            "sphinx-build -b html -W -n docs/source docs/_build/fa/html -D language=fa",
+            "sphinx-build -b html -W -n docs/source docs/_build/de/html -D language=de",
+            "sphinx-build -b linkcheck -W -n docs/source docs/_build/linkcheck -D language=en",
+            "python docs/toolchain.py render docs/_build/en/html en",
+            "python docs/toolchain.py render docs/_build/fa/html fa",
+            "python docs/toolchain.py render docs/_build/de/html de",
+        )
+        for command in commands:
+            with self.subTest(command=command):
+                self.assertIn(command, self.workflow)
+        self.assertNotIn("sphinx-intl update", self.workflow)
+        self.assertNotIn("-b doctest", self.workflow)
+
+    def test_aggregate_gate_fails_if_any_required_job_does_not_succeed(self) -> None:
+        self.assertIn("  veridist-gate:", self.workflow)
+        self.assertIn("name: veridist / gate", self.workflow)
+        self.assertIn("needs: [static, tests, package, docs]", self.workflow)
+        self.assertIn("if: always()", self.workflow)
+        for result in (
+            "needs.static.result",
+            "needs.tests.result",
+            "needs.package.result",
+            "needs.docs.result",
+        ):
+            with self.subTest(result=result):
+                self.assertIn(result, self.workflow)
+        self.assertNotIn("continue-on-error", self.workflow)
+        self.assertNotIn("|| true", self.workflow)
+
+    def test_aggregate_gate_runs_from_the_checkout_root_without_a_checkout(self) -> None:
+        self.assertNotIn("defaults:\n  run:\n    working-directory: python", self.workflow)
+        for job in ("static", "tests", "package", "docs"):
+            with self.subTest(job=job):
+                job_block = re.search(
+                    rf"(?ms)^  {job}:$(.*?)(?=^  \S|\Z)", self.workflow
+                )
+                self.assertIsNotNone(job_block)
+                self.assertIn("working-directory: python", job_block.group(0))
+
+        gate_start = self.workflow.index("  veridist-gate:")
+        self.assertNotIn("working-directory:", self.workflow[gate_start:])
+
+
+if __name__ == "__main__":
+    unittest.main()
