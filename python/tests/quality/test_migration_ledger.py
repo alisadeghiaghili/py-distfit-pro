@@ -103,11 +103,16 @@ class MigrationLedgerTests(unittest.TestCase):
             ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
             ledger["entries"][0]["unexpected"] = True
             temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
-            extra = subprocess.run([sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)], cwd=REPOSITORY_ROOT, check=False, capture_output=True, text=True)
+            command = [sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)]
+            extra = subprocess.run(
+                command, cwd=REPOSITORY_ROOT, check=False, capture_output=True, text=True
+            )
             ledger["entries"][0].pop("unexpected")
             ledger["entries"][0]["reviews"]["license"] = "unknown"
             temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
-            review = subprocess.run([sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)], cwd=REPOSITORY_ROOT, check=False, capture_output=True, text=True)
+            review = subprocess.run(
+                command, cwd=REPOSITORY_ROOT, check=False, capture_output=True, text=True
+            )
         self.assertNotEqual(extra.returncode, 0)
         self.assertNotEqual(review.returncode, 0)
 

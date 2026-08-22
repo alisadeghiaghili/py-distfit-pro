@@ -129,8 +129,8 @@ def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -
             raise LedgerError(f"{component}: archive disposition requires archived status")
         if disposition in {"rewrite", "modify_port"} and status != "review_pending":
             raise LedgerError(f"{component}: active disposition requires review_pending status")
-        if entry.get("license") != "MIT":
-            raise LedgerError(f"{component}: license must be independently recorded as MIT")
+        if entry.get("license") != {"spdx": "MIT", "basis": "LICENSE"}:
+            raise LedgerError(f"{component}: license requires SPDX MIT and LICENSE basis")
         _require_strings(entry, "limits")
         target = entry.get("target")
         target_keys = {"path", "public_surface", "release"}
@@ -160,6 +160,9 @@ def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -
             "i18n",
         }:
             raise LedgerError(f"{component}: reviews must be categorized")
+        review_values = {"reviewed", "review_pending", "not_applicable"}
+        if any(value not in review_values for value in reviews.values()):
+            raise LedgerError(f"{component}: review values are invalid")
         isolation = entry.get("isolation")
         isolation_keys = {
             "runtime_import",

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import re
 import sys
 import tarfile
 import zipfile
@@ -11,6 +12,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 LEGACY_ROOT = "distfit_pro"
+PEP503_NAME = re.compile(r"[-_.]+")
 
 
 class IsolationError(ValueError):
@@ -95,6 +97,16 @@ def _is_legacy_payload(member_name: str) -> bool:
     return LEGACY_ROOT in parts or Path(member_name).name == f"{LEGACY_ROOT}.py"
 
 
+def _is_legacy_requirement(payload: bytes) -> bool:
+    for line in payload.decode("utf-8", errors="replace").splitlines():
+        if line.lower().startswith("requires-dist:"):
+            candidate = line.split(":", 1)[1].strip().split("[", 1)[0]
+            candidate = re.split(r"[<>=!~; ]", candidate, maxsplit=1)[0]
+            if PEP503_NAME.sub("-", candidate.lower()) == "distfit-pro":
+                return True
+    return False
+
+
 def _artifact_members(artifact: Path) -> Iterable[tuple[str, bytes]]:
     if artifact.suffix == ".whl" or zipfile.is_zipfile(artifact):
         with zipfile.ZipFile(artifact) as archive:
@@ -118,8 +130,7 @@ def scan_artifact(artifact: Path) -> list[str]:
     for member, payload in _artifact_members(artifact):
         if _is_legacy_payload(member):
             violations.append(f"legacy payload in {artifact}: {member}")
-        is_legacy_dependency = b"requires-dist: distfit-pro" in payload.lower()
-        if member.endswith(".dist-info/METADATA") and is_legacy_dependency:
+        if member.endswith((".dist-info/METADATA", "PKG-INFO")) and _is_legacy_requirement(payload):
             violations.append(f"legacy dependency in {artifact}: {member}")
     return violations
 

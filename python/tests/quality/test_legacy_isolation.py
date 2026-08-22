@@ -83,7 +83,9 @@ class LegacyIsolationTests(unittest.TestCase):
             with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary_directory:
                 wheel = Path(temporary_directory) / "veridist-0.0.0-py3-none-any.whl"
                 with zipfile.ZipFile(wheel, "w") as archive:
-                    archive.writestr("veridist-0.0.0.dist-info/METADATA", f"Requires-Dist: {name}\n")
+                    archive.writestr(
+                        "veridist-0.0.0.dist-info/METADATA", f"Requires-Dist: {name}\n"
+                    )
                 result = self._run("--artifact", str(wheel))
                 self.assertNotEqual(result.returncode, 0)
 
