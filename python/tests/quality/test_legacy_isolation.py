@@ -35,6 +35,7 @@ class LegacyIsolationTests(unittest.TestCase):
         cases = (
             "from distfit_pro import Fitter\n",
             "import importlib\nimportlib.import_module('distfit_pro.core')\n",
+            "from importlib import import_module as legacy_loader\nlegacy_loader('distfit_pro')\n",
             "module = 'distfit' + '_pro'\n__import__(module)\n",
         )
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -52,6 +53,9 @@ class LegacyIsolationTests(unittest.TestCase):
             wheel = directory / "veridist-0.0.0-py3-none-any.whl"
             with zipfile.ZipFile(wheel, "w") as archive:
                 archive.writestr("distfit_pro/__init__.py", "")
+                archive.writestr(
+                    "veridist-0.0.0.dist-info/METADATA", "Requires-Dist: distfit-pro\n"
+                )
             sdist = directory / "veridist-0.0.0.tar.gz"
             payload = directory / "distfit_pro.py"
             payload.write_text("", encoding="utf-8")
@@ -62,6 +66,17 @@ class LegacyIsolationTests(unittest.TestCase):
                     result = self._run("--artifact", str(artifact))
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn("legacy payload", result.stderr)
+
+    def test_checker_rejects_legacy_distribution_dependency_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            wheel = Path(temporary_directory) / "veridist-0.0.0-py3-none-any.whl"
+            with zipfile.ZipFile(wheel, "w") as archive:
+                archive.writestr(
+                    "veridist-0.0.0.dist-info/METADATA", "Requires-Dist: distfit-pro\n"
+                )
+            result = self._run("--artifact", str(wheel))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("legacy dependency", result.stderr)
 
 
 if __name__ == "__main__":

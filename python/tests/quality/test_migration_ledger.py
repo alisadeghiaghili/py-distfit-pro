@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -41,26 +42,44 @@ class MigrationLedgerTests(unittest.TestCase):
             {entry["disposition"] for entry in entries},
             {"modify_port", "rewrite", "archive"},
         )
+        self.assertEqual(len({entry["id"] for entry in entries}), len(entries))
+        for entry in entries:
+            self.assertEqual(set(entry["isolation"].values()), {False})
+            self.assertEqual(set(entry["reviews"]), {"license", "statistical", "scale", "i18n"})
         exponential = next(entry for entry in entries if entry["component"] == "exponential")
         self.assertEqual(exponential["disposition"], "rewrite")
 
     def test_checker_rejects_a_stale_hash_and_cross_field_policy_violation(self) -> None:
-        original = LEDGER_PATH.read_text(encoding="utf-8")
-        ledger = json.loads(original)
-        ledger["entries"][0]["source"]["sha256"] = "0" * 64
-        LEDGER_PATH.write_text(json.dumps(ledger), encoding="utf-8")
-        try:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_ledger = Path(temporary_directory) / "ledger.json"
+            ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+            ledger["entries"][0]["source"]["sha256"] = "0" * 64
+            temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
             result = subprocess.run(
-                [sys.executable, str(CHECKER_PATH)],
+                [sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)],
                 cwd=REPOSITORY_ROOT,
                 check=False,
                 capture_output=True,
                 text=True,
             )
-        finally:
-            LEDGER_PATH.write_text(original, encoding="utf-8")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("sha256", result.stderr)
+
+    def test_checker_rejects_cross_field_isolation_violation_without_mutating_ledger(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_ledger = Path(temporary_directory) / "ledger.json"
+            ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+            ledger["entries"][1]["isolation"]["oracle"] = True
+            temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)],
+                cwd=REPOSITORY_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("isolation", result.stderr)
 
 
 if __name__ == "__main__":

@@ -15,9 +15,13 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["component", "disposition", "source", "license", "evidence", "reviews", "limits"],
+        "required": ["id", "component", "component_kind", "target", "status", "disposition", "source", "license", "evidence", "reviews", "isolation", "limits"],
         "properties": {
+          "id": {"type": "string", "pattern": "^LM-[0-9]{3}$"},
           "component": {"type": "string", "minLength": 1},
+          "component_kind": {"type": "string", "minLength": 1},
+          "target": {"type": "object"},
+          "status": {"enum": ["review_pending", "archived"]},
           "disposition": {"enum": ["modify_port", "rewrite", "archive"]},
           "source": {
             "type": "object",
@@ -31,8 +35,9 @@
             }
           },
           "license": {"const": "MIT"},
-          "evidence": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-          "reviews": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "evidence": {"type": "object"},
+          "reviews": {"type": "object"},
+          "isolation": {"type": "object"},
           "limits": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
         }
       }

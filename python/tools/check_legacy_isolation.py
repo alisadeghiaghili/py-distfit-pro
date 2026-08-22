@@ -7,8 +7,8 @@ import ast
 import sys
 import tarfile
 import zipfile
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 LEGACY_ROOT = "distfit_pro"
 
@@ -44,6 +44,7 @@ def _call_name(node: ast.AST) -> str | None:
 def _scan_tree(tree: ast.AST, source: Path) -> list[str]:
     violations: list[str] = []
     names: dict[str, str] = {}
+    import_call_aliases: set[str] = {"import_module"}
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
             value = _constant_string(node.value, names)
@@ -51,6 +52,10 @@ def _scan_tree(tree: ast.AST, source: Path) -> list[str]:
                 for target in node.targets:
                     if isinstance(target, ast.Name):
                         names[target.id] = value
+        elif isinstance(node, ast.ImportFrom) and node.module == "importlib":
+            for alias in node.names:
+                if alias.name == "import_module":
+                    import_call_aliases.add(alias.asname or alias.name)
         elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             value = _constant_string(node.value, names) if node.value is not None else None
             if value is not None:
@@ -61,7 +66,11 @@ def _scan_tree(tree: ast.AST, source: Path) -> list[str]:
                     violations.append(f"legacy import in {source}: {alias.name}")
         elif isinstance(node, ast.ImportFrom) and node.module and _is_legacy_module(node.module):
             violations.append(f"legacy import in {source}: {node.module}")
-        elif isinstance(node, ast.Call) and node.args and _call_name(node.func) in {"__import__", "import_module"}:
+        elif (
+            isinstance(node, ast.Call)
+            and node.args
+            and _call_name(node.func) in {"__import__", *import_call_aliases}
+        ):
             module_name = _constant_string(node.args[0], names)
             if module_name is not None and _is_legacy_module(module_name):
                 violations.append(f"legacy import in {source}: {module_name}")
@@ -86,14 +95,18 @@ def _is_legacy_payload(member_name: str) -> bool:
     return LEGACY_ROOT in parts or Path(member_name).name == f"{LEGACY_ROOT}.py"
 
 
-def _artifact_members(artifact: Path) -> Iterable[str]:
+def _artifact_members(artifact: Path) -> Iterable[tuple[str, bytes]]:
     if artifact.suffix == ".whl" or zipfile.is_zipfile(artifact):
         with zipfile.ZipFile(artifact) as archive:
-            yield from archive.namelist()
+            yield from ((name, archive.read(name)) for name in archive.namelist())
         return
     if tarfile.is_tarfile(artifact):
         with tarfile.open(artifact) as archive:
-            yield from (member.name for member in archive.getmembers())
+            for member in archive.getmembers():
+                if member.isfile():
+                    payload = archive.extractfile(member)
+                    if payload is not None:
+                        yield member.name, payload.read()
         return
     raise IsolationError(f"unsupported artifact: {artifact}")
 
@@ -101,11 +114,14 @@ def _artifact_members(artifact: Path) -> Iterable[str]:
 def scan_artifact(artifact: Path) -> list[str]:
     if not artifact.is_file():
         raise IsolationError(f"artifact does not exist: {artifact}")
-    return [
-        f"legacy payload in {artifact}: {member}"
-        for member in _artifact_members(artifact)
-        if _is_legacy_payload(member)
-    ]
+    violations: list[str] = []
+    for member, payload in _artifact_members(artifact):
+        if _is_legacy_payload(member):
+            violations.append(f"legacy payload in {artifact}: {member}")
+        is_legacy_dependency = b"requires-dist: distfit-pro" in payload.lower()
+        if member.endswith(".dist-info/METADATA") and is_legacy_dependency:
+            violations.append(f"legacy dependency in {artifact}: {member}")
+    return violations
 
 
 def main(arguments: list[str] | None = None) -> int:
