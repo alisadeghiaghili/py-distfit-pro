@@ -81,6 +81,19 @@ class MigrationLedgerTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("isolation", result.stderr)
 
+    def test_checker_rejects_archive_with_non_archived_status(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_ledger = Path(temporary_directory) / "ledger.json"
+            ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+            ledger["entries"][0]["status"] = "review_pending"
+            temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(CHECKER_PATH), "--ledger", str(temporary_ledger)],
+                cwd=REPOSITORY_ROOT, check=False, capture_output=True, text=True,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("archive", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
