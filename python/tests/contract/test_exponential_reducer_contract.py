@@ -160,7 +160,7 @@ class ExponentialReducerContracts(unittest.TestCase):
             fit_exponential((ExactLifetime(1e308), ExactLifetime(1e308), object()))  # type: ignore[arg-type]
 
     def test_exp14_rejects_forged_impossible_reduction_state(self) -> None:
-        for arguments in ((0, 0, 1.0, 0.0), (1, 0, -1.0, 0.0), (1, 1, 1.0, -0.1)):
+        for arguments in ((0, 0, 1.0, 0.0), (1, 0, -1.0, 0.0), (1, 1, 1.0, -0.1), (1, 1, 1e-15, -2e-15)):
             with self.assertRaises((TypeError, ValueError)):
                 ExponentialReductionState(*arguments)
 
