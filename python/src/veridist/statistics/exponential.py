@@ -38,6 +38,12 @@ class ExponentialReductionState:
             raise ValueError("event_count cannot exceed observation_count")
         if not isfinite(self.total_time) or not isfinite(self.compensation):
             raise ValueError("reduction state must remain finite")
+        if self.total_time < 0.0:
+            raise ValueError("reduction state cannot contain negative lifetime totals")
+        if self.compensation < -max(1e-12, self.total_time * 1e-12):
+            raise ValueError("reduction compensation is outside the numerical error envelope")
+        if self.observation_count == 0 and (self.total_time != 0.0 or self.compensation != 0.0):
+            raise ValueError("empty reduction state must have zero totals")
 
     @classmethod
     def empty(cls) -> ExponentialReductionState:
@@ -103,11 +109,26 @@ def reduce_exponential_chunks(
     if not isinstance(chunks, Iterable):
         raise TypeError("chunks must be an iterable of observation iterables")
     state = ExponentialReductionState.empty()
+    overflow: _ReductionOverflow | None = None
     for chunk in chunks:
         if not isinstance(chunk, Iterable):
             raise TypeError("each chunk must be an iterable of lifetime observations")
         for observation in chunk:
-            state = state.add(observation)
+            if overflow is None:
+                try:
+                    state = state.add(observation)
+                    continue
+                except _ReductionOverflow as error:
+                    overflow = error
+                    continue
+            if type(observation) is ExactLifetime:
+                overflow = _ReductionOverflow(overflow.observation_count + 1, overflow.event_count + 1)
+            elif type(observation) is RightCensoredLifetime:
+                overflow = _ReductionOverflow(overflow.observation_count + 1, overflow.event_count)
+            else:
+                raise TypeError("observation must be an exact or right-censored lifetime")
+    if overflow is not None:
+        raise overflow
     return state
 
 

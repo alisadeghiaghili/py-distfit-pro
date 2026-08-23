@@ -111,7 +111,7 @@ class ExponentialFitFailure:
         elif self.code is ExponentialFitFailureCode.UNBOUNDED_LIKELIHOOD:
             valid = self.observation_count > 0 and self.event_count > 0 and self.total_time == 0.0
         elif self.code is ExponentialFitFailureCode.NUMERICAL_OVERFLOW:
-            valid = self.observation_count > 0 and self.event_count > 0 and self.total_time is None
+            valid = self.observation_count > 0 and self.total_time is None
         else:
             valid = False
         if not valid:
