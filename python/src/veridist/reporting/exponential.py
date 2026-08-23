@@ -86,7 +86,7 @@ _DE_CATALOG: Final[Mapping[str, str]] = MappingProxyType(
         "status": "Status der Exponentialanpassung",
         "family": "Familie",
         "parameterization": "Parametrisierung",
-        "location": "Fester Ort",
+        "location": "Fester Lageparameter",
         "rate": "Rate",
         "mean": "Abgeleiteter Mittelwert",
         "observation_count": "Anzahl der Beobachtungen",
@@ -94,13 +94,28 @@ _DE_CATALOG: Final[Mapping[str, str]] = MappingProxyType(
         "censored_count": "Anzahl rechtszensierter Beobachtungen",
         "total_time": "Gesamte Testzeit",
         "log_likelihood": "Log-Likelihood",
-        "inference": "Inferenzfähigkeit",
+        "inference": "Inferenzumfang",
         "censoring_assumption": "Annahme zur Zensierung",
         "failure_code": "Fehlercode",
     }
 )
 REPORT_CATALOGS: Final[Mapping[ReportLocale, Mapping[str, str]]] = MappingProxyType(
     {ReportLocale.EN: _EN_CATALOG, ReportLocale.FA: _FA_CATALOG, ReportLocale.DE: _DE_CATALOG}
+)
+
+REPORT_TITLES: Final[Mapping[ReportLocale, str]] = MappingProxyType(
+    {
+        ReportLocale.EN: "Veridist exponential fit report",
+        ReportLocale.FA: "گزارش برازش نمایی وریدیست",
+        ReportLocale.DE: "Veridist-Bericht zur Anpassung der Exponentialverteilung",
+    }
+)
+REPORT_HEADINGS: Final[Mapping[ReportLocale, str]] = MappingProxyType(
+    {
+        ReportLocale.EN: "Exponential fit report",
+        ReportLocale.FA: "گزارش برازش نمایی",
+        ReportLocale.DE: "Bericht zur Anpassung der Exponentialverteilung",
+    }
 )
 
 FAILURE_MESSAGE_CODES: Final[Mapping[ExponentialFitFailureCode, str]] = MappingProxyType(
@@ -245,12 +260,14 @@ def render_exponential_report(result: ExponentialFit, locale: ReportLocale) -> s
     return (
         f'<!doctype html><html lang="{locale.value}" dir="{direction}"><head>'
         '<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-        '<title>Veridist exponential report</title>'
-        '<style>.report{max-width:58rem;margin:1rem auto;font-family:system-ui,sans-serif}'
+        f'<title>{escape(REPORT_TITLES[locale])}</title>'
+        '<style>.report{max-width:58rem;margin:1rem auto;font-family:system-ui,sans-serif;text-align:start}'
+        '[dir="rtl"] .report{text-align:right}'
         '.fact{display:grid;grid-template-columns:minmax(12rem,1fr) auto auto;gap:.6rem;padding:.35rem 0}'
         '.latin{direction:ltr;unicode-bidi:isolate;display:inline-block}.machine-id{opacity:.72;font-size:.85em}'
         '</style></head><body><main class="report" dir="'
-        f'{direction}"><p class="formula">{_latin("r*log(rate)-rate*tau")}</p>{rows}'
+        f'{direction}"><h1>{escape(REPORT_HEADINGS[locale])}</h1>'
+        f'<p class="formula">{_latin("r*log(rate)-rate*tau")}</p>{rows}'
         f'<div class="failure" data-failure-message-code="{failure_message_code}">{escape(failure_message)}</div>'
         '</main></body></html>'
     )
@@ -261,6 +278,8 @@ __all__ = [
     "REPORT_CATALOGS",
     "REPORT_KEYS",
     "REPORT_LABEL_KEYS",
+    "REPORT_HEADINGS",
+    "REPORT_TITLES",
     "ReportLocale",
     "render_exponential_report",
 ]
