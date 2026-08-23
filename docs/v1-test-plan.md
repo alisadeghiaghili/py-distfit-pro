@@ -104,6 +104,21 @@ probability that a model is true.
 - Build every locale with warnings treated as errors, run link checking, and
   execute every public code example from a canonical source or parity harness.
 
+## Legacy migration governance tests
+
+`ML-01` validates the Draft 2020-12 ledger shape, target namespace and allowed
+dispositions. `ML-02` recomputes the source SHA-256 and validates the recorded
+commit/blob pair against `origin/main`; a mismatch is a hard stale-evidence
+failure. `LI-01` parses every `veridist` Python module and rejects static,
+dynamic and constant-composed imports of `distfit_pro`. `LI-02` inspects each
+built wheel/sdist for legacy payload paths. These checks do not prove an
+approved component is statistically correct, portable, or ready to ship.
+
+For RTL evidence, `I18N-RTL-01` requires a browser screenshot gate of Persian
+HTML/PDF covering direction, tables, code blocks, formulae and mixed LTR API
+identifiers. It is not yet implemented; structural `lang`/`dir` and CSS tests
+must not be described as its substitute.
+
 ## CI tiers and checker contract
 
 The pushed PR workflow configures Ruff, strict source type checking,

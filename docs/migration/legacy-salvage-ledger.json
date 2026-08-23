@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "target_namespace": "veridist",
+  "legacy_package": "distfit_pro",
+  "entries": [
+    {
+      "id": "LM-001",
+      "component": "diagnostic-taxonomy",
+      "component_kind": "diagnostic-scenario",
+      "target": {"path": "python/src/veridist/engine/errors.py", "public_surface": false, "release": "unplanned"},
+      "status": "archived",
+      "disposition": "archive",
+      "source": {
+        "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",
+        "path": "distfit_pro/core/diagnostics.py",
+        "blob": "f6ed9d6fb567b1cbd58e8b77d71a4acb22673412",
+        "sha256": "d94f4f7a710e23068092bf73243b0ad46cdb0ef7b58d0394918aeb57d67a7fd0"
+      },
+      "license": {"spdx": "MIT", "basis": "LICENSE"},
+      "evidence": {"scenario_ids": ["DS-10"], "test_ids": ["DS-10"], "reference_ids": ["ADR-0016"]},
+      "reviews": {"license": "reviewed", "statistical": "not_applicable", "scale": "not_applicable", "i18n": "not_applicable"},
+      "isolation": {"runtime_import": false, "runtime_dependency": false, "dynamic_fallback": false, "package_content": false, "oracle": false},
+      "limits": ["Candidate only; no legacy runtime import, result oracle, or API compatibility approval."]
+    },
+    {
+      "id": "LM-002",
+      "component": "exponential",
+      "component_kind": "statistical-family",
+      "target": {"path": "python/src/veridist/families/exponential.py", "public_surface": true, "release": "0.1.0a1"},
+      "status": "review_pending",
+      "disposition": "rewrite",
+      "source": {
+        "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",
+        "path": "distfit_pro/fitting/fitter.py",
+        "blob": "8228c607a9df4cfc8f5edb2062594d6ad12ce5b5",
+        "sha256": "0ec5360f95f6b812fe49e91ba050912cf0de75c878d66b1a784ec8c52028f562"
+      },
+      "license": {"spdx": "MIT", "basis": "LICENSE"},
+      "evidence": {"scenario_ids": ["EXP-01"], "test_ids": ["EXP-01"], "reference_ids": ["NIST-exponential"]},
+      "reviews": {"license": "reviewed", "statistical": "review_pending", "scale": "review_pending", "i18n": "not_applicable"},
+      "isolation": {"runtime_import": false, "runtime_dependency": false, "dynamic_fallback": false, "package_content": false, "oracle": false},
+      "limits": ["Implement from an independent specification; legacy output is not a numerical oracle."]
+    },
+    {
+      "id": "LM-003",
+      "component": "persian-documentation-candidate",
+      "component_kind": "translation-catalog",
+      "target": {"path": "python/docs/locales/fa/LC_MESSAGES/index.po", "public_surface": true, "release": "0.1.0a1"},
+      "status": "review_pending",
+      "disposition": "modify_port",
+      "source": {
+        "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",
+        "path": "distfit_pro/locales/__init__.py",
+        "blob": "6d719e34317dac4319c3c126c5f2109b2cf50f53",
+        "sha256": "058a8f256102925ad3c0e575a2b37811977467cdf2b39003c85daf321fc924a8"
+      },
+      "license": {"spdx": "MIT", "basis": "LICENSE"},
+      "evidence": {"scenario_ids": ["I18N-01", "I18N-07"], "test_ids": ["I18N-01", "I18N-07"], "reference_ids": ["ADR-0011", "ADR-0013", "ADR-0016"]},
+      "reviews": {"license": "reviewed", "statistical": "not_applicable", "scale": "not_applicable", "i18n": "review_pending"},
+      "isolation": {"runtime_import": false, "runtime_dependency": false, "dynamic_fallback": false, "package_content": false, "oracle": false},
+      "limits": ["Translation candidate only; no package content, compatibility shim, or behavioural authority."]
+    }
+  ]
+}

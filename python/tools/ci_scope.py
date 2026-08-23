@@ -7,7 +7,7 @@ import re
 import sys
 from collections.abc import Iterable
 
-_VERIDIST_PREFIXES = ("python/", "docs/adr/")
+_VERIDIST_PREFIXES = ("python/", "docs/adr/", "docs/migration/")
 _VERIDIST_PATHS = frozenset(
     {
         ".github/workflows/ci.yml",
