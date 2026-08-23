@@ -89,9 +89,15 @@ class DocsToolchainContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "dir=rtl"):
                 toolchain.assert_rendered_direction(output, "fa")
 
-    def test_api_page_is_an_honest_placeholder(self) -> None:
+    def test_first_vertical_docs_are_callable_narrow_and_honest(self) -> None:
         api_page = (SOURCE_ROOT / "api.md").read_text(encoding="utf-8")
-        self.assertIn("NOT IMPLEMENTED", api_page)
+        tutorial_page = (SOURCE_ROOT / "exponential-right-censoring.md").read_text(encoding="utf-8")
+        self.assertIn("fit_exponential", api_page)
+        self.assertIn("ReportLocale", api_page)
+        self.assertIn("not_provided", api_page)
+        self.assertIn("independent right censoring", tutorial_page)
+        self.assertIn("no confidence interval", tutorial_page)
+        self.assertIn("fixed O(1) accumulator state", tutorial_page)
         self.assertNotIn("autofunction", api_page)
         self.assertNotIn("automodule", api_page)
 
@@ -101,7 +107,12 @@ class DocsToolchainContractTests(unittest.TestCase):
         example = manifest["examples"][0]
         example_path = SOURCE_ROOT / example["source"]
         result = runpy.run_path(str(example_path))
-        self.assertEqual(result["EXAMPLE_RESULT"], {"count": 3, "mean": 2.0})
+        self.assertEqual(result["EXAMPLE_RESULT"], {
+            "rate": "0.5",
+            "observation_count": "3",
+            "event_count": "2",
+            "censored_count": "1",
+        })
         for page_name in example["pages"]:
             page = (SOURCE_ROOT / page_name).read_text(encoding="utf-8")
             self.assertIn(example["source"], page)
