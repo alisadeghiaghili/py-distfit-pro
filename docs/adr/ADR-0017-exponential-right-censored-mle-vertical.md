@@ -97,7 +97,7 @@ claiming generic censoring inference or production-scale out-of-core support.
 
 ## References
 
-- NIST/SEMATECH e-Handbook, [Exponential Distribution](https://www.itl.nist.gov/div898/handbook/apr/section1/apr162.htm), moving-current page, retrieved 2026-08-23.
+- NIST/SEMATECH e-Handbook, [Exponential Distribution](https://www.itl.nist.gov/div898/handbook/apr/section1/apr162.htm) and [MLE for type-I right censored data](https://www.itl.nist.gov/div898/handbook/apr/section4/apr412.htm), moving-current pages, retrieved 2026-08-23.
 - R-devel `stats`, [Exponential](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/Exponential.html), moving-current edition, retrieved 2026-08-23.
 - SciPy reference, [CensoredData](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.CensoredData.html), moving-current page, retrieved 2026-08-23.
 
