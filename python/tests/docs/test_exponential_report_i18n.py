@@ -44,12 +44,13 @@ class ExponentialReportI18nContracts(unittest.TestCase):
             else ExponentialFitFailure(code, 2, 0, None)
             for code in ExponentialFitFailureCode
         ]
-        self.assertEqual(REPORT_KEYS, ("family", "rate", "mean", "events", "censored", "total_time", "inference"))
+        self.assertEqual(REPORT_KEYS, ("status", "family", "parameterization", "location", "rate", "mean", "observation_count", "event_count", "censored_count", "total_time", "log_likelihood", "inference", "censoring_assumption", "failure_code"))
         for result in results:
             rendered = {locale: render_exponential_report(result, locale) for locale in ReportLocale}
             for html in rendered.values():
                 for key in REPORT_KEYS:
                     self.assertIn(f'data-report-key="{key}"', html)
+                    self.assertIn("data-machine-value=", html)
             self.assertEqual({html.count("data-report-key=") for html in rendered.values()}, {len(REPORT_KEYS)})
 
     def test_i18n_exp05_direction_unicode_and_latin_isolation_are_explicit(self) -> None:
