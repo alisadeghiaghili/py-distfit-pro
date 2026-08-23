@@ -42,6 +42,8 @@ class ExponentialReductionState:
             raise ValueError("reduction state cannot contain negative lifetime totals")
         if self.compensation < -max(1e-12, self.total_time * 1e-12):
             raise ValueError("reduction compensation is outside the numerical error envelope")
+        if self.total_time + self.compensation < 0.0:
+            raise ValueError("compensated lifetime total cannot be negative")
         if self.observation_count == 0 and (self.total_time != 0.0 or self.compensation != 0.0):
             raise ValueError("empty reduction state must have zero totals")
 
@@ -109,26 +111,28 @@ def reduce_exponential_chunks(
     if not isinstance(chunks, Iterable):
         raise TypeError("chunks must be an iterable of observation iterables")
     state = ExponentialReductionState.empty()
-    overflow: _ReductionOverflow | None = None
+    overflow_counts: tuple[int, int] | None = None
     for chunk in chunks:
         if not isinstance(chunk, Iterable):
             raise TypeError("each chunk must be an iterable of lifetime observations")
         for observation in chunk:
-            if overflow is None:
+            if overflow_counts is None:
                 try:
                     state = state.add(observation)
                     continue
                 except _ReductionOverflow as error:
-                    overflow = error
+                    overflow_counts = (error.observation_count, error.event_count)
                     continue
             if type(observation) is ExactLifetime:
-                overflow = _ReductionOverflow(overflow.observation_count + 1, overflow.event_count + 1)
+                assert overflow_counts is not None
+                overflow_counts = (overflow_counts[0] + 1, overflow_counts[1] + 1)
             elif type(observation) is RightCensoredLifetime:
-                overflow = _ReductionOverflow(overflow.observation_count + 1, overflow.event_count)
+                assert overflow_counts is not None
+                overflow_counts = (overflow_counts[0] + 1, overflow_counts[1])
             else:
                 raise TypeError("observation must be an exact or right-censored lifetime")
-    if overflow is not None:
-        raise overflow
+    if overflow_counts is not None:
+        raise _ReductionOverflow(*overflow_counts)
     return state
 
 
