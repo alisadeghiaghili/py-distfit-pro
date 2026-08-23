@@ -139,6 +139,31 @@ class ExponentialReducerContracts(unittest.TestCase):
         chunked = fit_exponential_chunks(((ExactLifetime(1e308),), (ExactLifetime(1e308),)))
         self.assertEqual(chunked, result)
 
+    def test_exp14_overflow_scans_to_completion_and_reports_full_derived_counts(self) -> None:
+        result = fit_exponential(
+            (ExactLifetime(1e308), ExactLifetime(1e308), RightCensoredLifetime(Decimal("2")), ExactLifetime(Decimal("3")))
+        )
+        self.assertEqual(
+            result,
+            ExponentialFitFailure(
+                code=ExponentialFitFailureCode.NUMERICAL_OVERFLOW,
+                observation_count=4,
+                event_count=3,
+                total_time=None,
+            ),
+        )
+
+    def test_exp14_all_censored_overflow_is_typed_but_invalid_input_after_overflow_is_not_masked(self) -> None:
+        overflow = fit_exponential((RightCensoredLifetime(1e308), RightCensoredLifetime(1e308)))
+        self.assertEqual(overflow.code, ExponentialFitFailureCode.NUMERICAL_OVERFLOW)
+        with self.assertRaises(TypeError):
+            fit_exponential((ExactLifetime(1e308), ExactLifetime(1e308), object()))  # type: ignore[arg-type]
+
+    def test_exp14_rejects_forged_impossible_reduction_state(self) -> None:
+        for arguments in ((0, 0, 1.0, 0.0), (1, 0, -1.0, 0.0), (1, 1, 1.0, -0.1)):
+            with self.assertRaises((TypeError, ValueError)):
+                ExponentialReductionState(*arguments)
+
     def test_exp14_public_constructors_reject_inconsistent_facts_and_have_no_dict(self) -> None:
         with self.assertRaises((TypeError, ValueError)):
             ExponentialFitSuccess(
