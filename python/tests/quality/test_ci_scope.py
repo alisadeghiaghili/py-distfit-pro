@@ -33,15 +33,9 @@ class CiScopeClassifierTests(unittest.TestCase):
             "docs/v1-readiness.md",
             "docs/decisions-2026-08-20.md",
             ".github/workflows/v1-ci.yml",
+            ".github/workflows/ci.yml",
         )
         self.assertFalse(classifier.legacy_relevant(paths))
-
-    def test_only_the_veridist_workflow_is_excluded_from_legacy_scope(self) -> None:
-        classifier = load_classifier()
-        self.assertFalse(classifier.legacy_relevant((".github/workflows/v1-ci.yml",)))
-        for path in (".github/workflows/ci.yml", ".github/workflows/future.yml"):
-            with self.subTest(path=path):
-                self.assertTrue(classifier.legacy_relevant((path,)))
 
     def test_legacy_shared_mixed_and_unknown_paths_fail_closed(self) -> None:
         classifier = load_classifier()

@@ -10,6 +10,7 @@ from collections.abc import Iterable
 _VERIDIST_PREFIXES = ("python/", "docs/adr/")
 _VERIDIST_PATHS = frozenset(
     {
+        ".github/workflows/ci.yml",
         ".github/workflows/v1-ci.yml",
         "docs/adoption-and-reputation-strategy.md",
         "docs/competitive-evidence-policy.md",
