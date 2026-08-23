@@ -169,7 +169,7 @@ class MigrationLedgerTests(unittest.TestCase):
         self.assertNotEqual(wrong_type.returncode, 0)
         self.assertIn("target", wrong_type.stderr)
 
-    def test_checker_distinguishes_unavailable_evidence_commit(self) -> None:
+    def test_checker_allows_an_unavailable_commit_when_immutable_blob_matches_head(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_ledger = Path(temporary_directory) / "ledger.json"
             ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
@@ -182,8 +182,63 @@ class MigrationLedgerTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("source.commit unavailable", result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_checker_verifies_immutable_ledger_blob_in_a_shallow_clone(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            clone = Path(temporary_directory) / "clone"
+            cloned = subprocess.run(
+                [
+                    "git",
+                    "clone",
+                    "--depth",
+                    "1",
+                    "--branch",
+                    "legacy-salvage-governance",
+                    REPOSITORY_ROOT.as_uri(),
+                    str(clone),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(cloned.returncode, 0, cloned.stderr)
+            checker = clone / "python" / "tools" / "check_migration_ledger.py"
+            checker.write_text(CHECKER_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+            shallow = subprocess.run(
+                [sys.executable, str(checker)],
+                cwd=clone,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(shallow.returncode, 0, shallow.stderr)
+            clone_ledger = clone / "docs" / "migration" / "legacy-salvage-ledger.json"
+            ledger = json.loads(clone_ledger.read_text(encoding="utf-8"))
+            ledger["entries"][0]["source"]["blob"] = "0" * 40
+            temporary_ledger = Path(temporary_directory) / "missing-blob.json"
+            temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
+            missing_blob = subprocess.run(
+                [sys.executable, str(checker), "--ledger", str(temporary_ledger)],
+                cwd=clone,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            ledger = json.loads(clone_ledger.read_text(encoding="utf-8"))
+            ledger["entries"][0]["source"]["path"] = "distfit_pro/fitting/fitter.py"
+            temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
+            head_drift = subprocess.run(
+                [sys.executable, str(checker), "--ledger", str(temporary_ledger)],
+                cwd=clone,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertNotEqual(missing_blob.returncode, 0)
+        self.assertIn("source.blob unavailable", missing_blob.stderr)
+        self.assertNotEqual(head_drift.returncode, 0)
+        self.assertIn("source.blob does not match HEAD:path", head_drift.stderr)
 
 
 if __name__ == "__main__":
