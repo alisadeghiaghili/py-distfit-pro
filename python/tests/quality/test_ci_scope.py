@@ -32,6 +32,7 @@ class CiScopeClassifierTests(unittest.TestCase):
             "docs/adr/ADR-0015-retry-checkpoint-transactional-guarantees.md",
             "docs/v1-readiness.md",
             "docs/decisions-2026-08-20.md",
+            "docs/migration/legacy-salvage-ledger.json",
             ".github/workflows/v1-ci.yml",
             ".github/workflows/ci.yml",
         )
@@ -47,6 +48,7 @@ class CiScopeClassifierTests(unittest.TestCase):
             "docs/user_guide/01_getting_started.md",
             "docs/api/index.md",
             "docs/faq.md",
+            "docs/unclassified.md",
             "pyproject.toml",
             "README.fa.md",
             "LICENSE",

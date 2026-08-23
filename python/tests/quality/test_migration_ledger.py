@@ -184,53 +184,82 @@ class MigrationLedgerTests(unittest.TestCase):
             )
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_checker_verifies_immutable_ledger_blob_in_a_shallow_clone(self) -> None:
+    def test_checker_verifies_immutable_ledger_blob_in_a_history_free_fixture(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            clone = Path(temporary_directory) / "clone"
-            cloned = subprocess.run(
+            fixture = Path(temporary_directory) / "fixture"
+            fixture.mkdir()
+            fixture_ledger = fixture / "docs" / "migration" / "legacy-salvage-ledger.json"
+            fixture_schema = fixture / "docs" / "migration" / "legacy-salvage-ledger.schema.json"
+            checker = fixture / "python" / "tools" / "check_migration_ledger.py"
+            fixture_ledger.parent.mkdir(parents=True)
+            checker.parent.mkdir(parents=True)
+            ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+            fixture_ledger.write_text(json.dumps(ledger), encoding="utf-8")
+            fixture_schema.write_text(SCHEMA_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+            checker.write_text(CHECKER_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+            for entry in ledger["entries"]:
+                source_path = entry["source"]["path"]
+                payload = subprocess.run(
+                    ["git", "show", f"HEAD:{source_path}"],
+                    cwd=REPOSITORY_ROOT,
+                    check=False,
+                    capture_output=True,
+                )
+                self.assertEqual(payload.returncode, 0, payload.stderr.decode())
+                target = fixture / source_path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(payload.stdout)
+            initialized = subprocess.run(
+                ["git", "init"], cwd=fixture, check=False, capture_output=True, text=True
+            )
+            self.assertEqual(initialized.returncode, 0, initialized.stderr)
+            committed = subprocess.run(
                 [
-                    "git",
-                    "clone",
-                    "--depth",
-                    "1",
-                    "--branch",
-                    "legacy-salvage-governance",
-                    REPOSITORY_ROOT.as_uri(),
-                    str(clone),
+                    "git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.test",
+                    "add", ".",
                 ],
+                cwd=fixture,
                 check=False,
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(cloned.returncode, 0, cloned.stderr)
-            checker = clone / "python" / "tools" / "check_migration_ledger.py"
-            checker.write_text(CHECKER_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+            self.assertEqual(committed.returncode, 0, committed.stderr)
+            committed = subprocess.run(
+                [
+                    "git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.test",
+                    "commit", "-m", "fixture",
+                ],
+                cwd=fixture,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(committed.returncode, 0, committed.stderr)
             shallow = subprocess.run(
                 [sys.executable, str(checker)],
-                cwd=clone,
+                cwd=fixture,
                 check=False,
                 capture_output=True,
                 text=True,
             )
             self.assertEqual(shallow.returncode, 0, shallow.stderr)
-            clone_ledger = clone / "docs" / "migration" / "legacy-salvage-ledger.json"
-            ledger = json.loads(clone_ledger.read_text(encoding="utf-8"))
+            ledger = json.loads(fixture_ledger.read_text(encoding="utf-8"))
             ledger["entries"][0]["source"]["blob"] = "0" * 40
             temporary_ledger = Path(temporary_directory) / "missing-blob.json"
             temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
             missing_blob = subprocess.run(
                 [sys.executable, str(checker), "--ledger", str(temporary_ledger)],
-                cwd=clone,
+                cwd=fixture,
                 check=False,
                 capture_output=True,
                 text=True,
             )
-            ledger = json.loads(clone_ledger.read_text(encoding="utf-8"))
+            ledger = json.loads(fixture_ledger.read_text(encoding="utf-8"))
             ledger["entries"][0]["source"]["path"] = "distfit_pro/fitting/fitter.py"
             temporary_ledger.write_text(json.dumps(ledger), encoding="utf-8")
             head_drift = subprocess.run(
                 [sys.executable, str(checker), "--ledger", str(temporary_ledger)],
-                cwd=clone,
+                cwd=fixture,
                 check=False,
                 capture_output=True,
                 text=True,
