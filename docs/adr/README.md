@@ -31,6 +31,7 @@ needed.
 | 0014 | Evidence freezing and competitive claims | Proposed |
 | 0015 | Retry/checkpoint transactional guarantees | Accepted |
 | 0016 | Evidence-gated legacy salvage and migration ledger | Accepted; partially supersedes ADR-0001's no-port prohibition only |
+| 0017 | Exponential right-censored MLE vertical | Accepted; target 0.1.0a1; depends on ADR-0002/3/4/5/6/10/11/13/16 |
 
 ## Dependency notes
 
@@ -40,3 +41,6 @@ needed.
 - ADR-0016 partially supersedes ADR-0001 only by permitting evidence-gated
   legacy salvage. ADR-0001's Python-first, independent-golden, and
   no-legacy-oracle decisions remain binding.
+- ADR-0017 is a deliberately narrow point-estimation target.  It does not
+  accept generic censoring inference, out-of-core adapters, or any legacy
+  numerical oracle.

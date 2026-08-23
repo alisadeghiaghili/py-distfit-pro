@@ -15,7 +15,7 @@ localized presentation are explicit.
 
 ## Decision
 
-Version `0.1.0a1` implements only the exponential lifetime family with fixed
+The target for `0.1.0a1` is only the exponential lifetime family with fixed
 `loc=0` and canonical rate parameter `rate > 0`.  An observation is either an
 exact lifetime or an independent right-censored lifetime, each with a finite
 time `>= 0`.  No weights, covariates, truncation, left/interval censoring,
@@ -52,7 +52,9 @@ not a pixel baseline.
 
 The independent statistical contract is checked against NIST's exponential
 distribution guidance, R `stats` exponential documentation, and SciPy's
-censored-data fitting documentation, retrieved and pinned on 2026-08-23.
+censored-data fitting documentation.  These are moving-current documentation
+pages, retrieved on 2026-08-23; no immutable local snapshot or version hash is
+claimed in this ADR.
 Reference test values use committed Decimal/rational calculations, not legacy
 code or production code as an oracle.  Legacy exponential implementation is
 only an inspected scenario under LM-002 and is never imported, copied, or used
@@ -63,6 +65,29 @@ as a numeric oracle.
 ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0010, ADR-0011,
 ADR-0013, ADR-0016.
 
+## Scope
+
+This decision covers one Python in-memory iterable reducer and its public
+result/report contract.  Fixed O(1) accumulator state is an algorithmic fact,
+not a claim of production out-of-core adapter support, memory-bounded ingestion,
+or a benchmarked large-data tier.
+
+Invalid observation construction (negative, non-finite, boolean, or
+non-numeric time) raises `TypeError` or `ValueError` before fitting.  A wrong
+object within the fit iterable raises `TypeError`.  These programmer-input
+errors are distinct from typed statistical non-estimates and must not expose
+the input value in public output.
+
+## Test implications
+
+- `EXP-01` through `EXP-08` compare point-estimate facts against independent
+  Decimal/rational values, including counts, likelihood and immutable result
+  shape.
+- `EXP-09` through `EXP-14` cover streaming state, numerical compensation,
+  canonical-order behaviour, provenance, and invalid input boundaries.
+- `I18N-EXP-01` through `I18N-EXP-04` require EN/FA/DE report-key parity and
+  rendered Persian bidi/RTL browser evidence.
+
 ## Consequences
 
 The first release has a deliberately narrow surface and offers point estimates
@@ -72,9 +97,13 @@ claiming generic censoring inference or production-scale out-of-core support.
 
 ## References
 
-- NIST/SEMATECH e-Handbook, Exponential Distribution, retrieved 2026-08-23.
-- R `stats` documentation for `dexp`, `pexp`, `qexp`, and `rexp`, retrieved
-  2026-08-23.
-- SciPy documentation for `CensoredData` and distribution `fit`, retrieved
-  2026-08-23.
+- NIST/SEMATECH e-Handbook, [Exponential Distribution](https://www.itl.nist.gov/div898/handbook/apr/section1/apr162.htm), moving-current page, retrieved 2026-08-23.
+- R-devel `stats`, [Exponential](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/Exponential.html), moving-current edition, retrieved 2026-08-23.
+- SciPy reference, [CensoredData](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.CensoredData.html), moving-current page, retrieved 2026-08-23.
 
+## Exit criteria and effort class
+
+The vertical is complete only when reference, property, scale, report, and RTL
+browser contracts pass; branch coverage meets the configured release gate; and
+the package/docs builds succeed.  Formal mutation-runner evidence remains a
+separate release-gate requirement.  Effort class: milestone.
