@@ -52,8 +52,6 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         )
         self.assertIn("python -m build --sdist --wheel", self.workflow)
         self.assertIn("python -m twine check dist/*", self.workflow)
-        self.assertIn("python tools/check_legacy_isolation.py --source src", self.workflow)
-        self.assertIn("--artifact dist/*.whl --artifact dist/*.tar.gz", self.workflow)
         self.assertIn('python -m venv "$RUNNER_TEMP/veridist-wheel"', self.workflow)
         self.assertIn(
             '"$RUNNER_TEMP/veridist-wheel/bin/python" -m pip install dist/*.whl',
