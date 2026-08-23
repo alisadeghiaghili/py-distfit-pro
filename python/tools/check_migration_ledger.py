@@ -192,11 +192,14 @@ def _git_bytes(*arguments: str) -> bytes:
     return result.stdout
 
 
-def _require_available_commit(commit: str, component: str) -> None:
-    try:
-        _git("cat-file", "-e", f"{commit}^{{commit}}")
-    except LedgerError as error:
-        raise LedgerError(f"{component}: source.commit unavailable: {commit}") from error
+def _git_object_exists(revision: str) -> bool:
+    result = subprocess.run(
+        ["git", "cat-file", "-e", revision],
+        cwd=REPOSITORY_ROOT,
+        check=False,
+        capture_output=True,
+    )
+    return result.returncode == 0
 
 
 def _require_strings(entry: dict[str, Any], key: str) -> list[str]:
@@ -345,10 +348,14 @@ def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -
             raise LedgerError(f"{component}: source.blob must be a 40-character hash")
         if not isinstance(sha256, str) or not HEX64.fullmatch(sha256):
             raise LedgerError(f"{component}: source.sha256 must be a 64-character hash")
-        _require_available_commit(commit, component)
-        if _git("rev-parse", f"{commit}:{path}") != blob:
-            raise LedgerError(f"{component}: source.blob does not match source.commit:path")
-        payload = _git_bytes("show", f"{commit}:{path}")
+        if not _git_object_exists(f"{blob}^{{blob}}"):
+            raise LedgerError(f"{component}: source.blob unavailable: {blob}")
+        if _git("rev-parse", f"HEAD:{path}") != blob:
+            raise LedgerError(f"{component}: source.blob does not match HEAD:path")
+        if _git_object_exists(f"{commit}^{{commit}}"):
+            if _git("rev-parse", f"{commit}:{path}") != blob:
+                raise LedgerError(f"{component}: source.blob does not match source.commit:path")
+        payload = _git_bytes("cat-file", "blob", blob)
         observed_hash = hashlib.sha256(payload).hexdigest()
         if observed_hash != sha256:
             raise LedgerError(f"{component}: source.sha256 is stale")
