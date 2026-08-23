@@ -1,7 +1,19 @@
-"""Canonical executable documentation example with no unimplemented API claim."""
+"""Canonical executable exponential right-censoring documentation example."""
 
-DATA = (1.0, 2.0, 3.0)
-EXAMPLE_RESULT = {"count": len(DATA), "mean": sum(DATA) / len(DATA)}
+from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
+from veridist.families.exponential import ExponentialFitSuccess, fit_exponential
+
+
+FIT = fit_exponential(
+    (ExactLifetime(1.0), ExactLifetime(2.0), RightCensoredLifetime(1.0))
+)
+assert isinstance(FIT, ExponentialFitSuccess)
+EXAMPLE_RESULT = {
+    "rate": repr(FIT.rate),
+    "observation_count": str(FIT.observation_count),
+    "event_count": str(FIT.event_count),
+    "censored_count": str(FIT.censored_count),
+}
 
 if __name__ == "__main__":
     print(EXAMPLE_RESULT)

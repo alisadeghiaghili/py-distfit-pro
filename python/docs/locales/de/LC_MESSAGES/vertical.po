@@ -1,0 +1,33 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: veridist 0.0.0.dev0\n"
+"Language: de\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "First callable vertical"
+msgstr "Erste aufrufbare Komponente"
+
+msgid "The first callable vertical fits a fixed-location exponential lifetime model"
+msgstr "Die erste aufrufbare Komponente passt ein Exponential-Lebensdauermodell mit festem Lageparameter an"
+
+msgid "Limits"
+msgstr "Grenzen"
+
+msgid "This vertical provides a point estimate only. `inference=not_provided` means no"
+msgstr "Diese Komponente liefert nur eine Punktschätzung. `inference=not_provided` bedeutet keine"
+
+msgid "Executable example"
+msgstr "Ausführbares Beispiel"
+
+msgid "Exponential MLE API"
+msgstr "API für exponentielle MLE"
+
+msgid "`fit_exponential(observations)` and `fit_exponential_chunks(chunks)` return a"
+msgstr "`fit_exponential(observations)` und `fit_exponential_chunks(chunks)` liefern eine"
+
+msgid "Exponential right-censoring tutorial"
+msgstr "Tutorial zur exponentiellen Rechtszensierung"
+
+msgid "Translations for this vertical are owner-reviewed provisional text; no external"
+msgstr "Die Übersetzungen dieser Komponente sind vorläufig vom Eigentümer geprüft; keine externe"
