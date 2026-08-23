@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
-from math import fsum
+from math import fsum, log
 
 from veridist.domain.lifetimes import ExactLifetime, LifetimeObservation, RightCensoredLifetime
 
@@ -26,6 +26,9 @@ class ExponentialFitSuccess:
     observation_count: int
     event_count: int
     total_time: float
+    mean: float
+    log_likelihood: float
+    censored_count: int
     family: str = "exponential"
     parameterization: str = "rate"
     location: float = 0.0
@@ -72,7 +75,16 @@ def fit_exponential(observations: Iterable[LifetimeObservation]) -> ExponentialF
         return ExponentialFitFailure(
             ExponentialFitFailureCode.UNBOUNDED_LIKELIHOOD, count, events, total_time
         )
-    return ExponentialFitSuccess(events / total_time, count, events, total_time)
+    rate = events / total_time
+    return ExponentialFitSuccess(
+        rate,
+        count,
+        events,
+        total_time,
+        1.0 / rate,
+        events * log(rate) - rate * total_time,
+        count - events,
+    )
 
 
 __all__ = [
