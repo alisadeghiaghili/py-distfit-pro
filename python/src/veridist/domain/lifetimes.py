@@ -7,12 +7,17 @@ from decimal import Decimal
 from math import isfinite
 
 
-def _finite_non_negative_time(value: float | Decimal) -> float:
+def _finite_non_negative_time(value: float | Decimal | int) -> float:
     if isinstance(value, bool) or not isinstance(value, (float, Decimal, int)):
         raise TypeError("time must be a finite numeric value")
-    numeric = float(value)
+    try:
+        numeric = float(value)
+    except OverflowError as error:
+        raise ValueError("time must be finite and non-negative") from error
     if not isfinite(numeric) or numeric < 0.0:
         raise ValueError("time must be finite and non-negative")
+    if value > 0 and numeric == 0.0:
+        raise ValueError("positive time must remain representable")
     return numeric
 
 
@@ -20,7 +25,7 @@ def _finite_non_negative_time(value: float | Decimal) -> float:
 class ExactLifetime:
     """An observed event time for a supported lifetime model."""
 
-    time: float | Decimal
+    time: float | Decimal | int
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "time", _finite_non_negative_time(self.time))
@@ -30,7 +35,7 @@ class ExactLifetime:
 class RightCensoredLifetime:
     """A right-censoring time under the declared independent-censoring assumption."""
 
-    time: float | Decimal
+    time: float | Decimal | int
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "time", _finite_non_negative_time(self.time))

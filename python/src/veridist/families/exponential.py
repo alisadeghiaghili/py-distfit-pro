@@ -5,9 +5,10 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
-from math import fsum, log
+from math import isclose, isfinite, log
 
 from veridist.domain.lifetimes import ExactLifetime, LifetimeObservation, RightCensoredLifetime
+from veridist.statistics.exponential import _ReductionOverflow, reduce_exponential_chunks
 
 
 class ExponentialFitFailureCode(StrEnum):
@@ -16,6 +17,28 @@ class ExponentialFitFailureCode(StrEnum):
     EMPTY_SAMPLE = "EMPTY_SAMPLE"
     NO_OBSERVED_EVENTS = "NO_OBSERVED_EVENTS"
     UNBOUNDED_LIKELIHOOD = "UNBOUNDED_LIKELIHOOD"
+    NUMERICAL_OVERFLOW = "NUMERICAL_OVERFLOW"
+
+
+@dataclass(frozen=True, slots=True)
+class ExponentialFitProvenance:
+    """Closed reduction facts that deliberately contain no source locator or rows."""
+
+    accumulator_schema_version: str = "1"
+    state_complexity: str = "O(1)"
+    reduction_order: str = "canonical_input_order"
+    partition_order_contract: str = "tolerance_only"
+    raw_data_retained: bool = False
+
+    def __post_init__(self) -> None:
+        if (
+            self.accumulator_schema_version != "1"
+            or self.state_complexity != "O(1)"
+            or self.reduction_order != "canonical_input_order"
+            or self.partition_order_contract != "tolerance_only"
+            or self.raw_data_retained is not False
+        ):
+            raise ValueError("exponential provenance facts are fixed by the vertical contract")
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,11 +52,39 @@ class ExponentialFitSuccess:
     mean: float
     log_likelihood: float
     censored_count: int
+    provenance: ExponentialFitProvenance = ExponentialFitProvenance()
     family: str = "exponential"
     parameterization: str = "rate"
     location: float = 0.0
     inference: str = "not_provided"
     censoring_assumption: str = "independent_right_censoring"
+
+    def __post_init__(self) -> None:
+        if not isfinite(self.rate) or self.rate <= 0.0:
+            raise ValueError("rate must be finite and positive")
+        for name, value in (("observation_count", self.observation_count), ("event_count", self.event_count), ("censored_count", self.censored_count)):
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer")
+        if self.event_count + self.censored_count != self.observation_count:
+            raise ValueError("event and censored counts must equal observation count")
+        if not isfinite(self.total_time) or self.total_time <= 0.0:
+            raise ValueError("total_time must be finite and positive")
+        if not isclose(self.rate, self.event_count / self.total_time, rel_tol=1e-15, abs_tol=0.0):
+            raise ValueError("rate must equal event count divided by total time")
+        if not isclose(self.mean, 1.0 / self.rate, rel_tol=1e-15, abs_tol=0.0):
+            raise ValueError("mean must equal inverse rate")
+        expected_likelihood = self.event_count * log(self.rate) - self.rate * self.total_time
+        if not isclose(self.log_likelihood, expected_likelihood, rel_tol=1e-15, abs_tol=0.0):
+            raise ValueError("log_likelihood does not match declared sufficient statistics")
+        if (
+            type(self.provenance) is not ExponentialFitProvenance
+            or self.family != "exponential"
+            or self.parameterization != "rate"
+            or self.location != 0.0
+            or self.inference != "not_provided"
+            or self.censoring_assumption != "independent_right_censoring"
+        ):
+            raise ValueError("exponential capability facts are fixed by the vertical contract")
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,7 +94,28 @@ class ExponentialFitFailure:
     code: ExponentialFitFailureCode
     observation_count: int
     event_count: int
-    total_time: float
+    total_time: float | None
+
+    def __post_init__(self) -> None:
+        if type(self.code) is not ExponentialFitFailureCode:
+            raise TypeError("code must be an ExponentialFitFailureCode")
+        for name, value in (("observation_count", self.observation_count), ("event_count", self.event_count)):
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer")
+        if self.event_count > self.observation_count:
+            raise ValueError("event_count cannot exceed observation_count")
+        if self.code is ExponentialFitFailureCode.EMPTY_SAMPLE:
+            valid = self.observation_count == 0 and self.event_count == 0 and self.total_time == 0.0
+        elif self.code is ExponentialFitFailureCode.NO_OBSERVED_EVENTS:
+            valid = self.observation_count > 0 and self.event_count == 0 and isinstance(self.total_time, float) and self.total_time >= 0.0 and isfinite(self.total_time)
+        elif self.code is ExponentialFitFailureCode.UNBOUNDED_LIKELIHOOD:
+            valid = self.observation_count > 0 and self.event_count > 0 and self.total_time == 0.0
+        elif self.code is ExponentialFitFailureCode.NUMERICAL_OVERFLOW:
+            valid = self.observation_count > 0 and self.event_count > 0 and self.total_time is None
+        else:
+            valid = False
+        if not valid:
+            raise ValueError("failure facts are inconsistent with its code")
 
 
 ExponentialFit = ExponentialFitSuccess | ExponentialFitFailure
@@ -52,19 +124,24 @@ ExponentialFit = ExponentialFitSuccess | ExponentialFitFailure
 def fit_exponential(observations: Iterable[LifetimeObservation]) -> ExponentialFit:
     """Fit the fixed-location exponential rate by its closed-form likelihood MLE."""
 
-    if not isinstance(observations, Iterable):
-        raise TypeError("observations must be an iterable of lifetime observations")
-    count = 0
-    events = 0
-    times: list[float] = []
-    for observation in observations:
-        if type(observation) is ExactLifetime:
-            events += 1
-        elif type(observation) is not RightCensoredLifetime:
-            raise TypeError("observations must contain exact or right-censored lifetimes")
-        count += 1
-        times.append(observation.time)
-    total_time = fsum(times)
+    return fit_exponential_chunks((observations,))
+
+
+def fit_exponential_chunks(chunks: Iterable[Iterable[LifetimeObservation]]) -> ExponentialFit:
+    """Fit from ragged chunks without retaining raw observations or chunk payloads."""
+
+    try:
+        state = reduce_exponential_chunks(chunks)
+        total_time = state.summed_time
+    except _ReductionOverflow as error:
+        return ExponentialFitFailure(
+            ExponentialFitFailureCode.NUMERICAL_OVERFLOW,
+            error.observation_count,
+            error.event_count,
+            None,
+        )
+    count = state.observation_count
+    events = state.event_count
     if count == 0:
         return ExponentialFitFailure(ExponentialFitFailureCode.EMPTY_SAMPLE, 0, 0, 0.0)
     if events == 0:
@@ -84,6 +161,7 @@ def fit_exponential(observations: Iterable[LifetimeObservation]) -> ExponentialF
         1.0 / rate,
         events * log(rate) - rate * total_time,
         count - events,
+        ExponentialFitProvenance(),
     )
 
 
@@ -91,6 +169,8 @@ __all__ = [
     "ExponentialFit",
     "ExponentialFitFailure",
     "ExponentialFitFailureCode",
+    "ExponentialFitProvenance",
     "ExponentialFitSuccess",
     "fit_exponential",
+    "fit_exponential_chunks",
 ]

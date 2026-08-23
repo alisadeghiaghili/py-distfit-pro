@@ -21,5 +21,4 @@ class LifetimeBoundaryContracts(unittest.TestCase):
         for value in (10**10000, Decimal("1e10000")):
             with self.assertRaises((TypeError, ValueError)) as captured:
                 ExactLifetime(value)
-            self.assertNotIn(str(value), str(captured.exception))
-
+            self.assertNotIn("10000", str(captured.exception))
