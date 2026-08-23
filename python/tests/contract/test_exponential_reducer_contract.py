@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import FrozenInstanceError
 from decimal import Decimal
 from math import isclose
+import tracemalloc
 import unittest
 
 from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
@@ -49,8 +50,20 @@ class ExponentialReducerContracts(unittest.TestCase):
         for time in (Decimal("10000000000000000"), Decimal("1"), Decimal("1")):
             state = state.add(ExactLifetime(time))
 
-        self.assertEqual(state.total_time, 10_000_000_000_000_002.0)
+        self.assertEqual(state.summed_time, 10_000_000_000_000_002.0)
         self.assertEqual(state.event_count, 3)
+
+    def test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions(self) -> None:
+        left = reduce_exponential_chunks(((ExactLifetime(Decimal("1e16")), ExactLifetime(Decimal("1"))),))
+        right = reduce_exponential_chunks(((ExactLifetime(Decimal("1")), ExactLifetime(Decimal("1"))),))
+        merged = left.merge(right)
+        direct = reduce_exponential_chunks(
+            ((ExactLifetime(Decimal("1e16")), ExactLifetime(Decimal("1")), ExactLifetime(Decimal("1")), ExactLifetime(Decimal("1"))),)
+        )
+
+        self.assertEqual((merged.observation_count, merged.event_count), (4, 4))
+        self.assertEqual(merged.summed_time, direct.summed_time)
+        self.assertTrue(isclose(merged.summed_time, direct.summed_time, rel_tol=1e-15, abs_tol=0.0))
 
     def test_exp12_partition_order_is_tolerance_claim_not_bit_identical_contract(self) -> None:
         observations = tuple(ExactLifetime(Decimal("0.1")) for _ in range(10_001))
@@ -74,6 +87,7 @@ class ExponentialReducerContracts(unittest.TestCase):
         self.assertEqual(provenance.accumulator_schema_version, "1")
         self.assertEqual(provenance.state_complexity, "O(1)")
         self.assertFalse(provenance.raw_data_retained)
+        self.assertFalse(hasattr(provenance, "__dict__"))
         self.assertEqual(tuple(type(provenance).__slots__), (
             "accumulator_schema_version",
             "state_complexity",
@@ -90,6 +104,25 @@ class ExponentialReducerContracts(unittest.TestCase):
         self.assertEqual(tuple(ExponentialReductionState.__slots__), (
             "observation_count", "event_count", "total_time", "compensation"
         ))
+        self.assertFalse(hasattr(state, "__dict__"))
+
+    def test_exp14_memory_growth_is_bounded_for_unique_generated_observations(self) -> None:
+        def peak_for(size: int) -> int:
+            tracemalloc.start()
+            try:
+                result = fit_exponential(ExactLifetime(Decimal(index + 1)) for index in range(size))
+                self.assertIsInstance(result, ExponentialFitSuccess)
+                return tracemalloc.get_traced_memory()[1]
+            finally:
+                tracemalloc.stop()
+
+        small_peak = peak_for(256)
+        large_peak = peak_for(30_000)
+        self.assertLess(
+            large_peak - small_peak,
+            1_500_000,
+            "the fixed-cardinality reducer must not retain generated observations",
+        )
 
     def test_exp14_aggregate_overflow_is_a_typed_non_estimate(self) -> None:
         result = fit_exponential((ExactLifetime(1e308), ExactLifetime(1e308)))
@@ -103,6 +136,8 @@ class ExponentialReducerContracts(unittest.TestCase):
                 total_time=None,
             ),
         )
+        chunked = fit_exponential_chunks(((ExactLifetime(1e308),), (ExactLifetime(1e308),)))
+        self.assertEqual(chunked, result)
 
     def test_exp14_public_constructors_reject_inconsistent_facts_and_have_no_dict(self) -> None:
         with self.assertRaises((TypeError, ValueError)):
@@ -114,6 +149,17 @@ class ExponentialReducerContracts(unittest.TestCase):
                 mean=1.0,
                 log_likelihood=0.0,
                 censored_count=0,
+            )
+        with self.assertRaises((TypeError, ValueError)):
+            ExponentialFitSuccess(
+                rate=2.0,
+                observation_count=1,
+                event_count=1,
+                total_time=1.0,
+                mean=0.5,
+                log_likelihood=0.0,
+                censored_count=0,
+                family="spoofed",
             )
         with self.assertRaises((TypeError, ValueError)):
             ExponentialFitFailure(
