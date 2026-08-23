@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import re
 import runpy
+import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -65,6 +68,26 @@ class DocsToolchainContractTests(unittest.TestCase):
         self.assertGreater(report["message_count"], 0)
         self.assertEqual(report["missing"], {})
         self.assertEqual(report["fallbacks"], {})
+
+    def test_manifest_matches_every_real_gettext_message_for_tracked_pages(self) -> None:
+        toolchain = load_toolchain()
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory(dir=os.environ.get("VERIDIST_SCRATCH")) as temporary_directory:
+            output = Path(temporary_directory) / "gettext"
+            result = subprocess.run(
+                [sys.executable, "-m", "sphinx", "-b", "gettext", "-W", "-n", str(SOURCE_ROOT), str(output)],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            actual = {
+                source
+                for page in manifest["pages"]
+                for source in toolchain._parse_po(output / f"{Path(page['source']).stem}.pot")
+            }
+        declared = {message["source"] for message in manifest["messages"]}
+        self.assertEqual(declared, actual)
 
     def test_persian_is_rtl_german_is_ltr_and_render_checker_is_strict(self) -> None:
         toolchain = load_toolchain()
