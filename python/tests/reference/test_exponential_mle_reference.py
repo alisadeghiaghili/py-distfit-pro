@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
 from decimal import Decimal, localcontext
+from math import inf, nan
 import unittest
 
 from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
@@ -22,6 +24,15 @@ def rational_rate(events: int, total_time: str) -> float:
         return float(Decimal(events) / Decimal(total_time))
 
 
+def log_likelihood(events: int, total_time: str, rate: float) -> float:
+    """Calculate the declared likelihood independently in Decimal arithmetic."""
+
+    with localcontext() as context:
+        context.prec = 50
+        decimal_rate = Decimal(str(rate))
+        return float(Decimal(events) * decimal_rate.ln() - decimal_rate * Decimal(total_time))
+
+
 class ExponentialReferenceContracts(unittest.TestCase):
     """EXP01-EXP08: closed-form point-estimate and boundary contracts."""
 
@@ -31,6 +42,9 @@ class ExponentialReferenceContracts(unittest.TestCase):
         self.assertIsInstance(result, ExponentialFitSuccess)
         assert isinstance(result, ExponentialFitSuccess)
         self.assertEqual(result.rate, rational_rate(2, "4.0"))
+        self.assertEqual(result.mean, 2.0)
+        self.assertEqual(result.log_likelihood, log_likelihood(2, "4.0", result.rate))
+        self.assertEqual((result.observation_count, result.event_count, result.censored_count), (2, 2, 0))
 
     def test_exp02_right_censoring_contributes_time_not_event(self) -> None:
         result = fit_exponential(
@@ -40,6 +54,8 @@ class ExponentialReferenceContracts(unittest.TestCase):
         self.assertIsInstance(result, ExponentialFitSuccess)
         assert isinstance(result, ExponentialFitSuccess)
         self.assertEqual(result.rate, rational_rate(1, "4"))
+        self.assertEqual(result.log_likelihood, log_likelihood(1, "4", result.rate))
+        self.assertEqual((result.observation_count, result.event_count, result.censored_count), (2, 1, 1))
 
     def test_exp03_mixed_sample_has_closed_form_mle(self) -> None:
         result = fit_exponential(
@@ -54,6 +70,9 @@ class ExponentialReferenceContracts(unittest.TestCase):
         self.assertIsInstance(result, ExponentialFitSuccess)
         assert isinstance(result, ExponentialFitSuccess)
         self.assertEqual(result.rate, rational_rate(2, "10"))
+        self.assertEqual(result.mean, 5.0)
+        self.assertEqual(result.log_likelihood, log_likelihood(2, "10", result.rate))
+        self.assertEqual((result.observation_count, result.event_count, result.censored_count), (4, 2, 2))
 
     def test_exp04_canonical_parameterization_is_rate_with_fixed_zero_location(self) -> None:
         result = fit_exponential((ExactLifetime(Decimal("2")),))
@@ -63,6 +82,7 @@ class ExponentialReferenceContracts(unittest.TestCase):
         self.assertEqual(result.family, "exponential")
         self.assertEqual(result.parameterization, "rate")
         self.assertEqual(result.location, 0.0)
+        self.assertEqual(result.mean, 2.0)
 
     def test_exp05_all_censored_is_a_typed_non_estimate(self) -> None:
         result = fit_exponential(
@@ -113,3 +133,19 @@ class ExponentialReferenceContracts(unittest.TestCase):
             ),
         )
 
+    def test_exp08_result_and_failure_shapes_are_frozen_and_slotted(self) -> None:
+        result = fit_exponential((ExactLifetime(Decimal("1")),))
+        failure = fit_exponential(())
+
+        for value in (result, failure):
+            self.assertTrue(hasattr(type(value), "__slots__"))
+            with self.assertRaises((FrozenInstanceError, TypeError)):
+                value.observation_count = 99  # type: ignore[misc]
+
+    def test_exp08_validation_rejects_invalid_times_without_echoing_input(self) -> None:
+        for value in (-1, nan, inf, -inf, True, "1"):
+            with self.assertRaises((TypeError, ValueError)) as captured:
+                ExactLifetime(value)  # type: ignore[arg-type]
+            self.assertNotIn(str(value), str(captured.exception))
+        with self.assertRaises(TypeError):
+            fit_exponential((object(),))  # type: ignore[arg-type]
