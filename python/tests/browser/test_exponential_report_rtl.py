@@ -8,8 +8,6 @@ import unittest
 from decimal import Decimal
 from pathlib import Path
 
-from playwright.sync_api import sync_playwright
-
 from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
 from veridist.families.exponential import ExponentialFitFailure, fit_exponential
 from veridist.reporting.exponential import ReportLocale, render_exponential_report
@@ -18,7 +16,13 @@ from veridist.reporting.exponential import ReportLocale, render_exponential_repo
 class ExponentialReportBrowserContracts(unittest.TestCase):
     """Computed style, bidi isolation, and screenshot evidence are release contracts."""
 
+    @unittest.skipUnless(
+        os.environ.get("VERIDIST_BROWSER_TESTS") == "1",
+        "browser evidence runs only in the dedicated Chromium job",
+    )
     def test_rtl_exp01_success_and_failure_have_rendered_rtl_and_ltr_machine_values(self) -> None:
+        from playwright.sync_api import sync_playwright
+
         success = fit_exponential((ExactLifetime(Decimal("2")),))
         failure = fit_exponential((RightCensoredLifetime(Decimal("2")),))
         assert isinstance(failure, ExponentialFitFailure)
