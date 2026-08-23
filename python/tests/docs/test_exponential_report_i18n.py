@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from html.parser import HTMLParser
+import re
 import unicodedata
 import unittest
 
@@ -19,6 +20,8 @@ from veridist.reporting.exponential import (
     REPORT_CATALOGS,
     REPORT_KEYS,
     REPORT_LABEL_KEYS,
+    REPORT_HEADINGS,
+    REPORT_TITLES,
     ReportLocale,
     render_exponential_report,
 )
@@ -32,6 +35,8 @@ class _ReportFactParser(HTMLParser):
         self.machine_values: dict[str, str] = {}
         self.label_keys: dict[str, str] = {}
         self.failure_message_codes: list[str] = []
+        self.failure_messages: dict[str, str] = {}
+        self._active_failure_code: str | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag != "div":
@@ -50,6 +55,17 @@ class _ReportFactParser(HTMLParser):
         failure_message_code = attributes.get("data-failure-message-code")
         if failure_message_code is not None:
             self.failure_message_codes.append(failure_message_code)
+            self._active_failure_code = failure_message_code
+
+    def handle_data(self, data: str) -> None:
+        if self._active_failure_code is not None:
+            self.failure_messages[self._active_failure_code] = (
+                self.failure_messages.get(self._active_failure_code, "") + data
+            )
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "div" and self._active_failure_code is not None:
+            self._active_failure_code = None
 
 
 def _parse_report(html: str) -> _ReportFactParser:
@@ -184,3 +200,32 @@ class ExponentialReportI18nContracts(unittest.TestCase):
         parsed = _parse_report(html)
         for token in (*REPORT_KEYS, *parsed.machine_values.values(), "r*log(rate)-rate*tau"):
             self.assertIn(f'<bdi dir="ltr" class="latin">{token}</bdi>', html)
+
+    def test_i18n_exp10_titles_headings_and_failure_messages_are_localized_not_catalog_codes(self) -> None:
+        self.assertEqual(set(REPORT_TITLES), set(ReportLocale))
+        self.assertEqual(set(REPORT_HEADINGS), set(ReportLocale))
+        self.assertEqual(len(set(REPORT_TITLES.values())), len(ReportLocale))
+        self.assertEqual(len(set(REPORT_HEADINGS.values())), len(ReportLocale))
+        for locale in ReportLocale:
+            self.assertTrue(REPORT_TITLES[locale])
+            self.assertTrue(REPORT_HEADINGS[locale])
+            self.assertEqual(unicodedata.normalize("NFC", REPORT_TITLES[locale]), REPORT_TITLES[locale])
+            self.assertEqual(unicodedata.normalize("NFC", REPORT_HEADINGS[locale]), REPORT_HEADINGS[locale])
+        for result in _all_results():
+            parsed = {
+                locale: _parse_report(render_exponential_report(result, locale)) for locale in ReportLocale
+            }
+            messages = {locale: next(iter(value.failure_messages.values())) for locale, value in parsed.items()}
+            self.assertEqual(len(messages), len(ReportLocale))
+            self.assertEqual(len(set(messages.values())), len(ReportLocale))
+            for locale, message in messages.items():
+                self.assertTrue(message.strip())
+                self.assertEqual(unicodedata.normalize("NFC", message), message)
+                self.assertNotIn("failure.", message)
+                if locale is ReportLocale.FA:
+                    self.assertIsNone(re.search(r"[A-Za-z]", message))
+
+    def test_i18n_exp11_has_explicit_start_alignment_and_persian_right_alignment(self) -> None:
+        html = render_exponential_report(fit_exponential((ExactLifetime(Decimal("2")),)), ReportLocale.FA)
+        self.assertIn("text-align:start", html)
+        self.assertIn('[dir="rtl"] .report{text-align:right}', html)
