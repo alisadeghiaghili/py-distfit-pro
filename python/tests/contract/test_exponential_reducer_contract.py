@@ -8,6 +8,7 @@ from dataclasses import FrozenInstanceError, replace
 from decimal import Decimal
 from math import isclose
 
+import veridist.families.exponential as exponential_module
 from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
 from veridist.families.exponential import (
     ExponentialFitFailure,
@@ -290,3 +291,9 @@ class ExponentialReducerContracts(unittest.TestCase):
             with self.subTest(arguments=arguments):
                 with self.assertRaises((TypeError, ValueError)):
                     ExponentialFitFailure(*arguments)  # type: ignore[arg-type]
+
+    def test_exp14_failure_fact_validator_is_total_over_the_closed_code_set(self) -> None:
+        self.assertEqual(
+            set(exponential_module._FAILURE_FACT_VALIDATORS),
+            set(ExponentialFitFailureCode),
+        )
