@@ -11,17 +11,26 @@ msgstr "مستندات وریدیست"
 msgid "Evidence-first distribution fitting."
 msgstr "برازش توزیع با اولویت شواهد."
 
-msgid "Status"
-msgstr "وضعیت"
+msgid "First callable vertical"
+msgstr "نخستین قابلیت قابل فراخوانی"
 
-msgid "This documentation toolchain is implemented; the statistical fitting API is not implemented yet."
-msgstr "زنجیرهٔ ابزار مستندات پیاده‌سازی شده است؛ API برازش آماری هنوز پیاده‌سازی نشده است."
+msgid "The first callable vertical fits a fixed-location exponential lifetime model with exact and independently right-censored observations. Its canonical parameter is a positive rate; the reported mean is derived as its reciprocal."
+msgstr "نخستین قابلیت قابل فراخوانی، یک مدل نمایی زمان‌عمر با مکان ثابت را برای مشاهده‌های دقیق و مشاهده‌های دارای سانسور مستقل از راست برازش می‌دهد. پارامتر مرجع آن نرخ مثبت است و میانگین گزارش‌شده از معکوس این نرخ به دست می‌آید."
 
-msgid "Quick structural example"
-msgstr "مثال ساختاری سریع"
+msgid "Limits"
+msgstr "محدودیت‌ها"
 
-msgid "The example below has one canonical executable source and does not claim a public fitting API."
-msgstr "مثال زیر یک منبع اجرایی مرجع دارد و ادعایی دربارهٔ API عمومی برازش نمی‌کند."
+msgid "This vertical provides a point estimate only. `inference=not_provided` means no confidence interval, goodness-of-fit result, truncation, weights, covariates, or free location parameter is supplied."
+msgstr "این قابلیت فقط برآورد نقطه‌ای ارائه می‌کند. `inference=not_provided` یعنی هیچ فاصلهٔ اطمینان، نتیجهٔ نیکویی برازش، برش، وزن، متغیر کمکی یا پارامتر مکان آزاد ارائه نمی‌شود."
+
+msgid "Executable example"
+msgstr "مثال اجرایی"
+
+msgid "The example below has one canonical executable source and reports only stable machine facts. Use an explicit report locale; no report-language fallback is performed."
+msgstr "مثال زیر یک منبع اجرایی مرجع دارد و فقط واقعیت‌های ماشینی پایدار را گزارش می‌کند. زبان گزارش را صریح تعیین کنید؛ برای زبان گزارش هیچ جایگزینی خودکار انجام نمی‌شود."
+
+msgid "Translations for this vertical are owner-reviewed provisional text; no external native-speaker review is claimed."
+msgstr "ترجمه‌های این قابلیت متن موقتی هستند که مالک پروژه بازبینی کرده است؛ هیچ ادعایی دربارهٔ بازبینی بیرونی به‌دست گویشور بومی وجود ندارد."
 
 msgid "Canonical executable example"
 msgstr "مثال اجرایی مرجع"

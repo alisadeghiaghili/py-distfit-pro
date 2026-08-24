@@ -1,0 +1,27 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: veridist 0.0.0.dev0\n"
+"Language: de\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Exponential right-censoring tutorial"
+msgstr "Tutorial zur exponentiellen Rechtszensierung"
+
+msgid "Model and estimate"
+msgstr "Modell und Schätzung"
+
+msgid "For exact-event count `r` and total time on test `tau`, this vertical uses `r*log(rate)-rate*tau` and returns `rate=r/tau` only when both values permit a finite estimate. It accepts exact lifetimes and independent right censoring. Independent right censoring is an assumption visible in the result; it cannot be established from the observations by this library."
+msgstr "Für die Anzahl exakter Ereignisse `r` und die gesamte Versuchszeit `tau` verwendet diese Funktionseinheit `r*log(rate)-rate*tau` und gibt `rate=r/tau` nur zurück, wenn beide Werte eine endliche Schätzung zulassen. Sie akzeptiert exakte Lebensdauern und unabhängige Rechtszensierung. Die unabhängige Rechtszensierung ist eine im Ergebnis sichtbare Annahme; diese Bibliothek kann sie nicht aus den Beobachtungen belegen."
+
+msgid "Failure cases and limits"
+msgstr "Fehlerfälle und Grenzen"
+
+msgid "An empty sample, no observed events, zero total time with an event, and numeric overflow produce typed non-estimates. There is no confidence interval, goodness-of-fit test, truncation, left or interval censoring, weights, covariates, or free location parameter in this vertical."
+msgstr "Eine leere Stichprobe, keine beobachteten Ereignisse, eine Gesamtzeit von null bei einem Ereignis sowie numerischer Überlauf erzeugen typisierte Nicht-Schätzergebnisse. Diese Funktionseinheit enthält weder Konfidenzintervall noch Anpassungsgütetest, Trunkierung, Links- oder Intervallzensierung, Gewichte, Kovariaten oder einen freien Lageparameter."
+
+msgid "Streaming scope"
+msgstr "Umfang der Streaming-Verarbeitung"
+
+msgid "The reducer retains fixed O(1) accumulator state: counts and a compensated total-time sum. That algorithmic scope is not a claim of a production out-of-core adapter, bounded ingestion, or a benchmarked large-data tier."
+msgstr "Der Reduzierer behält einen festen O(1)-Akkumulatorzustand: Zähler und eine kompensierte Summe der Gesamtzeit. Dieser algorithmische Umfang ist keine Behauptung eines produktionsreifen Out-of-Core-Adapters, einer speicherbeschränkten Aufnahme oder einer benchmarkgestützten Großdatenstufe."

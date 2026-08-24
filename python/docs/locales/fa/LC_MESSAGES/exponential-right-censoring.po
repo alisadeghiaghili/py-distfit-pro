@@ -1,0 +1,27 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: veridist 0.0.0.dev0\n"
+"Language: fa\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Exponential right-censoring tutorial"
+msgstr "آموزش سانسورشدگی راست در مدل نمایی"
+
+msgid "Model and estimate"
+msgstr "مدل و برآورد"
+
+msgid "For exact-event count `r` and total time on test `tau`, this vertical uses `r*log(rate)-rate*tau` and returns `rate=r/tau` only when both values permit a finite estimate. It accepts exact lifetimes and independent right censoring. Independent right censoring is an assumption visible in the result; it cannot be established from the observations by this library."
+msgstr "برای شمار رویدادهای دقیق `r` و کل زمان تحت آزمون `tau`، این قابلیت از `r*log(rate)-rate*tau` استفاده می‌کند و فقط هنگامی `rate=r/tau` را برمی‌گرداند که هر دو مقدار برآوردی متناهی را ممکن کنند. زمان‌های عمر دقیق و سانسور مستقل از راست پذیرفته می‌شوند. استقلال سانسور از راست فرضی است که در نتیجه آشکارا نمایش داده می‌شود؛ این کتابخانه نمی‌تواند آن را از روی مشاهده‌ها اثبات کند."
+
+msgid "Failure cases and limits"
+msgstr "حالت‌های شکست و محدودیت‌ها"
+
+msgid "An empty sample, no observed events, zero total time with an event, and numeric overflow produce typed non-estimates. There is no confidence interval, goodness-of-fit test, truncation, left or interval censoring, weights, covariates, or free location parameter in this vertical."
+msgstr "نمونهٔ خالی، نبود رویداد مشاهده‌شده، کل زمان صفر همراه با یک رویداد و سرریز عددی، عدم‌برآوردهای نوع‌دار تولید می‌کنند. در این قابلیت فاصلهٔ اطمینان، آزمون نیکویی برازش، برش، سانسور چپ یا فاصله‌ای، وزن، متغیر کمکی یا پارامتر مکان آزاد وجود ندارد."
+
+msgid "Streaming scope"
+msgstr "دامنهٔ پردازش جریانی"
+
+msgid "The reducer retains fixed O(1) accumulator state: counts and a compensated total-time sum. That algorithmic scope is not a claim of a production out-of-core adapter, bounded ingestion, or a benchmarked large-data tier."
+msgstr "کاهنده حالتی ثابت با مرتبهٔ O(1) نگه می‌دارد: شمارنده‌ها و مجموع جبران‌شدهٔ کل زمان. این دامنهٔ الگوریتمی به معنای ادعای رابط برون‌حافظه‌ای آمادهٔ تولید، دریافت با حافظهٔ کران‌دار یا ردهٔ دادهٔ بزرگِ بنچمارک‌شده نیست."

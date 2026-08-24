@@ -96,7 +96,8 @@ def validate_parity(docs_root: Path) -> dict[str, Any]:
             raise ValueError(f"missing stable anchor for {page['id']}")
     for message in messages:
         source_text = (source_root / message["page"]).read_text(encoding="utf-8")
-        if message["source"] not in source_text:
+        normalized_source = re.sub(r"\s+", " ", source_text)
+        if message["source"] not in normalized_source:
             raise ValueError(f"canonical message is absent for {message['id']}")
 
     missing: dict[str, list[str]] = {}
