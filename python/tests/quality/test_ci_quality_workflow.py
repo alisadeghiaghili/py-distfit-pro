@@ -44,6 +44,7 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         )
         self.assertIn('python -m pip install -e ".[test]"', self.workflow)
         self.assertIn("python -m pytest --cov=veridist --cov-branch", self.workflow)
+        self.assertIn("--ignore=tests/docs/test_docs_toolchain.py", self.workflow)
         self.assertIn("--cov-report=json:coverage.json", self.workflow)
         self.assertIn("python tools/check_coverage.py --project-root .", self.workflow)
         self.assertIn("--manifest quality/coverage-manifest.json", self.workflow)
