@@ -46,6 +46,22 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn("python -m pytest --cov=veridist --cov-branch", self.workflow)
         self.assertIn("--ignore=tests/docs/test_docs_toolchain.py", self.workflow)
         self.assertIn("--cov-report=json:coverage.json", self.workflow)
+        coverage_step = self.workflow.split(
+            "      - name: Test with branch coverage", maxsplit=1
+        )[1].split("      - name: Enforce coverage gates", maxsplit=1)[0]
+        self.assertEqual(
+            re.findall(r"--ignore=\S+", coverage_step),
+            ["--ignore=tests/docs/test_docs_toolchain.py"],
+        )
+        self.assertEqual(re.findall(r"--cov=\S+", coverage_step), ["--cov=veridist"])
+        for forbidden_ignore in (
+            "--ignore=tests/docs",
+            "--ignore=tests/docs/test_exponential_report_i18n.py",
+            "--ignore=tests/reference",
+            "--ignore=tests/contract",
+        ):
+            with self.subTest(forbidden_ignore=forbidden_ignore):
+                self.assertNotIn(forbidden_ignore, re.findall(r"--ignore=\S+", coverage_step))
         self.assertIn("python tools/check_coverage.py --project-root .", self.workflow)
         self.assertIn("--manifest quality/coverage-manifest.json", self.workflow)
         self.assertIn("--coverage-json coverage.json", self.workflow)
