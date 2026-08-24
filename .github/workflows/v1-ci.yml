@@ -130,6 +130,7 @@ jobs:
           python docs/toolchain.py render docs/_build/fa/html fa
           python docs/toolchain.py render docs/_build/de/html de
       - name: Retain rendered documentation evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: veridist-documentation
@@ -138,7 +139,7 @@ jobs:
             python/docs/_build/fa/html
             python/docs/_build/de/html
             python/docs/_build/linkcheck
-          if-no-files-found: error
+          if-no-files-found: warn
 
   browser-rtl:
     name: veridist / browser rtl

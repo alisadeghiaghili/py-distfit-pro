@@ -19,9 +19,10 @@ class RequiredQualityArtifactTests(unittest.TestCase):
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
         production_count = len(manifest["production_files"])
         self.assertEqual(production_count, 19)
+        readiness = " ".join(READINESS.read_text(encoding="utf-8").split())
         self.assertIn(
             f"accepted all {production_count} enumerated production files",
-            READINESS.read_text(encoding="utf-8"),
+            readiness,
         )
 
     def test_capability_matrix_declares_the_only_callable_statistical_cell(self) -> None:
