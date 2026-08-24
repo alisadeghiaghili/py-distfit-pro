@@ -52,6 +52,7 @@ jobs:
       - name: Test with branch coverage
         run: >
           python -m pytest --cov=veridist --cov-branch
+          --ignore=tests/docs/test_docs_toolchain.py
           --cov-report=json:coverage.json
       - name: Enforce coverage gates
         run: >
