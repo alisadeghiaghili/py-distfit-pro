@@ -8,7 +8,7 @@ or release-ready.
 | --- | --- | --- |
 | Python-first; R deferred | ADR-0001 Accepted; ADR-0010 and ADR-0012 Accepted | v1 is Python-only. R/CRAN comes after Python capability/reference evidence. |
 | First domain vertical: reliability + censoring + big-data | ADR-0005, ADR-0010 and ADR-0012 Accepted | Roadmap and release evidence prioritize bounded reliability-family censoring and DataSource scale semantics before catalogue breadth. |
-| Sphinx + MyST + gettext/`sphinx-intl` | ADR-0013 Accepted; supports ADR-0011 Accepted | EN/FA/DE builds, parity, link checking and RTL QA are binding release work; configuration remains NOT IMPLEMENTED. |
+| Sphinx + MyST + gettext/`sphinx-intl` | ADR-0013 Accepted; supports ADR-0011 Accepted | EN/FA/DE builds, parity, link checking and RTL QA are binding release work; configuration was not implemented at this decision time. See ADR-0013's dated implementation addenda for later evidence. |
 | Reject multipass work on `single_pass`; spool only by opt-in | ADR-0005 Accepted | Planner rejection and declared spool budget/retention/cleanup are binding contract requirements. |
 | 95% coverage requirement | ADR-0006 Accepted | Global line and branch coverage >=95% is binding; the stricter documented critical/per-file/mutation gates are retained. |
 | No telemetry in v1 | ADR-0010 Accepted | No collection, upload, auto-reporting or analytics beacon ships in v1. A future proposal needs a separate privacy/security ADR. |
