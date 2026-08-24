@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import tomllib
+import unicodedata
 import unittest
 from pathlib import Path
 
@@ -69,25 +70,34 @@ class PackageLandingContractTests(unittest.TestCase):
                     re.search(r"(?m)^python -m pip install veridist\s*$", content)
                 )
 
-    def test_each_locale_states_the_same_pre_alpha_non_claims(self) -> None:
+    def test_each_locale_states_the_same_experimental_vertical_and_limits(self) -> None:
         required = {
             "en": (
                 "pre-alpha contract kernel",
-                "does not provide a distribution-fitting API",
+                "experimental rate-only exponential MLE",
+                "exact and independently right-censored lifetimes",
+                "Inference is not provided",
+                "typed failures",
                 "does not ship production data adapters",
-                "does not claim persistent checkpoint durability",
+                "does not claim production out-of-core execution",
             ),
             "fa": (
                 "هستهٔ قراردادی پیش‌آلفا",
-                "API برازش توزیع ارائه نمی‌کند",
+                "برآوردگر آزمایشی MLE نمایی فقط برای پارامتر نرخ",
+                "طول عمرهای دقیق و راست‌سانسورشدهٔ مستقل",
+                "استنباط ارائه نمی‌شود",
+                "شکست‌های نوع‌دار",
                 "آداپتور دادهٔ عملیاتی عرضه نمی‌کند",
-                "دوام پایدار checkpoint را ادعا نمی‌کند",
+                "اجرای برون‌حافظه‌ای عملیاتی را ادعا نمی‌کند",
             ),
             "de": (
                 "Pre-Alpha-Vertragskern",
-                "keine API zur Verteilungsanpassung",
+                "experimentellen, rein ratenparametrisierten exponentiellen MLE",
+                "exakte und unabhängig rechtszensierte Lebensdauern",
+                "Inferenz wird nicht bereitgestellt",
+                "typisierte Fehlschläge",
                 "keine produktionsreifen Datenadapter",
-                "keine dauerhafte Checkpoint-Persistenz",
+                "keine produktive Out-of-Core-Ausführung",
             ),
         }
         for locale, phrases in required.items():
@@ -96,6 +106,63 @@ class PackageLandingContractTests(unittest.TestCase):
             for phrase in phrases:
                 with self.subTest(locale=locale, phrase=phrase):
                     self.assertIn(phrase, normalized_content)
+
+    def test_all_locales_publish_the_same_executable_quickstart(self) -> None:
+        snippets: dict[str, str] = {}
+        for locale, path in README_PATHS.items():
+            content = path.read_text(encoding="utf-8")
+            matches = re.findall(r"```python\n(.*?)```", content, flags=re.DOTALL)
+            with self.subTest(locale=locale):
+                self.assertEqual(len(matches), 1)
+            snippets[locale] = matches[0].strip()
+
+        self.assertEqual(len(set(snippets.values())), 1)
+        quickstart = snippets["en"]
+        for required in (
+            "ExactLifetime",
+            "RightCensoredLifetime",
+            "fit_exponential",
+            "render_exponential_report",
+            "ReportLocale.FA",
+            "assert fit.rate == 0.5",
+            'assert fit.inference == "not_provided"',
+            'assert fit.censoring_assumption == "independent_right_censoring"',
+            'assert \'lang="fa" dir="rtl"\' in report',
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, quickstart)
+
+        namespace: dict[str, object] = {}
+        exec(compile(quickstart, "package-landing-quickstart", "exec"), namespace)
+
+    def test_all_landing_pages_are_clean_nfc_without_retired_claims_or_bidi_controls(self) -> None:
+        retired_claims = (
+            "does not provide a distribution-fitting API",
+            "API برازش توزیع ارائه نمی‌کند",
+            "keine API zur Verteilungsanpassung",
+        )
+        mojibake_markers = ("Ã", "Â", "Ø", "Ù", "�")
+        bidi_controls = tuple(chr(codepoint) for codepoint in range(0x202A, 0x202F)) + tuple(
+            chr(codepoint) for codepoint in range(0x2066, 0x206A)
+        )
+        for locale, path in README_PATHS.items():
+            content = path.read_text(encoding="utf-8")
+            with self.subTest(locale=locale, contract="nfc"):
+                self.assertEqual(content, unicodedata.normalize("NFC", content))
+            with self.subTest(locale=locale, contract="mojibake"):
+                self.assertFalse(any(marker in content for marker in mojibake_markers))
+            with self.subTest(locale=locale, contract="retired"):
+                self.assertFalse(any(claim in content for claim in retired_claims))
+            with self.subTest(locale=locale, contract="bidi-controls"):
+                self.assertFalse(any(control in content for control in bidi_controls))
+
+    def test_persian_rtl_wrapper_never_contains_ltr_code_fences(self) -> None:
+        content = README_PATHS["fa"].read_text(encoding="utf-8")
+        self.assertIn('<div lang="fa" dir="rtl">', content)
+        for fence in re.finditer(r"```(?:console|python)?", content):
+            prefix = content[: fence.start()]
+            with self.subTest(fence=fence.group(0), offset=fence.start()):
+                self.assertEqual(prefix.count('<div lang="fa" dir="rtl">'), prefix.count("</div>"))
 
     def test_source_manifest_includes_all_package_landing_files(self) -> None:
         manifest = (PYTHON_ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()

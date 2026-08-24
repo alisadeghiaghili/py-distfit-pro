@@ -9,10 +9,13 @@ It specifies and tests bounded delivery, replayability, pass budgets,
 transactional retry, checkpoint compatibility, typed failures, execution
 outcomes, and redacted provenance.
 
-This build does not provide a distribution-fitting API. It does not ship
-production data adapters. It does not claim persistent checkpoint durability.
-The in-memory sources and checkpoint stores are contract fixtures, not
-production storage or orchestration components.
+This build includes an experimental rate-only exponential MLE for exact and
+independently right-censored lifetimes. It provides a point estimate when a
+finite MLE exists and typed failures otherwise. Inference is not provided.
+Its reducer has fixed O(1) algorithmic state, but the package does not ship
+production data adapters and does not claim production out-of-core execution
+or persistent checkpoint durability. In-memory sources and checkpoint stores
+remain contract fixtures, not production storage or orchestration components.
 
 ## Install an evaluation build
 
@@ -33,12 +36,21 @@ python -m pip install /path/to/veridist-0.0.0.dev0-py3-none-any.whl
 The project does not direct users to install an unreleased package name from a
 public index.
 
-## Verify the package boundary
+## Try the experimental vertical
 
 ```python
-import veridist
+from veridist.domain import ExactLifetime, RightCensoredLifetime
+from veridist.families import ExponentialFitSuccess, fit_exponential
+from veridist.reporting import ReportLocale, render_exponential_report
 
-assert veridist.__version__ == "0.0.0.dev0"
+fit = fit_exponential([ExactLifetime(1.0), RightCensoredLifetime(1.0)])
+assert isinstance(fit, ExponentialFitSuccess)
+assert fit.rate == 0.5
+assert fit.inference == "not_provided"
+assert fit.censoring_assumption == "independent_right_censoring"
+
+report = render_exponential_report(fit, ReportLocale.FA)
+assert 'lang="fa" dir="rtl"' in report
 ```
 
 See the [documentation toolchain](docs/README.md) and the repository's

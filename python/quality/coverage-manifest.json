@@ -3,6 +3,7 @@
   "production_files": [
     "src/veridist/__init__.py",
     "src/veridist/domain/__init__.py",
+    "src/veridist/domain/lifetimes.py",
     "src/veridist/engine/__init__.py",
     "src/veridist/engine/checkpoint.py",
     "src/veridist/engine/data_source.py",
@@ -14,7 +15,11 @@
     "src/veridist/engine/resume.py",
     "src/veridist/engine/retry.py",
     "src/veridist/families/__init__.py",
-    "src/veridist/statistics/__init__.py"
+    "src/veridist/families/exponential.py",
+    "src/veridist/reporting/__init__.py",
+    "src/veridist/reporting/exponential.py",
+    "src/veridist/statistics/__init__.py",
+    "src/veridist/statistics/exponential.py"
   ],
   "critical_modules": [
     "domain",
@@ -24,7 +29,8 @@
   ],
   "expected_denominators": {
     "src/veridist/__init__.py": {"statements": 2, "branches": 0},
-    "src/veridist/domain/__init__.py": {"statements": 0, "branches": 0},
+    "src/veridist/domain/__init__.py": {"statements": 2, "branches": 0},
+    "src/veridist/domain/lifetimes.py": {"statements": 28, "branches": 6},
     "src/veridist/engine/__init__.py": {"statements": 10, "branches": 0},
     "src/veridist/engine/checkpoint.py": {"statements": 91, "branches": 26},
     "src/veridist/engine/data_source.py": {"statements": 103, "branches": 44},
@@ -35,8 +41,12 @@
     "src/veridist/engine/provenance.py": {"statements": 325, "branches": 116},
     "src/veridist/engine/resume.py": {"statements": 78, "branches": 30},
     "src/veridist/engine/retry.py": {"statements": 107, "branches": 40},
-    "src/veridist/families/__init__.py": {"statements": 0, "branches": 0},
-    "src/veridist/statistics/__init__.py": {"statements": 0, "branches": 0}
+    "src/veridist/families/__init__.py": {"statements": 2, "branches": 0},
+    "src/veridist/families/exponential.py": {"statements": 105, "branches": 36},
+    "src/veridist/reporting/__init__.py": {"statements": 2, "branches": 0},
+    "src/veridist/reporting/exponential.py": {"statements": 54, "branches": 12},
+    "src/veridist/statistics/__init__.py": {"statements": 2, "branches": 0},
+    "src/veridist/statistics/exponential.py": {"statements": 90, "branches": 44}
   },
   "accepted_exceptions": []
 }

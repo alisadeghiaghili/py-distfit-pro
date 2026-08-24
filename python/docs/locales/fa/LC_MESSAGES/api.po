@@ -5,11 +5,14 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "API narrative"
-msgstr "شرح API"
+msgid "Exponential MLE API"
+msgstr "رابط برنامه‌نویسی برآورد درست‌نمایی بیشینهٔ نمایی"
 
-msgid "NOT IMPLEMENTED: the public statistical API narrative will be written only after callable interfaces and capability evidence exist."
-msgstr "پیاده‌سازی نشده: شرح API آماری عمومی فقط پس از وجود رابط‌های قابل فراخوانی و شواهد قابلیت نوشته خواهد شد."
+msgid "`fit_exponential(observations)` and `fit_exponential_chunks(chunks)` return a finite rate-only estimate or a typed statistical non-estimate. Observations are `ExactLifetime(time)` or `RightCensoredLifetime(time)` with finite, non-negative times. A wrong observation object is a programmer-input error, not a fitting failure."
+msgstr "`fit_exponential(observations)` و `fit_exponential_chunks(chunks)` یک برآورد متناهی فقط برای نرخ، یا یک عدم‌برآورد آماری نوع‌دار برمی‌گردانند. مشاهده‌ها از نوع `ExactLifetime(time)` یا `RightCensoredLifetime(time)` با زمان‌های متناهی و نامنفی هستند. شیء مشاهدهٔ نادرست، خطای ورودی برنامه‌نویس است، نه شکست برازش."
 
-msgid "No function, class, parameter, or return contract is advertised on this page."
-msgstr "در این صفحه هیچ تابع، کلاس، پارامتر یا قرارداد خروجی معرفی نمی‌شود."
+msgid "`render_exponential_report(result, ReportLocale.EN|FA|DE)` renders safe pure HTML for one explicit locale. It has no silent locale fallback. Every successful result declares `inference=not_provided` and `censoring_assumption=independent_right_censoring`."
+msgstr "`render_exponential_report(result, ReportLocale.EN|FA|DE)` برای یک زبان صریح، HTML خالص و ایمن تولید می‌کند. هیچ جایگزینی خاموش برای زبان ندارد. هر نتیجهٔ موفق `inference=not_provided` و `censoring_assumption=independent_right_censoring` را اعلام می‌کند."
+
+msgid "The vertical fixes `location=0`, has no confidence interval or goodness-of-fit claim, and does not claim a production out-of-core adapter or benchmarked large-data tier."
+msgstr "این قابلیت `location=0` را ثابت نگه می‌دارد، هیچ ادعایی دربارهٔ فاصلهٔ اطمینان یا نیکویی برازش ندارد و وجود رابط برون‌حافظه‌ای آمادهٔ تولید یا ردهٔ دادهٔ بزرگِ بنچمارک‌شده را ادعا نمی‌کند."

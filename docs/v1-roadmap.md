@@ -12,12 +12,19 @@ structure with a translation-parity manifest.  Freeze legacy as an audited
 reference; do not port its statistical core. Establish DataSource replayability,
 chunk-ID/offset, max-pass, bounded-inflight, failure/checkpoint and redacted
 provenance contracts. Start scale-contract, docs/i18n and example CI gates now.
-Implement no scale claim until the planned DS-01--DS-12 contract-test harness
-exists; it is currently **NOT IMPLEMENTED**. Start the competitive claim-cell
+The DS-01--DS-12 harness and in-memory contract fixtures now exist, but real
+source adapters, persistent checkpoints, orchestration and retained production
+pass/byte evidence do not. Make no production scale claim. Start the competitive claim-cell
 registry/source-lock design now as well; no competitive landscape is publishable
 until its 100% required lock coverage checker exists and passes.
 
 ## Days 15-35: first domain vertical -- reliability, censoring and big data
+
+Branch status on 2026-08-25: the accepted scope review narrowed the first
+callable cell to a fixed-location, rate-only Exponential MLE for exact and
+independently right-censored lifetimes. Its O(1) reducer state is implemented;
+Weibull, Lognormal and production adapter/out-of-core evidence remain future
+work. The package is still pre-alpha `0.0.0.dev0`.
 
 Implement and cite the narrow reliability set needed for the vertical
 (Exponential, Weibull and Lognormal unless a capability review narrows it

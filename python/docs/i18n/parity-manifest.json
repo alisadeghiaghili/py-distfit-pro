@@ -3,16 +3,9 @@
   "canonical_locale": "en",
   "required_locales": ["en", "fa", "de"],
   "pages": [
-    {
-      "id": "DOC-PAGE-HOME",
-      "source": "index.md",
-      "anchor": "veridist-home"
-    },
-    {
-      "id": "DOC-PAGE-API",
-      "source": "api.md",
-      "anchor": "veridist-api"
-    }
+    {"id": "DOC-PAGE-HOME", "source": "index.md", "anchor": "veridist-home"},
+    {"id": "DOC-PAGE-API", "source": "api.md", "anchor": "veridist-api"},
+    {"id": "DOC-PAGE-EXPONENTIAL", "source": "exponential-right-censoring.md", "anchor": "veridist-exponential-right-censoring"}
   ],
   "messages": [
     {
@@ -26,45 +19,60 @@
       "source": "Evidence-first distribution fitting."
     },
     {
-      "id": "DOC-MSG-STATUS-TITLE",
+      "id": "DOC-MSG-VERTICAL-TITLE",
       "page": "index.md",
-      "source": "Status"
+      "source": "First callable vertical"
     },
     {
-      "id": "DOC-MSG-STATUS-BODY",
+      "id": "DOC-MSG-VERTICAL-BODY",
       "page": "index.md",
-      "source": "This documentation toolchain is implemented; the statistical fitting API is not implemented yet."
+      "source": "The first callable vertical fits a fixed-location exponential lifetime model with exact and independently right-censored observations. Its canonical parameter is a positive rate; the reported mean is derived as its reciprocal."
+    },
+    {
+      "id": "DOC-MSG-LIMITS-TITLE",
+      "page": "index.md",
+      "source": "Limits"
+    },
+    {
+      "id": "DOC-MSG-LIMITS-BODY",
+      "page": "index.md",
+      "source": "This vertical provides a point estimate only. `inference=not_provided` means no confidence interval, goodness-of-fit result, truncation, weights, covariates, or free location parameter is supplied."
     },
     {
       "id": "DOC-MSG-EXAMPLE-TITLE",
       "page": "index.md",
-      "source": "Quick structural example"
+      "source": "Executable example"
     },
     {
-      "id": "DOC-MSG-EXAMPLE-BODY",
+      "id": "DOC-MSG-TRANSLATION-STATUS",
       "page": "index.md",
-      "source": "The example below has one canonical executable source and does not claim a public fitting API."
-    },
-    {
-      "id": "DOC-MSG-EXAMPLE-CAPTION",
-      "page": "index.md",
-      "source": "Canonical executable example"
+      "source": "Translations for this vertical are owner-reviewed provisional text; no external native-speaker review is claimed."
     },
     {
       "id": "DOC-MSG-API-TITLE",
       "page": "api.md",
-      "source": "API narrative"
+      "source": "Exponential MLE API"
     },
     {
-      "id": "DOC-MSG-API-STATUS",
+      "id": "DOC-MSG-API-BODY",
       "page": "api.md",
-      "source": "NOT IMPLEMENTED: the public statistical API narrative will be written only after callable interfaces and capability evidence exist."
+      "source": "`fit_exponential(observations)` and `fit_exponential_chunks(chunks)` return a finite rate-only estimate or a typed statistical non-estimate. Observations are `ExactLifetime(time)` or `RightCensoredLifetime(time)` with finite, non-negative times. A wrong observation object is a programmer-input error, not a fitting failure."
     },
     {
-      "id": "DOC-MSG-API-LIMIT",
-      "page": "api.md",
-      "source": "No function, class, parameter, or return contract is advertised on this page."
-    }
+      "id": "DOC-MSG-TUTORIAL-TITLE",
+      "page": "exponential-right-censoring.md",
+      "source": "Exponential right-censoring tutorial"
+    },
+    {"id":"DOC-MSG-EXAMPLE-BODY","page":"index.md","source":"The example below has one canonical executable source and reports only stable machine facts. Use an explicit report locale; no report-language fallback is performed."},
+    {"id":"DOC-MSG-EXAMPLE-CAPTION","page":"index.md","source":"Canonical executable example"},
+    {"id":"DOC-MSG-API-REPORT","page":"api.md","source":"`render_exponential_report(result, ReportLocale.EN|FA|DE)` renders safe pure HTML for one explicit locale. It has no silent locale fallback. Every successful result declares `inference=not_provided` and `censoring_assumption=independent_right_censoring`."},
+    {"id":"DOC-MSG-API-LIMIT","page":"api.md","source":"The vertical fixes `location=0`, has no confidence interval or goodness-of-fit claim, and does not claim a production out-of-core adapter or benchmarked large-data tier."},
+    {"id":"DOC-MSG-MODEL-TITLE","page":"exponential-right-censoring.md","source":"Model and estimate"},
+    {"id":"DOC-MSG-MODEL-BODY","page":"exponential-right-censoring.md","source":"For exact-event count `r` and total time on test `tau`, this vertical uses `r*log(rate)-rate*tau` and returns `rate=r/tau` only when both values permit a finite estimate. It accepts exact lifetimes and independent right censoring. Independent right censoring is an assumption visible in the result; it cannot be established from the observations by this library."},
+    {"id":"DOC-MSG-FAILURE-TITLE","page":"exponential-right-censoring.md","source":"Failure cases and limits"},
+    {"id":"DOC-MSG-FAILURE-BODY","page":"exponential-right-censoring.md","source":"An empty sample, no observed events, zero total time with an event, and numeric overflow produce typed non-estimates. There is no confidence interval, goodness-of-fit test, truncation, left or interval censoring, weights, covariates, or free location parameter in this vertical."},
+    {"id":"DOC-MSG-STREAM-TITLE","page":"exponential-right-censoring.md","source":"Streaming scope"},
+    {"id":"DOC-MSG-STREAM-BODY","page":"exponential-right-censoring.md","source":"The reducer retains fixed O(1) accumulator state: counts and a compensated total-time sum. That algorithmic scope is not a claim of a production out-of-core adapter, bounded ingestion, or a benchmarked large-data tier."}
   ],
   "examples": [
     {

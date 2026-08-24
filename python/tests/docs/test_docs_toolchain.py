@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import re
 import runpy
+import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 
 PYTHON_ROOT = Path(__file__).resolve().parents[2]
@@ -14,6 +18,25 @@ DOCS_ROOT = PYTHON_ROOT / "docs"
 SOURCE_ROOT = DOCS_ROOT / "source"
 MANIFEST_PATH = DOCS_ROOT / "i18n" / "parity-manifest.json"
 TOOLCHAIN_PATH = DOCS_ROOT / "toolchain.py"
+
+
+class _TextCollector(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
+
+
+def _semantic_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value.replace("`", "")).strip()
+
+
+def _rendered_text(path: Path) -> str:
+    parser = _TextCollector()
+    parser.feed(path.read_text(encoding="utf-8"))
+    return _semantic_text("".join(parser.parts))
 
 
 def load_toolchain():
@@ -66,6 +89,113 @@ class DocsToolchainContractTests(unittest.TestCase):
         self.assertEqual(report["missing"], {})
         self.assertEqual(report["fallbacks"], {})
 
+    def test_manifest_matches_every_real_gettext_message_for_tracked_pages(self) -> None:
+        toolchain = load_toolchain()
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory(
+            dir=os.environ.get("VERIDIST_SCRATCH")
+        ) as temporary_directory:
+            output = Path(temporary_directory) / "gettext"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "sphinx",
+                    "-b",
+                    "gettext",
+                    "-W",
+                    "-n",
+                    str(SOURCE_ROOT),
+                    str(output),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            actual = {
+                source
+                for page in manifest["pages"]
+                for source in toolchain._parse_po(output / f"{Path(page['source']).stem}.pot")
+            }
+        declared = {message["source"] for message in manifest["messages"]}
+        self.assertEqual(declared, actual)
+
+    def test_each_catalog_exactly_matches_its_real_page_pot(self) -> None:
+        toolchain = load_toolchain()
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory(
+            dir=os.environ.get("VERIDIST_SCRATCH")
+        ) as temporary_directory:
+            output = Path(temporary_directory) / "gettext"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "sphinx",
+                    "-b",
+                    "gettext",
+                    "-W",
+                    "-n",
+                    str(SOURCE_ROOT),
+                    str(output),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for locale in ("fa", "de"):
+                for page in manifest["pages"]:
+                    stem = Path(page["source"]).stem
+                    actual = set(toolchain._parse_po(output / f"{stem}.pot"))
+                    translated = set(
+                        toolchain._parse_po(
+                            DOCS_ROOT / "locales" / locale / "LC_MESSAGES" / f"{stem}.po"
+                        )
+                    )
+                    self.assertEqual(
+                        translated, actual, f"{locale}/{stem}.po is not a closed catalog"
+                    )
+
+    def test_rendered_locales_contain_every_translation_without_english_fallback(self) -> None:
+        toolchain = load_toolchain()
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory(
+            dir=os.environ.get("VERIDIST_SCRATCH")
+        ) as temporary_directory:
+            for locale in ("fa", "de"):
+                output = Path(temporary_directory) / locale
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "sphinx",
+                        "-b",
+                        "html",
+                        "-W",
+                        "-n",
+                        str(SOURCE_ROOT),
+                        str(output),
+                        "-D",
+                        f"language={locale}",
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                toolchain.assert_rendered_direction(output, locale)
+                for page in manifest["pages"]:
+                    stem = Path(page["source"]).stem
+                    rendered = _rendered_text(output / f"{stem}.html")
+                    catalog = toolchain._parse_po(
+                        DOCS_ROOT / "locales" / locale / "LC_MESSAGES" / f"{stem}.po"
+                    )
+                    for source, translation in catalog.items():
+                        self.assertIn(_semantic_text(translation), rendered)
+                        self.assertNotIn(_semantic_text(source), rendered)
+
     def test_persian_is_rtl_german_is_ltr_and_render_checker_is_strict(self) -> None:
         toolchain = load_toolchain()
         self.assertEqual(toolchain.direction_for("fa"), "rtl")
@@ -78,7 +208,7 @@ class DocsToolchainContractTests(unittest.TestCase):
             output = Path(temporary_directory)
             (output / "index.html").write_text(
                 '<html lang="fa" dir="rtl"><head><link href="rtl.css"></head>'
-                '<body><code>x = 1</code></body></html>',
+                "<body><code>x = 1</code></body></html>",
                 encoding="utf-8",
             )
             toolchain.assert_rendered_direction(output, "fa")
@@ -89,9 +219,15 @@ class DocsToolchainContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "dir=rtl"):
                 toolchain.assert_rendered_direction(output, "fa")
 
-    def test_api_page_is_an_honest_placeholder(self) -> None:
+    def test_first_vertical_docs_are_callable_narrow_and_honest(self) -> None:
         api_page = (SOURCE_ROOT / "api.md").read_text(encoding="utf-8")
-        self.assertIn("NOT IMPLEMENTED", api_page)
+        tutorial_page = (SOURCE_ROOT / "exponential-right-censoring.md").read_text(encoding="utf-8")
+        self.assertIn("fit_exponential", api_page)
+        self.assertIn("ReportLocale", api_page)
+        self.assertIn("not_provided", api_page)
+        self.assertIn("independent right censoring", tutorial_page)
+        self.assertIn("no confidence interval", tutorial_page)
+        self.assertIn("fixed O(1) accumulator state", tutorial_page)
         self.assertNotIn("autofunction", api_page)
         self.assertNotIn("automodule", api_page)
 
@@ -101,7 +237,15 @@ class DocsToolchainContractTests(unittest.TestCase):
         example = manifest["examples"][0]
         example_path = SOURCE_ROOT / example["source"]
         result = runpy.run_path(str(example_path))
-        self.assertEqual(result["EXAMPLE_RESULT"], {"count": 3, "mean": 2.0})
+        self.assertEqual(
+            result["EXAMPLE_RESULT"],
+            {
+                "rate": "0.5",
+                "observation_count": "3",
+                "event_count": "2",
+                "censored_count": "1",
+            },
+        )
         for page_name in example["pages"]:
             page = (SOURCE_ROOT / page_name).read_text(encoding="utf-8")
             self.assertIn(example["source"], page)

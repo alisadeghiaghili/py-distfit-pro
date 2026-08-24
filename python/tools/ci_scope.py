@@ -13,6 +13,7 @@ _VERIDIST_PATHS = frozenset(
         ".github/workflows/ci.yml",
         ".github/workflows/v1-ci.yml",
         "docs/adoption-and-reputation-strategy.md",
+        "docs/capability-matrix.md",
         "docs/competitive-evidence-policy.md",
         "docs/competitive-feature-matrix.csv",
         "docs/competitive-feature-matrix.md",

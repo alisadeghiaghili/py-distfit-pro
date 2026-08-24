@@ -18,6 +18,17 @@ For compact tables below, **V** maps to `supported`, **P** to `partial`, and
 **U** to `unverified`; `not_supported` is written out. The CSV, not these
 compressed cells, is the publication/export record.
 
+## Current veridist branch boundary
+
+This is a project-status note, not a competitor claim and not a new
+`supported` CSV cell. The `0.0.0.dev0` development branch has one experimental
+callable statistical cell: fixed-location, rate-only exponential MLE for exact
+and independently right-censored lifetimes, with typed failures and
+`inference=not_provided`. Its reducer has fixed O(1) state. There is no
+production adapter, external-memory benchmark, out-of-core claim, release, or
+remote-CI result. The complete project matrix is
+[capability-matrix.md](capability-matrix.md).
+
 ## Python and Julia
 
 | Tool (version/date) | Fit and data semantics | Inference/selection | Scale/interface | Status/source |

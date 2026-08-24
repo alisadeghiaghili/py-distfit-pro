@@ -27,58 +27,79 @@ that did not execute, including six syntax-invalid legacy examples. Treat these
 as regression blockers/scenarios to specify, **not**
 as a statement about uninspected current files.
 
-## Runtime claims still UNVERIFIED
+## Current verified and unverified status
 
-- On 2026-08-22, local generic discovery executed 156 tests. The deterministic
-  coverage checker accepted all 14 enumerated production files with 100%
-  observed coverage, against frozen denominators of 1,293 statements and 444
-  branches and no accepted exceptions. This is structural and contract
-  evidence, not statistical correctness or scale evidence.
+- On 2026-08-25 at `ceee4fa`, the branch-local coverage run executed 227 passing tests with
+  one opt-in browser test skipped. The deterministic checker accepted all 19
+  enumerated production files with 100% observed coverage: 1,578 statements and
+  542 branches, with no accepted exceptions. This is structural and contract
+  evidence, not a formal mutation score, calibration result or production-scale
+  benchmark.
+- ADR-0017's first callable cell is implemented on the development branch: a
+  fixed-location, rate-only exponential MLE for exact and independently
+  right-censored lifetimes. It returns a finite point estimate or a typed
+  statistical failure; `inference=not_provided`. Reference and contract tests for
+  constructor-boundary, reducer, merge, underflow/overflow and report contracts
+  pass. This is not a 0.1.0a1 release claim.
 - The DS-01--DS-12 contract suite now exercises in-memory sources, bounded
   delivery, pass enforcement, retry/checkpoint boundaries, typed failures,
   outcome classification and closed redacted provenance. The implementation
   span is `d846fc8` through `1345666`.
-- On 2026-08-22, local PEP 517 builds produced an sdist and wheel. Inspection
-  found the MIT license and package metadata in the wheel and the MIT license,
-  manifest and all three package landing pages in the sdist. A clean wheel
-  environment passed dependency, import, version, `py.typed` and `pip check`.
-- CI lane isolation and the Linux Python 3.11--3.14 quality, package and
-  documentation jobs are configured in `e23cda5` through `89202c6` and pushed.
-  Their remote execution result remains **UNVERIFIED**.
-- Structural documentation tests and EN/FA/DE catalog parity pass locally.
-  A complete local Sphinx build remains **UNVERIFIED**: on 2026-08-22, the
-  available Sphinx 8.2.3 environment failed before gettext because it did not
-  contain the declared `myst_parser` dependency. The configured CI job installs
-  the declared documentation extra, but its remote result is also unverified.
-- The formal mutation runner and score, retained DS pass/byte trace artifact,
-  browser screenshot of Persian rendering, actual source adapters, persistent
+- A branch-local PEP 517 sdist/wheel build and Twine check pass. A clean wheel
+  environment outside the checkout passes dependency/import/version/`py.typed`
+  checks and calls the 0.5-rate exponential fit plus a Persian RTL report.
+- Base CI lane isolation and Linux Python 3.11--3.14 jobs were previously
+  configured and pushed. The current exponential/docs/browser branch changes
+  are not pushed yet; all remote results for them remain **UNVERIFIED**.
+- Local Sphinx gettext, EN/FA/DE HTML and English linkcheck complete with
+  warnings fatal. Exact real POT/catalog parity, translated rendered semantics,
+  locale direction and canonical examples pass. Remote CI remains unverified.
+- The narrow `I18N-RTL-EXP-01` opt-in browser contract passes locally with Edge 151 and exactly two
+  nonempty Persian HTML screenshots; computed RTL/right alignment and
+  LTR/isolate facts pass for success and failure reports. Exact Playwright
+  1.62.0 bundled-Chromium execution remains required and unverified in remote CI.
+  The broader documentation/PDF/table/code/formula RTL gate is incomplete;
+  network-font and pixel-baseline rendering are not claimed.
+- Eight scratch-only manual patches were each killed by one targeted unittest:
+  `fit_exponential` materialized `tuple(observations)` / `test_exp14_memory_growth_is_bounded_for_unique_generated_observations`;
+  `merge` used the raw two totals / `test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions`;
+  time validation became only `float(value)` / `test_positive_decimal_underflow_is_rejected_not_silently_changed_to_zero`;
+  success `__post_init__` became a no-op / `test_exp14_success_constructor_rejects_each_inconsistent_derived_fact`;
+  the FA catalog was replaced by EN / `test_i18n_exp07_catalogs_are_closed_nfc_translated_and_immutable`;
+  the final `REPORT_KEYS` item was removed / `test_i18n_exp04_has_exact_stable_keys_and_semantic_facts_for_every_result`;
+  every machine fact became `mutated` / `test_i18n_exp13_machine_values_are_bound_to_success_and_failure_facts`;
+  and Persian `dir="rtl"` became `dir="ltr"` / `test_i18n_exp02_farsi_report_has_rtl_root_and_ltr_isolates`.
+  This is diagnostic evidence only. The formal mutation runner and score are
+  **NOT IMPLEMENTED**.
+- Retained DS pass/byte trace artifacts, actual source adapters, persistent
   checkpoint backend and production orchestrator are **NOT IMPLEMENTED**.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free
   semantic/hash checker, AST/dynamic-import isolation checks and built-artifact
-  payload inspection in the configured package job. This is governance only:
-  no legacy runtime code, statistical implementation, compatibility surface or
-  browser RTL screenshot has been delivered. A ledger entry is a candidate,
-  not evidence of mathematical correctness.
+  payload inspection in the configured package job. LM-002 records the
+  independent exponential rewrite and reviewed statistical evidence but remains
+  `review_pending`; no legacy runtime code, compatibility surface or numerical
+  oracle is used. LM-003 remains pending and does not claim legacy phrase reuse.
 - Every exact numeric defect magnitude, benchmark, release status, competitor
   feature count, name/trademark availability, and SQL-export novelty remains
   unverified unless a current command or primary source is attached.
-- Statistical streaming equivalence, calibration, bootstrap coverage,
-  reference agreement, production-scale memory bounds, PyPI publication and
-  source-lock checking remain unverified.
+- Statistical calibration, bootstrap coverage, production-adapter streaming
+  equivalence, production-scale memory bounds, PyPI publication and source-lock
+  checking remain unverified. Reference agreement is scoped only to the current
+  exponential point-estimation cell.
 
 ## Remaining v1 work and release evidence
 
 | Area | Required v1 evidence |
 | --- | --- |
-| Core | Immutable result schema, declared capability matrix, canonical parameter map, and conformance tests |
-| First vertical | Reliability + censoring + big-data: selected reliability families, cited censored likelihood cells, DS-01--DS-12 evidence and visible failure diagnostics |
+| Core | Keep the current immutable exponential result/capability facts; extend the [capability matrix](capability-matrix.md) only with cited conformance evidence |
+| First vertical | Current exponential point-estimation cell is callable; complete production adapter/pass-byte/scale evidence before calling the reliability + big-data vertical complete |
 | Families | Any family beyond the first reliability vertical passes support/CDF/PPF/log-density/reference tests with cited specifications |
 | Estimation | MLE applicability, convergence/restart diagnostics, and failures that remain visible |
 | Scale | Promote the implemented DS-01--DS-12 contract fixtures into actual adapters and an orchestrator; retain measured pass/byte traces and production-scale memory evidence |
 | Inference | Refit Monte-Carlo GoF and published calibration scope; no analytic p-value without a family/estimator source |
 | Uncertainty | Bootstrap failure accounting and coverage evidence only for declared regular scenarios |
 | Censoring | Explicit likelihood semantics and reference tests; unsupported family combinations fail loudly |
-| Localization | Keep implemented EN/FA/DE parity and canonical example checks; verify remote `-W` builds/linkcheck and add browser-rendered RTL QA |
+| Localization | Keep implemented EN/FA/DE parity, examples and local `-W`/linkcheck; require remote pinned-Chromium HTML RTL evidence and separately specify PDF before claiming it |
 | Migration | Keep ADR-0016 ledger hashes current; require independent specs/RED tests per candidate and retain `distfit_pro` import/package isolation |
 | Quality | Global >=95% line and branch; numerical `domain`/`statistics`/`families`/`engine` paths >=98% line and branch; every production file >=90% of both absent ADR; executable mutation >=80% for that scope |
 | Competitive evidence | Every public `supported`/`not_supported` claim cell source-locked at 100% coverage; source-lock registry/checker currently NOT IMPLEMENTED |

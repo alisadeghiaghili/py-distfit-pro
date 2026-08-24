@@ -36,10 +36,18 @@
         "sha256": "0ec5360f95f6b812fe49e91ba050912cf0de75c878d66b1a784ec8c52028f562"
       },
       "license": {"spdx": "MIT", "basis": "LICENSE"},
-      "evidence": {"scenario_ids": ["EXP-01"], "test_ids": ["EXP-01"], "reference_ids": ["NIST-exponential"]},
-      "reviews": {"license": "reviewed", "statistical": "review_pending", "scale": "review_pending", "i18n": "not_applicable"},
+      "evidence": {
+        "scenario_ids": ["EXP-01", "EXP-02", "EXP-03", "EXP-04", "EXP-05", "EXP-06", "EXP-07", "EXP-08", "EXP-09", "EXP-10", "EXP-11", "EXP-12", "EXP-13", "EXP-14"],
+        "test_ids": ["EXP-01", "EXP-02", "EXP-03", "EXP-04", "EXP-05", "EXP-06", "EXP-07", "EXP-08", "EXP-09", "EXP-10", "EXP-11", "EXP-12", "EXP-13", "EXP-14"],
+        "reference_ids": ["ADR-0017", "NIST-exponential", "R-stats-exponential", "SciPy-CensoredData"]
+      },
+      "reviews": {"license": "reviewed", "statistical": "reviewed", "scale": "review_pending", "i18n": "not_applicable"},
       "isolation": {"runtime_import": false, "runtime_dependency": false, "dynamic_fallback": false, "package_content": false, "oracle": false},
-      "limits": ["Implement from an independent specification; legacy output is not a numerical oracle."]
+      "limits": [
+        "An independent rewrite exists on the development branch; legacy output was not used as a numerical oracle.",
+        "The package remains pre-alpha 0.0.0.dev0; LM-002 migration review is still pending.",
+        "Fixed O(1) reducer state is an algorithmic property only; there is no production adapter or out-of-core claim."
+      ]
     },
     {
       "id": "LM-003",
