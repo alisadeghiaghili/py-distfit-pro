@@ -11,7 +11,7 @@ from math import inf
 from unittest.mock import patch
 
 import veridist.reporting.exponential as report_module
-from veridist.domain.lifetimes import ExactLifetime
+from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
 from veridist.families.exponential import (
     ExponentialFitFailure,
     ExponentialFitFailureCode,
@@ -291,3 +291,54 @@ class ExponentialReportI18nContracts(unittest.TestCase):
         ):
             with self.assertRaises(ValueError):
                 render_exponential_report(result, ReportLocale.EN)
+
+    def test_i18n_exp13_machine_values_are_bound_to_success_and_failure_facts(self) -> None:
+        success = fit_exponential((ExactLifetime(Decimal("2")),))
+        assert isinstance(success, ExponentialFitSuccess)
+        success_values = _parse_report(
+            render_exponential_report(success, ReportLocale.EN)
+        ).machine_values
+        self.assertEqual(
+            success_values,
+            {
+                "status": "success",
+                "family": success.family,
+                "parameterization": success.parameterization,
+                "location": repr(success.location),
+                "rate": repr(success.rate),
+                "mean": repr(success.mean),
+                "observation_count": str(success.observation_count),
+                "event_count": str(success.event_count),
+                "censored_count": str(success.censored_count),
+                "total_time": repr(success.total_time),
+                "log_likelihood": repr(success.log_likelihood),
+                "inference": success.inference,
+                "censoring_assumption": success.censoring_assumption,
+                "failure_code": "none",
+            },
+        )
+
+        failure = fit_exponential((RightCensoredLifetime(Decimal("2")),))
+        assert isinstance(failure, ExponentialFitFailure)
+        failure_values = _parse_report(
+            render_exponential_report(failure, ReportLocale.EN)
+        ).machine_values
+        self.assertEqual(
+            failure_values,
+            {
+                "status": "failure",
+                "family": "exponential",
+                "parameterization": "rate",
+                "location": "0.0",
+                "rate": "unavailable",
+                "mean": "unavailable",
+                "observation_count": "1",
+                "event_count": "0",
+                "censored_count": "1",
+                "total_time": "2.0",
+                "log_likelihood": "unavailable",
+                "inference": "not_provided",
+                "censoring_assumption": "independent_right_censoring",
+                "failure_code": "NO_OBSERVED_EVENTS",
+            },
+        )
