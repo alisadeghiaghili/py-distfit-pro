@@ -52,6 +52,25 @@ class MigrationLedgerTests(unittest.TestCase):
         exponential = next(entry for entry in entries if entry["component"] == "exponential")
         self.assertEqual(exponential["disposition"], "rewrite")
 
+    def test_lm002_records_the_independent_vertical_without_closing_migration_review(self) -> None:
+        ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+        exponential = next(entry for entry in ledger["entries"] if entry["id"] == "LM-002")
+        self.assertEqual(exponential["status"], "review_pending")
+        self.assertEqual(exponential["disposition"], "rewrite")
+        self.assertEqual(exponential["reviews"]["statistical"], "reviewed")
+        self.assertEqual(exponential["reviews"]["scale"], "review_pending")
+        expected_scenarios = {f"EXP-{number:02d}" for number in range(1, 15)}
+        self.assertEqual(set(exponential["evidence"]["scenario_ids"]), expected_scenarios)
+        self.assertEqual(set(exponential["evidence"]["test_ids"]), expected_scenarios)
+        self.assertTrue(
+            {"ADR-0017", "NIST-exponential", "R-stats-exponential", "SciPy-CensoredData"}
+            <= set(exponential["evidence"]["reference_ids"])
+        )
+        limits = " ".join(exponential["limits"])
+        self.assertIn("independent rewrite", limits)
+        self.assertIn("0.0.0.dev0", limits)
+        self.assertIn("no production adapter", limits)
+
     def test_schema_closes_and_types_every_nested_ledger_contract(self) -> None:
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
         entry = schema["properties"]["entries"]["items"]
