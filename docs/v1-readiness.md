@@ -29,7 +29,7 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
-- On 2026-08-24, the branch-local coverage run executed 221 passing tests with
+- On 2026-08-25 at `ceee4fa`, the branch-local coverage run executed 227 passing tests with
   one opt-in browser test skipped. The deterministic checker accepted all 22
   enumerated production files with 100% observed coverage: 1,578 statements and
   542 branches, with no accepted exceptions. This is structural and contract
@@ -38,7 +38,7 @@ as a statement about uninspected current files.
 - ADR-0017's first callable cell is implemented on the development branch: a
   fixed-location, rate-only exponential MLE for exact and independently
   right-censored lifetimes. It returns a finite point estimate or a typed
-  statistical failure; `inference=not_provided`. Reference, property,
+  statistical failure; `inference=not_provided`. Reference and contract tests for
   constructor-boundary, reducer, merge, underflow/overflow and report contracts
   pass. This is not a 0.1.0a1 release claim.
 - The DS-01--DS-12 contract suite now exercises in-memory sources, bounded
@@ -48,22 +48,29 @@ as a statement about uninspected current files.
 - A branch-local PEP 517 sdist/wheel build and Twine check pass. A clean wheel
   environment outside the checkout passes dependency/import/version/`py.typed`
   checks and calls the 0.5-rate exponential fit plus a Persian RTL report.
-- CI lane isolation and the Linux Python 3.11--3.14 quality, package and
-  documentation jobs are configured in `e23cda5` through `89202c6` and pushed.
-  Their remote execution result remains **UNVERIFIED**.
+- Base CI lane isolation and Linux Python 3.11--3.14 jobs were previously
+  configured and pushed. The current exponential/docs/browser branch changes
+  are not pushed yet; all remote results for them remain **UNVERIFIED**.
 - Local Sphinx gettext, EN/FA/DE HTML and English linkcheck complete with
   warnings fatal. Exact real POT/catalog parity, translated rendered semantics,
   locale direction and canonical examples pass. Remote CI remains unverified.
-- The opt-in browser contract passes locally with Edge 151 and exactly two
+- The narrow `I18N-RTL-EXP-01` opt-in browser contract passes locally with Edge 151 and exactly two
   nonempty Persian HTML screenshots; computed RTL/right alignment and
   LTR/isolate facts pass for success and failure reports. Exact Playwright
   1.62.0 bundled-Chromium execution remains required and unverified in remote CI.
-  PDF, network-font and pixel-baseline rendering are not claimed.
-- Eight temporary, targeted manual mutations were genuinely killed: input
-  materialization, lost merge compensation, allowed underflow, constructor
-  spoof acceptance, English Persian-catalog fallback, removed report key,
-  overwritten machine facts and forced LTR Persian output. This is diagnostic
-  evidence only. The formal mutation runner and score are **NOT IMPLEMENTED**.
+  The broader documentation/PDF/table/code/formula RTL gate is incomplete;
+  network-font and pixel-baseline rendering are not claimed.
+- Eight scratch-only manual patches were each killed by one targeted unittest:
+  `fit_exponential` materialized `tuple(observations)` / `test_exp14_memory_growth_is_bounded_for_unique_generated_observations`;
+  `merge` used the raw two totals / `test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions`;
+  time validation became only `float(value)` / `test_positive_decimal_underflow_is_rejected_not_silently_changed_to_zero`;
+  success `__post_init__` became a no-op / `test_exp14_success_constructor_rejects_each_inconsistent_derived_fact`;
+  the FA catalog was replaced by EN / `test_i18n_exp07_catalogs_are_closed_nfc_translated_and_immutable`;
+  the final `REPORT_KEYS` item was removed / `test_i18n_exp04_has_exact_stable_keys_and_semantic_facts_for_every_result`;
+  every machine fact became `mutated` / `test_i18n_exp13_machine_values_are_bound_to_success_and_failure_facts`;
+  and Persian `dir="rtl"` became `dir="ltr"` / `test_i18n_exp02_farsi_report_has_rtl_root_and_ltr_isolates`.
+  This is diagnostic evidence only. The formal mutation runner and score are
+  **NOT IMPLEMENTED**.
 - Retained DS pass/byte trace artifacts, actual source adapters, persistent
   checkpoint backend and production orchestrator are **NOT IMPLEMENTED**.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free

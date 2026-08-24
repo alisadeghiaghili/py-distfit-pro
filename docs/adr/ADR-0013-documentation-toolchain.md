@@ -10,8 +10,9 @@ Sphinx + MyST + gettext/`sphinx-intl` for the EN/FA/DE v1 toolchain.
 ## Context
 
 ADR-0011 requires complete EN/FA/DE documentation, executable examples, stable
-anchors and Persian RTL QA. The current v1 toolchain is NOT IMPLEMENTED; a
-command such as `python -m docs.build` would be fictitious.
+anchors and Persian RTL QA. At the decision time on 2026-08-20, the v1
+toolchain was **NOT IMPLEMENTED**; a command such as `python -m docs.build`
+would have been fictitious.
 
 ## Decision
 
@@ -24,9 +25,8 @@ doctest, linkcheck and RTL capabilities.
 ## Scope, dependencies and tests
 
 Dependencies: a Sphinx config under `docs/source`, MyST, gettext catalogs,
-locale owners, screenshot runner, example harness and CI artifacts. This ADR is
-Accepted, but its configuration and the following planned commands remain
-**NOT IMPLEMENTED**:
+locale owners, screenshot runner, example harness and CI artifacts. At the
+decision time, the following commands were planned and **NOT IMPLEMENTED**:
 
 ```text
 sphinx-build -b html -W -n docs/source docs/_build/en/html -D language=en

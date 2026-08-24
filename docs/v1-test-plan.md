@@ -114,12 +114,14 @@ dynamic and constant-composed imports of `distfit_pro`. `LI-02` inspects each
 built wheel/sdist for legacy payload paths. These checks do not prove an
 approved component is statistically correct, portable, or ready to ship.
 
-For RTL evidence, `I18N-RTL-01` now has an opt-in Persian **HTML report** browser
+The narrow `I18N-RTL-EXP-01` contract has an opt-in Persian **HTML report** browser
 gate covering success and failure facts, computed document/report direction,
 right alignment and LTR/isolate handling of mixed Latin API identifiers. It
 requires exactly two nonempty screenshots. Local Edge 151 evidence passes; the
 pinned Playwright 1.62.0 matched-Chromium CI run remains unverified. PDF is not
-covered by this gate and must not be inferred from HTML evidence.
+covered by this gate and must not be inferred from HTML evidence. The broader
+`I18N-RTL-01` gate for documentation HTML/PDF, tables, code blocks, formulae
+and mixed LTR identifiers remains incomplete.
 
 ## CI tiers and checker contract
 

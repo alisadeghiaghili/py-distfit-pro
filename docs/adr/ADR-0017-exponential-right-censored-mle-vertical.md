@@ -86,7 +86,9 @@ the input value in public output.
 - `EXP-09` through `EXP-14` cover streaming state, numerical compensation,
   canonical-order behaviour, provenance, and invalid input boundaries.
 - `I18N-EXP-01` through `I18N-EXP-04` require EN/FA/DE report-key parity and
-  rendered Persian bidi/RTL browser evidence.
+  localized report semantics. `I18N-RTL-EXP-01` is the narrow browser contract
+  for Persian success/failure report HTML. It does not close the broader
+  documentation/PDF RTL gate.
 
 ## Consequences
 
