@@ -142,24 +142,32 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-1.54.0
+          key: playwright-${{ runner.os }}-1.62.0
       - name: Install browser test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[test]"
+          python -m pip install -e ".[test,browser]"
           python -m playwright install --with-deps chromium
       - name: Capture Persian report browser evidence
         env:
           VERIDIST_BROWSER_TESTS: "1"
           VERIDIST_BROWSER_ARTIFACT_DIR: artifacts/browser-rtl
         run: python -m unittest tests.browser.test_exponential_report_rtl -v
+      - name: Verify exact screenshot evidence set
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t screenshots < <(find artifacts/browser-rtl -maxdepth 1 -type f -name '*.png' -size +0c -print | sort)
+          test "${#screenshots[@]}" -eq 2
+          test "$(find artifacts/browser-rtl -maxdepth 1 -type f -name '*.png' | wc -l)" -eq 2
+          test "$(basename "${screenshots[0]}")" = "exponential-report-fa-failure.png"
+          test "$(basename "${screenshots[1]}")" = "exponential-report-fa-success.png"
       - name: Retain browser screenshots
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: veridist-browser-rtl
           path: python/artifacts/browser-rtl
-          if-no-files-found: warn
+          if-no-files-found: error
 
   veridist-gate:
     name: veridist / gate
