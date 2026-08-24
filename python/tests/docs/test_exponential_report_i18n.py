@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
-from html.parser import HTMLParser
 import re
 import unicodedata
 import unittest
+from decimal import Decimal
+from html.parser import HTMLParser
 
 from veridist.domain.lifetimes import ExactLifetime
 from veridist.families.exponential import (
@@ -18,9 +18,9 @@ from veridist.families.exponential import (
 from veridist.reporting.exponential import (
     FAILURE_MESSAGE_CODES,
     REPORT_CATALOGS,
+    REPORT_HEADINGS,
     REPORT_KEYS,
     REPORT_LABEL_KEYS,
-    REPORT_HEADINGS,
     REPORT_TITLES,
     ReportLocale,
     render_exponential_report,
@@ -114,35 +114,57 @@ class ExponentialReportI18nContracts(unittest.TestCase):
         self.assertEqual(
             REPORT_KEYS,
             (
-                "status", "family", "parameterization", "location", "rate", "mean",
-                "observation_count", "event_count", "censored_count", "total_time",
-                "log_likelihood", "inference", "censoring_assumption", "failure_code",
+                "status",
+                "family",
+                "parameterization",
+                "location",
+                "rate",
+                "mean",
+                "observation_count",
+                "event_count",
+                "censored_count",
+                "total_time",
+                "log_likelihood",
+                "inference",
+                "censoring_assumption",
+                "failure_code",
             ),
         )
         for result in _all_results():
-            rendered = {locale: render_exponential_report(result, locale) for locale in ReportLocale}
+            rendered = {
+                locale: render_exponential_report(result, locale) for locale in ReportLocale
+            }
             for html in rendered.values():
                 for key in REPORT_KEYS:
                     self.assertIn(f'data-report-key="{key}"', html)
                     self.assertIn("data-machine-value=", html)
-            self.assertEqual({html.count("data-report-key=") for html in rendered.values()}, {len(REPORT_KEYS)})
+            self.assertEqual(
+                {html.count("data-report-key=") for html in rendered.values()}, {len(REPORT_KEYS)}
+            )
 
     def test_i18n_exp05_direction_unicode_and_latin_isolation_are_explicit(self) -> None:
         result = fit_exponential((ExactLifetime(Decimal("2")),))
         fa = render_exponential_report(result, ReportLocale.FA)
         self.assertEqual(unicodedata.normalize("NFC", fa), fa)
         self.assertIn("برازش نمایی", fa)
-        self.assertIn('<html lang="en" dir="ltr">', render_exponential_report(result, ReportLocale.EN))
-        self.assertIn('<html lang="de" dir="ltr">', render_exponential_report(result, ReportLocale.DE))
+        self.assertIn(
+            '<html lang="en" dir="ltr">', render_exponential_report(result, ReportLocale.EN)
+        )
+        self.assertIn(
+            '<html lang="de" dir="ltr">', render_exponential_report(result, ReportLocale.DE)
+        )
         for token in ("exponential", "rate", "2.0", "not_provided"):
             self.assertIn(f'<bdi dir="ltr" class="latin">{token}</bdi>', fa)
 
     def test_i18n_exp06_parser_has_exact_machine_parity_for_success_and_each_failure(self) -> None:
         for result in _all_results():
             parsed = {
-                locale: _parse_report(render_exponential_report(result, locale)) for locale in ReportLocale
+                locale: _parse_report(render_exponential_report(result, locale))
+                for locale in ReportLocale
             }
-            self.assertEqual({tuple(item.machine_values) for item in parsed.values()}, {REPORT_KEYS})
+            self.assertEqual(
+                {tuple(item.machine_values) for item in parsed.values()}, {REPORT_KEYS}
+            )
             self.assertEqual(
                 {tuple(item.machine_values.items()) for item in parsed.values()},
                 {tuple(next(iter(parsed.values())).machine_values.items())},
@@ -157,7 +179,8 @@ class ExponentialReportI18nContracts(unittest.TestCase):
                 else FAILURE_MESSAGE_CODES[result.code]
             )
             self.assertEqual(
-                {tuple(item.failure_message_codes) for item in parsed.values()}, {(expected_failure,)},
+                {tuple(item.failure_message_codes) for item in parsed.values()},
+                {(expected_failure,)},
             )
 
     def test_i18n_exp07_catalogs_are_closed_nfc_translated_and_immutable(self) -> None:
@@ -174,18 +197,28 @@ class ExponentialReportI18nContracts(unittest.TestCase):
             REPORT_CATALOGS[ReportLocale.EN] = {}  # type: ignore[index]
         with self.assertRaises(TypeError):
             REPORT_CATALOGS[ReportLocale.EN]["status"] = "mutated"  # type: ignore[index]
-        baseline = render_exponential_report(fit_exponential((ExactLifetime(Decimal("2")),)), ReportLocale.EN)
+        baseline = render_exponential_report(
+            fit_exponential((ExactLifetime(Decimal("2")),)), ReportLocale.EN
+        )
         self.assertIn("Exponential fit", baseline)
 
-    def test_i18n_exp08_rejects_subclass_tampered_and_unknown_results_without_sentinel_echo(self) -> None:
+    def test_i18n_exp08_rejects_subclass_tampered_and_unknown_results_without_sentinel_echo(
+        self,
+    ) -> None:
         class SuccessSubclass(ExponentialFitSuccess):
             pass
 
         valid = fit_exponential((ExactLifetime(Decimal("2")),))
         assert isinstance(valid, ExponentialFitSuccess)
         subclass = SuccessSubclass(
-            valid.rate, valid.observation_count, valid.event_count, valid.total_time,
-            valid.mean, valid.log_likelihood, valid.censored_count, valid.provenance,
+            valid.rate,
+            valid.observation_count,
+            valid.event_count,
+            valid.total_time,
+            valid.mean,
+            valid.log_likelihood,
+            valid.censored_count,
+            valid.provenance,
         )
         sentinel = "<script>malicious-sentinel</script>"
         object.__setattr__(valid, "family", sentinel)
@@ -194,14 +227,18 @@ class ExponentialReportI18nContracts(unittest.TestCase):
                 render_exponential_report(result, ReportLocale.EN)  # type: ignore[arg-type]
             self.assertNotIn(sentinel, str(captured.exception))
 
-    def test_i18n_exp09_all_machine_values_formula_and_latin_identifiers_are_ltr_isolated(self) -> None:
+    def test_i18n_exp09_all_machine_values_formula_and_latin_identifiers_are_ltr_isolated(
+        self,
+    ) -> None:
         result = fit_exponential((ExactLifetime(Decimal("2")),))
         html = render_exponential_report(result, ReportLocale.FA)
         parsed = _parse_report(html)
         for token in (*REPORT_KEYS, *parsed.machine_values.values(), "r*log(rate)-rate*tau"):
             self.assertIn(f'<bdi dir="ltr" class="latin">{token}</bdi>', html)
 
-    def test_i18n_exp10_titles_headings_and_failure_messages_are_localized_not_catalog_codes(self) -> None:
+    def test_i18n_exp10_titles_headings_and_failure_messages_are_localized_not_catalog_codes(
+        self,
+    ) -> None:
         self.assertEqual(set(REPORT_TITLES), set(ReportLocale))
         self.assertEqual(set(REPORT_HEADINGS), set(ReportLocale))
         self.assertEqual(len(set(REPORT_TITLES.values())), len(ReportLocale))
@@ -209,13 +246,21 @@ class ExponentialReportI18nContracts(unittest.TestCase):
         for locale in ReportLocale:
             self.assertTrue(REPORT_TITLES[locale])
             self.assertTrue(REPORT_HEADINGS[locale])
-            self.assertEqual(unicodedata.normalize("NFC", REPORT_TITLES[locale]), REPORT_TITLES[locale])
-            self.assertEqual(unicodedata.normalize("NFC", REPORT_HEADINGS[locale]), REPORT_HEADINGS[locale])
+            self.assertEqual(
+                unicodedata.normalize("NFC", REPORT_TITLES[locale]), REPORT_TITLES[locale]
+            )
+            self.assertEqual(
+                unicodedata.normalize("NFC", REPORT_HEADINGS[locale]), REPORT_HEADINGS[locale]
+            )
         for result in _all_results():
             parsed = {
-                locale: _parse_report(render_exponential_report(result, locale)) for locale in ReportLocale
+                locale: _parse_report(render_exponential_report(result, locale))
+                for locale in ReportLocale
             }
-            messages = {locale: next(iter(value.failure_messages.values())) for locale, value in parsed.items()}
+            messages = {
+                locale: next(iter(value.failure_messages.values()))
+                for locale, value in parsed.items()
+            }
             self.assertEqual(len(messages), len(ReportLocale))
             self.assertEqual(len(set(messages.values())), len(ReportLocale))
             for locale, message in messages.items():
@@ -226,6 +271,8 @@ class ExponentialReportI18nContracts(unittest.TestCase):
                     self.assertIsNone(re.search(r"[A-Za-z]", message))
 
     def test_i18n_exp11_has_explicit_start_alignment_and_persian_right_alignment(self) -> None:
-        html = render_exponential_report(fit_exponential((ExactLifetime(Decimal("2")),)), ReportLocale.FA)
+        html = render_exponential_report(
+            fit_exponential((ExactLifetime(Decimal("2")),)), ReportLocale.FA
+        )
         self.assertIn("text-align:start", html)
         self.assertIn('[dir="rtl"] .report{text-align:right}', html)

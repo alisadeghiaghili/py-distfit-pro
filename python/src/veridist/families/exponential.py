@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from math import isclose, isfinite, log
 
-from veridist.domain.lifetimes import ExactLifetime, LifetimeObservation, RightCensoredLifetime
+from veridist.domain.lifetimes import LifetimeObservation
 from veridist.statistics.exponential import _ReductionOverflow, reduce_exponential_chunks
 
 
@@ -62,7 +62,11 @@ class ExponentialFitSuccess:
     def __post_init__(self) -> None:
         if not isfinite(self.rate) or self.rate <= 0.0:
             raise ValueError("rate must be finite and positive")
-        for name, value in (("observation_count", self.observation_count), ("event_count", self.event_count), ("censored_count", self.censored_count)):
+        for name, value in (
+            ("observation_count", self.observation_count),
+            ("event_count", self.event_count),
+            ("censored_count", self.censored_count),
+        ):
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise ValueError(f"{name} must be a non-negative integer")
         if self.event_count + self.censored_count != self.observation_count:
@@ -99,7 +103,10 @@ class ExponentialFitFailure:
     def __post_init__(self) -> None:
         if type(self.code) is not ExponentialFitFailureCode:
             raise TypeError("code must be an ExponentialFitFailureCode")
-        for name, value in (("observation_count", self.observation_count), ("event_count", self.event_count)):
+        for name, value in (
+            ("observation_count", self.observation_count),
+            ("event_count", self.event_count),
+        ):
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise ValueError(f"{name} must be a non-negative integer")
         if self.event_count > self.observation_count:
@@ -107,7 +114,13 @@ class ExponentialFitFailure:
         if self.code is ExponentialFitFailureCode.EMPTY_SAMPLE:
             valid = self.observation_count == 0 and self.event_count == 0 and self.total_time == 0.0
         elif self.code is ExponentialFitFailureCode.NO_OBSERVED_EVENTS:
-            valid = self.observation_count > 0 and self.event_count == 0 and isinstance(self.total_time, float) and self.total_time >= 0.0 and isfinite(self.total_time)
+            valid = (
+                self.observation_count > 0
+                and self.event_count == 0
+                and isinstance(self.total_time, float)
+                and self.total_time >= 0.0
+                and isfinite(self.total_time)
+            )
         elif self.code is ExponentialFitFailureCode.UNBOUNDED_LIKELIHOOD:
             valid = self.observation_count > 0 and self.event_count > 0 and self.total_time == 0.0
         elif self.code is ExponentialFitFailureCode.NUMERICAL_OVERFLOW:

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import unittest
 from dataclasses import FrozenInstanceError
 from decimal import Decimal, localcontext
 from math import inf, isclose, nan
-import unittest
 
 from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
 from veridist.families.exponential import (
@@ -43,19 +43,35 @@ class ExponentialReferenceContracts(unittest.TestCase):
         assert isinstance(result, ExponentialFitSuccess)
         self.assertEqual(result.rate, rational_rate(2, "4.0"))
         self.assertEqual(result.mean, 2.0)
-        self.assertTrue(isclose(result.log_likelihood, log_likelihood(2, "4.0", result.rate), rel_tol=1e-15, abs_tol=0.0))
-        self.assertEqual((result.observation_count, result.event_count, result.censored_count), (2, 2, 0))
+        self.assertTrue(
+            isclose(
+                result.log_likelihood,
+                log_likelihood(2, "4.0", result.rate),
+                rel_tol=1e-15,
+                abs_tol=0.0,
+            )
+        )
+        self.assertEqual(
+            (result.observation_count, result.event_count, result.censored_count), (2, 2, 0)
+        )
 
     def test_exp02_right_censoring_contributes_time_not_event(self) -> None:
-        result = fit_exponential(
-            (ExactLifetime(Decimal("1")), RightCensoredLifetime(Decimal("3")))
-        )
+        result = fit_exponential((ExactLifetime(Decimal("1")), RightCensoredLifetime(Decimal("3"))))
 
         self.assertIsInstance(result, ExponentialFitSuccess)
         assert isinstance(result, ExponentialFitSuccess)
         self.assertEqual(result.rate, rational_rate(1, "4"))
-        self.assertTrue(isclose(result.log_likelihood, log_likelihood(1, "4", result.rate), rel_tol=1e-15, abs_tol=0.0))
-        self.assertEqual((result.observation_count, result.event_count, result.censored_count), (2, 1, 1))
+        self.assertTrue(
+            isclose(
+                result.log_likelihood,
+                log_likelihood(1, "4", result.rate),
+                rel_tol=1e-15,
+                abs_tol=0.0,
+            )
+        )
+        self.assertEqual(
+            (result.observation_count, result.event_count, result.censored_count), (2, 1, 1)
+        )
 
     def test_exp03_mixed_sample_has_closed_form_mle(self) -> None:
         result = fit_exponential(
@@ -71,8 +87,17 @@ class ExponentialReferenceContracts(unittest.TestCase):
         assert isinstance(result, ExponentialFitSuccess)
         self.assertEqual(result.rate, rational_rate(2, "10"))
         self.assertEqual(result.mean, 5.0)
-        self.assertTrue(isclose(result.log_likelihood, log_likelihood(2, "10", result.rate), rel_tol=1e-15, abs_tol=0.0))
-        self.assertEqual((result.observation_count, result.event_count, result.censored_count), (4, 2, 2))
+        self.assertTrue(
+            isclose(
+                result.log_likelihood,
+                log_likelihood(2, "10", result.rate),
+                rel_tol=1e-15,
+                abs_tol=0.0,
+            )
+        )
+        self.assertEqual(
+            (result.observation_count, result.event_count, result.censored_count), (4, 2, 2)
+        )
 
     def test_exp04_canonical_parameterization_is_rate_with_fixed_zero_location(self) -> None:
         result = fit_exponential((ExactLifetime(Decimal("2")),))

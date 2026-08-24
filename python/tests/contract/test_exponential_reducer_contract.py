@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import tracemalloc
+import unittest
 from dataclasses import FrozenInstanceError
 from decimal import Decimal
 from math import isclose
-import tracemalloc
-import unittest
 
 from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
 from veridist.families.exponential import (
@@ -53,12 +53,25 @@ class ExponentialReducerContracts(unittest.TestCase):
         self.assertEqual(state.summed_time, 10_000_000_000_000_002.0)
         self.assertEqual(state.event_count, 3)
 
-    def test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions(self) -> None:
-        left = reduce_exponential_chunks(((ExactLifetime(Decimal("1e16")), ExactLifetime(Decimal("1"))),))
-        right = reduce_exponential_chunks(((ExactLifetime(Decimal("1")), ExactLifetime(Decimal("1"))),))
+    def test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions(
+        self,
+    ) -> None:
+        left = reduce_exponential_chunks(
+            ((ExactLifetime(Decimal("1e16")), ExactLifetime(Decimal("1"))),)
+        )
+        right = reduce_exponential_chunks(
+            ((ExactLifetime(Decimal("1")), ExactLifetime(Decimal("1"))),)
+        )
         merged = left.merge(right)
         direct = reduce_exponential_chunks(
-            ((ExactLifetime(Decimal("1e16")), ExactLifetime(Decimal("1")), ExactLifetime(Decimal("1")), ExactLifetime(Decimal("1"))),)
+            (
+                (
+                    ExactLifetime(Decimal("1e16")),
+                    ExactLifetime(Decimal("1")),
+                    ExactLifetime(Decimal("1")),
+                    ExactLifetime(Decimal("1")),
+                ),
+            )
         )
 
         self.assertEqual((merged.observation_count, merged.event_count), (4, 4))
@@ -68,7 +81,9 @@ class ExponentialReducerContracts(unittest.TestCase):
     def test_exp12_partition_order_is_tolerance_claim_not_bit_identical_contract(self) -> None:
         observations = tuple(ExactLifetime(Decimal("0.1")) for _ in range(10_001))
         canonical = fit_exponential(observations)
-        partitioned = fit_exponential_chunks((observations[:3333], observations[3333:7777], observations[7777:]))
+        partitioned = fit_exponential_chunks(
+            (observations[:3333], observations[3333:7777], observations[7777:])
+        )
 
         self.assertIsInstance(canonical, ExponentialFitSuccess)
         self.assertIsInstance(partitioned, ExponentialFitSuccess)
@@ -88,22 +103,29 @@ class ExponentialReducerContracts(unittest.TestCase):
         self.assertEqual(provenance.state_complexity, "O(1)")
         self.assertFalse(provenance.raw_data_retained)
         self.assertFalse(hasattr(provenance, "__dict__"))
-        self.assertEqual(tuple(type(provenance).__slots__), (
-            "accumulator_schema_version",
-            "state_complexity",
-            "reduction_order",
-            "partition_order_contract",
-            "raw_data_retained",
-        ))
+        self.assertEqual(
+            tuple(type(provenance).__slots__),
+            (
+                "accumulator_schema_version",
+                "state_complexity",
+                "reduction_order",
+                "partition_order_contract",
+                "raw_data_retained",
+            ),
+        )
 
     def test_exp14_large_generator_uses_fixed_state_and_never_materializes_input(self) -> None:
         generated = (ExactLifetime(Decimal("2")) for _ in range(20_000))
         state = reduce_exponential_chunks((generated,))
 
-        self.assertEqual((state.observation_count, state.event_count, state.total_time), (20_000, 20_000, 40_000.0))
-        self.assertEqual(tuple(ExponentialReductionState.__slots__), (
-            "observation_count", "event_count", "total_time", "compensation"
-        ))
+        self.assertEqual(
+            (state.observation_count, state.event_count, state.total_time),
+            (20_000, 20_000, 40_000.0),
+        )
+        self.assertEqual(
+            tuple(ExponentialReductionState.__slots__),
+            ("observation_count", "event_count", "total_time", "compensation"),
+        )
         self.assertFalse(hasattr(state, "__dict__"))
 
     def test_exp14_memory_growth_is_bounded_for_unique_generated_observations(self) -> None:
@@ -141,7 +163,12 @@ class ExponentialReducerContracts(unittest.TestCase):
 
     def test_exp14_overflow_scans_to_completion_and_reports_full_derived_counts(self) -> None:
         result = fit_exponential(
-            (ExactLifetime(1e308), ExactLifetime(1e308), RightCensoredLifetime(Decimal("2")), ExactLifetime(Decimal("3")))
+            (
+                ExactLifetime(1e308),
+                ExactLifetime(1e308),
+                RightCensoredLifetime(Decimal("2")),
+                ExactLifetime(Decimal("3")),
+            )
         )
         self.assertEqual(
             result,
@@ -153,14 +180,21 @@ class ExponentialReducerContracts(unittest.TestCase):
             ),
         )
 
-    def test_exp14_all_censored_overflow_is_typed_but_invalid_input_after_overflow_is_not_masked(self) -> None:
+    def test_exp14_all_censored_overflow_is_typed_but_invalid_input_after_overflow_is_not_masked(
+        self,
+    ) -> None:
         overflow = fit_exponential((RightCensoredLifetime(1e308), RightCensoredLifetime(1e308)))
         self.assertEqual(overflow.code, ExponentialFitFailureCode.NUMERICAL_OVERFLOW)
         with self.assertRaises(TypeError):
             fit_exponential((ExactLifetime(1e308), ExactLifetime(1e308), object()))  # type: ignore[arg-type]
 
     def test_exp14_rejects_forged_impossible_reduction_state(self) -> None:
-        for arguments in ((0, 0, 1.0, 0.0), (1, 0, -1.0, 0.0), (1, 1, 1.0, -0.1), (1, 1, 1e-15, -2e-15)):
+        for arguments in (
+            (0, 0, 1.0, 0.0),
+            (1, 0, -1.0, 0.0),
+            (1, 1, 1.0, -0.1),
+            (1, 1, 1e-15, -2e-15),
+        ):
             with self.assertRaises((TypeError, ValueError)):
                 ExponentialReductionState(*arguments)
 
