@@ -106,7 +106,14 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn('test "${#screenshots[@]}" -eq 2', self.workflow)
         self.assertIn("exponential-report-fa-failure.png", self.workflow)
         self.assertIn("exponential-report-fa-success.png", self.workflow)
-        self.assertIn("if-no-files-found: error", self.workflow)
+        upload_start = self.workflow.index("      - name: Retain browser screenshots")
+        upload_block = self.workflow[upload_start : self.workflow.index("  veridist-gate:")]
+        self.assertIn("if: always()", upload_block)
+        self.assertIn("if-no-files-found: warn", upload_block)
+        self.assertLess(
+            self.workflow.index("      - name: Verify exact screenshot evidence set"),
+            upload_start,
+        )
 
     def test_browser_contract_is_opt_in_and_cleans_default_temporary_artifacts(self) -> None:
         browser_test = BROWSER_TEST_PATH.read_text(encoding="utf-8")
