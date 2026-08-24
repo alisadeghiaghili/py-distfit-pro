@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import tomllib
 import unittest
+import unicodedata
 from pathlib import Path
 
 PYTHON_ROOT = Path(__file__).resolve().parents[2]
@@ -130,6 +131,30 @@ class PackageLandingContractTests(unittest.TestCase):
         ):
             with self.subTest(required=required):
                 self.assertIn(required, quickstart)
+
+        namespace: dict[str, object] = {}
+        exec(compile(quickstart, "package-landing-quickstart", "exec"), namespace)
+
+    def test_all_landing_pages_are_clean_nfc_without_retired_claims_or_bidi_controls(self) -> None:
+        retired_claims = (
+            "does not provide a distribution-fitting API",
+            "API برازش توزیع ارائه نمی‌کند",
+            "keine API zur Verteilungsanpassung",
+        )
+        mojibake_markers = ("Ã", "Â", "Ø", "Ù", "�")
+        bidi_controls = tuple(chr(codepoint) for codepoint in range(0x202A, 0x202F)) + tuple(
+            chr(codepoint) for codepoint in range(0x2066, 0x206A)
+        )
+        for locale, path in README_PATHS.items():
+            content = path.read_text(encoding="utf-8")
+            with self.subTest(locale=locale, contract="nfc"):
+                self.assertEqual(content, unicodedata.normalize("NFC", content))
+            with self.subTest(locale=locale, contract="mojibake"):
+                self.assertFalse(any(marker in content for marker in mojibake_markers))
+            with self.subTest(locale=locale, contract="retired"):
+                self.assertFalse(any(claim in content for claim in retired_claims))
+            with self.subTest(locale=locale, contract="bidi-controls"):
+                self.assertFalse(any(control in content for control in bidi_controls))
 
     def test_persian_rtl_wrapper_never_contains_ltr_code_fences(self) -> None:
         content = README_PATHS["fa"].read_text(encoding="utf-8")
