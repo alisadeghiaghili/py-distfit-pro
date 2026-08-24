@@ -51,6 +51,8 @@ class CiScopeClassifierTests(unittest.TestCase):
             "docs/faq.md",
             "docs/unclassified.md",
             "docs/capability-matrix-draft.md",
+            "docs/capability-matrix.md.bak",
+            "docs/capability-matrices.md",
             "pyproject.toml",
             "README.fa.md",
             "LICENSE",
