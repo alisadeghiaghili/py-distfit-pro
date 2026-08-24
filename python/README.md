@@ -46,6 +46,8 @@ from veridist.reporting import ReportLocale, render_exponential_report
 fit = fit_exponential([ExactLifetime(1.0), RightCensoredLifetime(1.0)])
 assert isinstance(fit, ExponentialFitSuccess)
 assert fit.rate == 0.5
+assert fit.inference == "not_provided"
+assert fit.censoring_assumption == "independent_right_censoring"
 
 report = render_exponential_report(fit, ReportLocale.FA)
 assert 'lang="fa" dir="rtl"' in report
