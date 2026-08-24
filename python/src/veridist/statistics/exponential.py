@@ -62,7 +62,9 @@ class ExponentialReductionState:
             raise _ReductionOverflow(self.observation_count, self.event_count)
         return value
 
-    def _add_value(self, value: float, observation_increment: int, event_increment: int) -> ExponentialReductionState:
+    def _add_value(
+        self, value: float, observation_increment: int, event_increment: int
+    ) -> ExponentialReductionState:
         updated_total = self.total_time + value
         if not isfinite(updated_total):
             raise _ReductionOverflow(
@@ -89,9 +91,9 @@ class ExponentialReductionState:
         """Return a new state after one validated exact or right-censored observation."""
 
         if type(observation) is ExactLifetime:
-            return self._add_value(observation.time, 1, 1)
+            return self._add_value(float(observation.time), 1, 1)
         if type(observation) is RightCensoredLifetime:
-            return self._add_value(observation.time, 1, 0)
+            return self._add_value(float(observation.time), 1, 0)
         raise TypeError("observation must be an exact or right-censored lifetime")
 
     def merge(self, other: ExponentialReductionState) -> ExponentialReductionState:
