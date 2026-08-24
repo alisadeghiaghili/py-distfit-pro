@@ -69,11 +69,10 @@ complete execution.  A typed statistical non-estimate is still a complete
 execution; any adapter or engine failure has `fit=None`.  No partial scientific
 fit is exposed.
 
-Cancellation and the exact mapping between CSV adapter failures and the
-existing execution-outcome/provenance types remain unresolved integration
-questions.  They must be decided and tested before production implementation;
-this record does not invent a cancellation guarantee or a provenance schema
-extension.
+Cancellation is unsupported by this adapter API.  The adapter guarantees only
+that a successfully opened stream is closed exactly once on success, typed
+failure, early iterator close, or an unexpected exception.  The execution
+outcome and provenance mapping is the closed mapping specified below.
 
 ## Test implications
 
@@ -110,14 +109,24 @@ retry, SHA snapshot, and RSS claims until their specific evidence exists.
 
 ## Corrective decision record -- 2026-08-25
 
+The exact ASCII time grammar is
+'(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?'.  It is parsed with
+Decimal before construction of a lifetime observation.  Exact zero is valid.
+Any finite non-negative Decimal whose float conversion is non-finite, or whose
+value is positive but converts to float zero, is invalid time input.  There is
+no silent floating-point overflow or underflow conversion.
+
 CSV failures extend the closed FailureCode enum only with
 SOURCE_OPEN_FAILED, SOURCE_DECODE_FAILED, SOURCE_SCHEMA_INVALID, and
 SOURCE_ROW_INVALID.  The adapter reuses CHUNK_TOO_LARGE for an oversized
 record and SOURCE_REVISION_MISMATCH for detected source mutation.
 CsvLifetimeAdapterError is an EngineContractError subclass.  Its allowlisted
 immutable context distinguishes only closed non-sensitive reasons:
-open_failed, decode_failed, header_missing, header_duplicate, extra_column,
-malformed_record, row_invalid, record_too_large, and source_mutated.  It never
+SOURCE_SCHEMA_INVALID uses header_missing, header_duplicate, or
+header_columns_mismatch; SOURCE_ROW_INVALID uses blank_record,
+malformed_record, invalid_time, or invalid_event_token; SOURCE_DECODE_FAILED
+uses invalid_utf8; SOURCE_OPEN_FAILED uses open_failed; CHUNK_TOO_LARGE uses
+record_too_large; and SOURCE_REVISION_MISMATCH uses source_mutated.  It never
 exposes a path, cell, parser exception text, or private file revision.
 
 The caller supplies a typed PublicSourceId, not an arbitrary string.  It must
@@ -131,19 +140,23 @@ The empty byte stream and a UTF-8 BOM-only stream fail before a header as
 SOURCE_SCHEMA_INVALID with reason header_missing.  A header-only source is
 valid data and its orchestrated result is a CompleteOutcome with the existing
 EMPTY_SAMPLE statistical non-estimate.  A blank data record is
-SOURCE_ROW_INVALID with reason row_invalid.  Invalid header shape/names,
-including duplicate, missing, and extra columns, is SOURCE_SCHEMA_INVALID with
-an exact allowlisted reason.  Malformed CSV syntax is SOURCE_SCHEMA_INVALID
-with reason malformed_record; invalid time/event values are SOURCE_ROW_INVALID
-with reason row_invalid.
+SOURCE_ROW_INVALID with reason blank_record.  Internal BOMs, missing, extra,
+or wrong-order header names are SOURCE_SCHEMA_INVALID with reason
+header_columns_mismatch.  Extra or missing data fields and malformed CSV syntax
+are delivery failures with SOURCE_ROW_INVALID and reason malformed_record.
+A syntactically valid quoted multiline time field is one logical record; its
+newline makes it SOURCE_ROW_INVALID with reason invalid_time and its
+zero-based logical record offset.  Invalid time/event values are
+SOURCE_ROW_INVALID with reason invalid_time or invalid_event_token.
 
 The retained-payload byte contract is closed and Python-specific: a chunk's
 retained_payload_bytes is the recursive sum of sys.getsizeof over its declared
-retained object graph, with object identities de-duplicated.  The graph is
-exactly the frozen ChunkEnvelope, the tuple of lifetime observations, and the
-immutable primitive fields reachable from those objects; the adapter records
-the CPython/Python version label with a measured evidence artifact.  This is a
-deterministic accounting model only within a declared interpreter build.
+owned retained object graph, with object identities de-duplicated.  The graph
+is exactly the chunk object, its frozen ChunkEnvelope, its observations tuple,
+each observation, and their owned scalar objects.  Shared class objects,
+Enum members, and static strings are excluded.  The adapter records CPython,
+Python-version, and platform labels with a measured evidence artifact.  This
+is a deterministic accounting model only within a declared interpreter build.
 Parser buffers, temporary builders, file/kernel caches, allocator overhead,
 tracemalloc, and RSS are excluded and require separate evidence.  Tests derive
 observed costs from the accounting function rather than hard-code a byte

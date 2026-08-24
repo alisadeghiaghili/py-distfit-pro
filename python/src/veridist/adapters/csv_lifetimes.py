@@ -129,7 +129,7 @@ def fit_exponential_csv(
     """Convenience wrapper reserved for the later one-pass execution behavior."""
 
     del path, schema, source_id, limits
-    return None
+    raise NotImplementedError("CSV exponential execution is not implemented")
 
 
 __all__ = [

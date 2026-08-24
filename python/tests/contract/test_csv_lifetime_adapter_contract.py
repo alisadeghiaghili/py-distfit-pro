@@ -16,10 +16,8 @@ from veridist.adapters.csv_lifetimes import (
     retained_object_graph_bytes,
 )
 from veridist.engine.errors import FailureCode
-from veridist.engine.outcome import FailedOutcome, UnknownMissingRanges
 from veridist.engine.provenance import PublicSourceId
-from veridist.execution import ExponentialSourceFitResult, fit_exponential_source
-from veridist.families.exponential import ExponentialFitFailure, ExponentialFitFailureCode
+from veridist.execution import fit_exponential_source
 
 SOURCE_ID = PublicSourceId("src_0123456789abcdef0123456789abcdef")
 SCHEMA = CsvLifetimeSchema(time_column="time", event_observed_column="event_observed")
@@ -123,11 +121,14 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         *,
         code: FailureCode,
         reason: str,
+        context: dict[str, object] | None = None,
     ) -> None:
         with self.assertRaises(CsvLifetimeAdapterError) as captured:
             tuple(adapter.iter_chunks())
         self.assertEqual(captured.exception.code, code)
-        self.assertEqual(captured.exception.context, {"reason": reason})
+        self.assertEqual(
+            captured.exception.context, {"reason": reason} if context is None else context
+        )
         self.assert_redacted(captured.exception)
 
     def test_csv01_exact_schema_tokens_and_ascii_decimal_grammar(self) -> None:
@@ -142,7 +143,7 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
                 self.assert_adapter_error(
                     invalid,
                     code=FailureCode.SOURCE_ROW_INVALID,
-                    reason="row_invalid",
+                    reason="invalid_time",
                 )
 
     def test_csv02_logical_offsets_are_stable_but_chunk_ids_vary_with_budget(self) -> None:
@@ -174,8 +175,9 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         multiline, _ = self.adapter(b'time,event_observed\n1,1\n"super-secret-cell\n",0\n')
         self.assert_adapter_error(
             multiline,
-            code=FailureCode.SOURCE_SCHEMA_INVALID,
-            reason="malformed_record",
+            code=FailureCode.SOURCE_ROW_INVALID,
+            reason="invalid_time",
+            context={"reason": "invalid_time", "record_offset": 1},
         )
 
     def test_csv03_object_graph_accounting_and_guarded_stream_forbid_materialization(self) -> None:
@@ -207,35 +209,41 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         self.assertEqual(tuple(adapter.iter_chunks()), tuple(adapter.iter_chunks()))
         self.assertEqual(source.open_count, 2)
 
-        result = fit_exponential_source(adapter)
-        self.assertIsInstance(result, ExponentialSourceFitResult)
-        assert isinstance(result, ExponentialSourceFitResult)
-        self.assertEqual(source.open_count, 3)
-        self.assertEqual(result.execution.provenance.execution.passes.actual_pass_count, 1)
-        self.assertEqual(result.execution.provenance.execution.passes.max_passes, 1)
+        with self.assertRaises(NotImplementedError):
+            fit_exponential_source(adapter)
 
     def test_csv05_failure_codes_reasons_lifecycle_and_closed_outcome_mapping(self) -> None:
         cases = (
             (b"", FailureCode.SOURCE_SCHEMA_INVALID, "header_missing"),
             (b"\xef\xbb\xbf", FailureCode.SOURCE_SCHEMA_INVALID, "header_missing"),
-            (b"\xff", FailureCode.SOURCE_DECODE_FAILED, "decode_failed"),
+            (b"\xff", FailureCode.SOURCE_DECODE_FAILED, "invalid_utf8"),
             (b"time,time\n1,1\n", FailureCode.SOURCE_SCHEMA_INVALID, "header_duplicate"),
-            (b"time\n1\n", FailureCode.SOURCE_SCHEMA_INVALID, "header_missing"),
+            (b"time\n1\n", FailureCode.SOURCE_SCHEMA_INVALID, "header_columns_mismatch"),
             (
                 b"time,\xef\xbb\xbfevent_observed\n1,1\n",
                 FailureCode.SOURCE_SCHEMA_INVALID,
-                "header_missing",
+                "header_columns_mismatch",
             ),
             (
                 b"time,event_observed,extra\n1,1,x\n",
                 FailureCode.SOURCE_SCHEMA_INVALID,
-                "extra_column",
+                "header_columns_mismatch",
             ),
-            (b"time,event_observed\n\n", FailureCode.SOURCE_ROW_INVALID, "row_invalid"),
+            (b"time,event_observed\n\n", FailureCode.SOURCE_ROW_INVALID, "blank_record"),
             (
                 b"time,event_observed\nsuper-secret-cell,1\n",
                 FailureCode.SOURCE_ROW_INVALID,
-                "row_invalid",
+                "invalid_time",
+            ),
+            (
+                b"time,event_observed\n1,1,extra\n",
+                FailureCode.SOURCE_ROW_INVALID,
+                "malformed_record",
+            ),
+            (
+                b'time,event_observed\n"unterminated,1\n',
+                FailureCode.SOURCE_ROW_INVALID,
+                "malformed_record",
             ),
         )
         for payload, code, reason in cases:
@@ -271,48 +279,30 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             tuple(unexpected.iter_chunks())
 
-        result = fit_exponential_csv(
-            Path("private-lifetime-data.csv"),
-            schema=SCHEMA,
-            source_id=SOURCE_ID,
-            limits=CsvLifetimeLimits(2048, 2048),
-        )
-        self.assertIsInstance(result, ExponentialSourceFitResult)
-        assert isinstance(result, ExponentialSourceFitResult)
-        self.assertIsNone(result.fit)
-        self.assertIsInstance(result.execution.outcome, FailedOutcome)
-        assert isinstance(result.execution.outcome, FailedOutcome)
-        self.assertEqual(result.execution.outcome.failure.code, FailureCode.SOURCE_OPEN_FAILED)
-        self.assertIsInstance(result.execution.outcome.coverage, UnknownMissingRanges)
-        self.assertEqual(
-            result.execution.outcome.failure.stage.value,
-            "preflight",
-        )
+        with self.assertRaises(NotImplementedError):
+            fit_exponential_csv(
+                Path("private-lifetime-data.csv"),
+                schema=SCHEMA,
+                source_id=SOURCE_ID,
+                limits=CsvLifetimeLimits(2048, 2048),
+            )
 
     def test_csv06_empty_header_and_full_scan_precedence_constructor_and_result_invariants(
         self,
     ) -> None:
         header_only, source = self.adapter(b"time,event_observed\n")
-        result = fit_exponential_source(header_only)
-        self.assertIsInstance(result, ExponentialSourceFitResult)
-        assert isinstance(result, ExponentialSourceFitResult)
-        self.assertIsInstance(result.fit, ExponentialFitFailure)
-        assert isinstance(result.fit, ExponentialFitFailure)
-        self.assertEqual(result.fit.code, ExponentialFitFailureCode.EMPTY_SAMPLE)
-        self.assertTrue(result.execution.outcome.complete)
-        self.assertEqual(source.close_count, 1)
+        self.assertEqual(tuple(header_only.iter_chunks()), ())
+        self.assertEqual(source.open_count, 1)
 
-        overflow_then_invalid, _ = self.adapter(
-            b"time,event_observed\n1e10000,1\nsuper-secret-cell,1\n"
+        overflow_then_invalid, _ = self.adapter(b"time,event_observed\n1e10000,1\n1,x\n")
+        self.assert_adapter_error(
+            overflow_then_invalid,
+            code=FailureCode.SOURCE_ROW_INVALID,
+            reason="invalid_event_token",
         )
-        failed = fit_exponential_source(overflow_then_invalid)
-        self.assertIsInstance(failed, ExponentialSourceFitResult)
-        assert isinstance(failed, ExponentialSourceFitResult)
-        self.assertIsNone(failed.fit)
-        self.assertEqual(
-            failed.execution.outcome.failure.code,  # type: ignore[union-attr]
-            FailureCode.SOURCE_ROW_INVALID,
-        )
+
+        with self.assertRaises(NotImplementedError):
+            fit_exponential_source(header_only)
 
         for columns in (("", "event_observed"), ("time", "time")):
             with self.subTest(columns=columns):
