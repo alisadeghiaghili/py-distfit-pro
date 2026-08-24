@@ -101,6 +101,14 @@ class VeridistWorkflowContractTests(unittest.TestCase):
                 self.assertIn(command, self.workflow)
         self.assertNotIn("sphinx-intl update", self.workflow)
         self.assertNotIn("-b doctest", self.workflow)
+        upload_start = self.workflow.index("      - name: Retain rendered documentation evidence")
+        upload_block = self.workflow[upload_start : self.workflow.index("  browser-rtl:")]
+        self.assertIn("if: always()", upload_block)
+        self.assertIn("if-no-files-found: warn", upload_block)
+        self.assertLess(
+            self.workflow.index("python docs/toolchain.py render docs/_build/de/html de"),
+            upload_start,
+        )
 
     def test_browser_job_uses_pinned_extra_and_requires_exact_screenshot_evidence(self) -> None:
         project = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))

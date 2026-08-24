@@ -11,9 +11,19 @@ PYTHON_ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY_ROOT = PYTHON_ROOT.parent
 MANIFEST = PYTHON_ROOT / "quality" / "coverage-manifest.json"
 CAPABILITY_MATRIX = REPOSITORY_ROOT / "docs" / "capability-matrix.md"
+READINESS = REPOSITORY_ROOT / "docs" / "v1-readiness.md"
 
 
 class RequiredQualityArtifactTests(unittest.TestCase):
+    def test_readiness_uses_the_authoritative_production_file_count(self) -> None:
+        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        production_count = len(manifest["production_files"])
+        self.assertEqual(production_count, 19)
+        self.assertIn(
+            f"accepted all {production_count} enumerated production files",
+            READINESS.read_text(encoding="utf-8"),
+        )
+
     def test_capability_matrix_declares_the_only_callable_statistical_cell(self) -> None:
         content = CAPABILITY_MATRIX.read_text(encoding="utf-8")
         for required in (
