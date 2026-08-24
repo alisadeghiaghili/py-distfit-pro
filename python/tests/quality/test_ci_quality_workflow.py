@@ -73,6 +73,8 @@ class VeridistWorkflowContractTests(unittest.TestCase):
             "render_exponential_report",
             "ReportLocale.FA",
             "assert fit.rate == 0.5",
+            "assert fit.inference == 'not_provided'",
+            "assert fit.censoring_assumption == 'independent_right_censoring'",
             'assert \'lang="fa" dir="rtl"\' in report',
         ):
             with self.subTest(smoke_contract=smoke_contract):

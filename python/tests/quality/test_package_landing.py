@@ -124,10 +124,20 @@ class PackageLandingContractTests(unittest.TestCase):
             "render_exponential_report",
             "ReportLocale.FA",
             "assert fit.rate == 0.5",
+            'assert fit.inference == "not_provided"',
+            'assert fit.censoring_assumption == "independent_right_censoring"',
             'assert \'lang="fa" dir="rtl"\' in report',
         ):
             with self.subTest(required=required):
                 self.assertIn(required, quickstart)
+
+    def test_persian_rtl_wrapper_never_contains_ltr_code_fences(self) -> None:
+        content = README_PATHS["fa"].read_text(encoding="utf-8")
+        self.assertIn('<div lang="fa" dir="rtl">', content)
+        for fence in re.finditer(r"```(?:console|python)?", content):
+            prefix = content[: fence.start()]
+            with self.subTest(fence=fence.group(0), offset=fence.start()):
+                self.assertEqual(prefix.count('<div lang="fa" dir="rtl">'), prefix.count("</div>"))
 
     def test_source_manifest_includes_all_package_landing_files(self) -> None:
         manifest = (PYTHON_ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()
