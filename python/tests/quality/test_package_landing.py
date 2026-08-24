@@ -69,25 +69,34 @@ class PackageLandingContractTests(unittest.TestCase):
                     re.search(r"(?m)^python -m pip install veridist\s*$", content)
                 )
 
-    def test_each_locale_states_the_same_pre_alpha_non_claims(self) -> None:
+    def test_each_locale_states_the_same_experimental_vertical_and_limits(self) -> None:
         required = {
             "en": (
                 "pre-alpha contract kernel",
-                "does not provide a distribution-fitting API",
+                "experimental rate-only exponential MLE",
+                "exact and independently right-censored lifetimes",
+                "Inference is not provided",
+                "typed failures",
                 "does not ship production data adapters",
-                "does not claim persistent checkpoint durability",
+                "does not claim production out-of-core execution",
             ),
             "fa": (
                 "هستهٔ قراردادی پیش‌آلفا",
-                "API برازش توزیع ارائه نمی‌کند",
+                "برآوردگر آزمایشی MLE نمایی فقط برای پارامتر نرخ",
+                "طول عمرهای دقیق و راست‌سانسورشدهٔ مستقل",
+                "استنباط ارائه نمی‌شود",
+                "شکست‌های نوع‌دار",
                 "آداپتور دادهٔ عملیاتی عرضه نمی‌کند",
-                "دوام پایدار checkpoint را ادعا نمی‌کند",
+                "اجرای برون‌حافظه‌ای عملیاتی را ادعا نمی‌کند",
             ),
             "de": (
                 "Pre-Alpha-Vertragskern",
-                "keine API zur Verteilungsanpassung",
+                "experimentellen, rein ratenparametrisierten exponentiellen MLE",
+                "exakte und unabhängig rechtszensierte Lebensdauern",
+                "Inferenz wird nicht bereitgestellt",
+                "typisierte Fehlschläge",
                 "keine produktionsreifen Datenadapter",
-                "keine dauerhafte Checkpoint-Persistenz",
+                "keine produktive Out-of-Core-Ausführung",
             ),
         }
         for locale, phrases in required.items():
@@ -96,6 +105,29 @@ class PackageLandingContractTests(unittest.TestCase):
             for phrase in phrases:
                 with self.subTest(locale=locale, phrase=phrase):
                     self.assertIn(phrase, normalized_content)
+
+    def test_all_locales_publish_the_same_executable_quickstart(self) -> None:
+        snippets: dict[str, str] = {}
+        for locale, path in README_PATHS.items():
+            content = path.read_text(encoding="utf-8")
+            matches = re.findall(r"```python\n(.*?)```", content, flags=re.DOTALL)
+            with self.subTest(locale=locale):
+                self.assertEqual(len(matches), 1)
+            snippets[locale] = matches[0].strip()
+
+        self.assertEqual(len(set(snippets.values())), 1)
+        quickstart = snippets["en"]
+        for required in (
+            "ExactLifetime",
+            "RightCensoredLifetime",
+            "fit_exponential",
+            "render_exponential_report",
+            "ReportLocale.FA",
+            "assert fit.rate == 0.5",
+            'assert \'lang="fa" dir="rtl"\' in report',
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, quickstart)
 
     def test_source_manifest_includes_all_package_landing_files(self) -> None:
         manifest = (PYTHON_ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()

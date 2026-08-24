@@ -66,6 +66,17 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn('cd "$RUNNER_TEMP"', self.workflow)
         self.assertIn("importlib.metadata", self.workflow)
         self.assertIn("py.typed", self.workflow)
+        for smoke_contract in (
+            "ExactLifetime",
+            "RightCensoredLifetime",
+            "fit_exponential",
+            "render_exponential_report",
+            "ReportLocale.FA",
+            "assert fit.rate == 0.5",
+            'assert \'lang="fa" dir="rtl"\' in report',
+        ):
+            with self.subTest(smoke_contract=smoke_contract):
+                self.assertIn(smoke_contract, self.workflow)
 
     def test_docs_job_runs_the_actual_three_locale_toolchain(self) -> None:
         self.assertIn("  docs:", self.workflow)
