@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from math import isclose, isfinite, log
+from types import MappingProxyType
+from typing import Final
 
 from veridist.domain.lifetimes import LifetimeObservation
 from veridist.statistics.exponential import _ReductionOverflow, reduce_exponential_chunks
@@ -18,6 +20,49 @@ class ExponentialFitFailureCode(StrEnum):
     NO_OBSERVED_EVENTS = "NO_OBSERVED_EVENTS"
     UNBOUNDED_LIKELIHOOD = "UNBOUNDED_LIKELIHOOD"
     NUMERICAL_OVERFLOW = "NUMERICAL_OVERFLOW"
+
+
+FailureFactValidator = Callable[[int, int, float | None], bool]
+
+
+def _valid_empty_sample(observation_count: int, event_count: int, total_time: float | None) -> bool:
+    return observation_count == 0 and event_count == 0 and total_time == 0.0
+
+
+def _valid_no_observed_events(
+    observation_count: int, event_count: int, total_time: float | None
+) -> bool:
+    return (
+        observation_count > 0
+        and event_count == 0
+        and isinstance(total_time, float)
+        and total_time >= 0.0
+        and isfinite(total_time)
+    )
+
+
+def _valid_unbounded_likelihood(
+    observation_count: int, event_count: int, total_time: float | None
+) -> bool:
+    return observation_count > 0 and event_count > 0 and total_time == 0.0
+
+
+def _valid_numerical_overflow(
+    observation_count: int, event_count: int, total_time: float | None
+) -> bool:
+    return observation_count > 0 and total_time is None
+
+
+_FAILURE_FACT_VALIDATORS: Final[Mapping[ExponentialFitFailureCode, FailureFactValidator]] = (
+    MappingProxyType(
+        {
+            ExponentialFitFailureCode.EMPTY_SAMPLE: _valid_empty_sample,
+            ExponentialFitFailureCode.NO_OBSERVED_EVENTS: _valid_no_observed_events,
+            ExponentialFitFailureCode.UNBOUNDED_LIKELIHOOD: _valid_unbounded_likelihood,
+            ExponentialFitFailureCode.NUMERICAL_OVERFLOW: _valid_numerical_overflow,
+        }
+    )
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,22 +156,9 @@ class ExponentialFitFailure:
                 raise ValueError(f"{name} must be a non-negative integer")
         if self.event_count > self.observation_count:
             raise ValueError("event_count cannot exceed observation_count")
-        if self.code is ExponentialFitFailureCode.EMPTY_SAMPLE:
-            valid = self.observation_count == 0 and self.event_count == 0 and self.total_time == 0.0
-        elif self.code is ExponentialFitFailureCode.NO_OBSERVED_EVENTS:
-            valid = (
-                self.observation_count > 0
-                and self.event_count == 0
-                and isinstance(self.total_time, float)
-                and self.total_time >= 0.0
-                and isfinite(self.total_time)
-            )
-        elif self.code is ExponentialFitFailureCode.UNBOUNDED_LIKELIHOOD:
-            valid = self.observation_count > 0 and self.event_count > 0 and self.total_time == 0.0
-        elif self.code is ExponentialFitFailureCode.NUMERICAL_OVERFLOW:
-            valid = self.observation_count > 0 and self.total_time is None
-        else:
-            valid = False
+        valid = _FAILURE_FACT_VALIDATORS[self.code](
+            self.observation_count, self.event_count, self.total_time
+        )
         if not valid:
             raise ValueError("failure facts are inconsistent with its code")
 
