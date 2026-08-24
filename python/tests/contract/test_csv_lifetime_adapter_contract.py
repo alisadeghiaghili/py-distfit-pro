@@ -12,12 +12,10 @@ from veridist.adapters.csv_lifetimes import (
     CsvLifetimeAdapterError,
     CsvLifetimeLimits,
     CsvLifetimeSchema,
-    fit_exponential_csv,
     retained_object_graph_bytes,
 )
 from veridist.engine.errors import FailureCode
 from veridist.engine.provenance import PublicSourceId
-from veridist.execution import fit_exponential_source
 
 SOURCE_ID = PublicSourceId("src_0123456789abcdef0123456789abcdef")
 SCHEMA = CsvLifetimeSchema(time_column="time", event_observed_column="event_observed")
@@ -204,13 +202,10 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             reason="record_too_large",
         )
 
-    def test_csv04_replay_is_two_opens_and_one_pass_execution_is_one_open(self) -> None:
+    def test_csv04_replay_opens_a_replayable_source_once_per_iteration(self) -> None:
         adapter, source = self.adapter(b"time,event_observed\n1,1\n3,0\n")
         self.assertEqual(tuple(adapter.iter_chunks()), tuple(adapter.iter_chunks()))
         self.assertEqual(source.open_count, 2)
-
-        with self.assertRaises(NotImplementedError):
-            fit_exponential_source(adapter)
 
     def test_csv05_failure_codes_reasons_lifecycle_and_closed_outcome_mapping(self) -> None:
         cases = (
@@ -279,14 +274,6 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             tuple(unexpected.iter_chunks())
 
-        with self.assertRaises(NotImplementedError):
-            fit_exponential_csv(
-                Path("private-lifetime-data.csv"),
-                schema=SCHEMA,
-                source_id=SOURCE_ID,
-                limits=CsvLifetimeLimits(2048, 2048),
-            )
-
     def test_csv06_empty_header_and_full_scan_precedence_constructor_and_result_invariants(
         self,
     ) -> None:
@@ -300,9 +287,6 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             code=FailureCode.SOURCE_ROW_INVALID,
             reason="invalid_event_token",
         )
-
-        with self.assertRaises(NotImplementedError):
-            fit_exponential_source(header_only)
 
         for columns in (("", "event_observed"), ("time", "time")):
             with self.subTest(columns=columns):
