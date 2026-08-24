@@ -107,3 +107,67 @@ This is a narrow, evidence-first adapter, not broad CSV compatibility.  It
 adds the first genuine source-to-fit seam and bounded logical ingestion
 contract, while withholding production-scale, cancellation, checkpoint,
 retry, SHA snapshot, and RSS claims until their specific evidence exists.
+
+## Corrective decision record -- 2026-08-25
+
+CSV failures extend the closed FailureCode enum only with
+SOURCE_OPEN_FAILED, SOURCE_DECODE_FAILED, SOURCE_SCHEMA_INVALID, and
+SOURCE_ROW_INVALID.  The adapter reuses CHUNK_TOO_LARGE for an oversized
+record and SOURCE_REVISION_MISMATCH for detected source mutation.
+CsvLifetimeAdapterError is an EngineContractError subclass.  Its allowlisted
+immutable context distinguishes only closed non-sensitive reasons:
+header_missing, header_duplicate, extra_column, malformed_record, and
+row_invalid.  It never exposes a path, cell, parser exception text, or private
+file revision.
+
+The caller supplies a typed PublicSourceId, not an arbitrary string.  It must
+satisfy the existing opaque src_<32 lowercase hexadecimal> public contract.
+An emitted row identity remains source-ID plus logical row offset.  Chunk IDs
+are opaque chk_<32 lowercase hexadecimal> values derived from the public source
+ID and each chunk's row range.  They may change as a chunk budget changes, so
+only row identity, not chunk identity, is stable across budgets.
+
+The empty byte stream and a UTF-8 BOM-only stream fail before a header as
+SOURCE_SCHEMA_INVALID with reason header_missing.  A header-only source is
+valid data and its orchestrated result is a CompleteOutcome with the existing
+EMPTY_SAMPLE statistical non-estimate.  A blank data record is
+SOURCE_ROW_INVALID with reason row_invalid.  Invalid header shape/names,
+including duplicate, missing, and extra columns, is SOURCE_SCHEMA_INVALID with
+an exact allowlisted reason.  Malformed CSV syntax is SOURCE_SCHEMA_INVALID
+with reason malformed_record; invalid time/event values are SOURCE_ROW_INVALID
+with reason row_invalid.
+
+The retained-payload byte contract is closed and Python-specific: a chunk's
+retained_payload_bytes is the recursive sum of sys.getsizeof over its declared
+retained object graph, with object identities de-duplicated.  The graph is
+exactly the frozen ChunkEnvelope, the tuple of lifetime observations, and the
+immutable primitive fields reachable from those objects; the adapter records
+the CPython/Python version label with a measured evidence artifact.  This is a
+deterministic accounting model only within a declared interpreter build.
+Parser buffers, temporary builders, file/kernel caches, allocator overhead,
+tracemalloc, and RSS are excluded and require separate evidence.  Tests derive
+observed costs from the accounting function rather than hard-code a byte
+budget.  A guarded stream that rejects read(-1), readall, and unbounded
+iteration is separate evidence against whole-file materialization; a
+slope/peak benchmark is not claimed by this contract.
+
+The adapter remains family-agnostic and has no fit_exponential method.
+veridist.execution.fit_exponential_source(adapter) is the one-pass execution
+orchestrator and fit_exponential_csv(path, *, schema, source_id, limits) is
+its convenience wrapper.  Their frozen, slotted combined result has a
+non-None fit if and only if ExecutionReport.outcome is CompleteOutcome; an
+ExponentialFitFailure is therefore a complete execution, while a caught
+EngineContractError becomes a FailedOutcome with fit=None.  Unexpected
+exceptions propagate.
+
+For a successful run, provenance is an exact known coverage [0, N), pass count
+1/1, CSV adapter version 1, bounded-buffer observation, no spool, no
+checkpoint, the exponential settings hash, and no-randomness policy.  It
+records a consumed-byte SHA-256 only when it was actually calculated; otherwise
+it uses the existing hash-unavailable redaction.  It records a best-effort
+mutation status.  Open and header failures are preflight failures with unknown
+extent.  Decode and row failures are delivery failures with processed prefix
+and unknown final extent.  A detected post-read mutation is a finalization
+failure.  Cancellation is explicitly outside this PR and API; it makes no
+cancellation or backpressure guarantee beyond closing/releasing resources on
+success, typed failure, early iterator close, and unexpected exception.
