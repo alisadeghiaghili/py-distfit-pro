@@ -23,4 +23,7 @@ The only allowed dispositions are:
 
 No entry permits importing, packaging, executing, or using `distfit_pro` as a
 runtime fallback or numerical oracle. The first exponential vertical is
-explicitly a rewrite.
+explicitly an independent rewrite. Its statistical evidence is recorded under
+LM-002, but that entry remains `review_pending` until the migration review is
+closed. LM-003 remains a translation candidate; current Persian content does
+not claim reuse of a legacy phrase or a completed migration review.

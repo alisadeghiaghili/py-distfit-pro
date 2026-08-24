@@ -60,3 +60,19 @@ lacked the declared `myst_parser` dependency. The remote CI result is also
 unverified. Browser-rendered Persian screenshot evidence is not
 implemented, so this addendum does not claim complete visual RTL QA or complete
 v1 documentation.
+
+## Implementation evidence addendum -- 2026-08-25
+
+The earlier 2026-08-22 limitation is historical. In an isolated E-drive
+environment with the declared documentation extra installed, gettext, English,
+Persian and German HTML builds completed with `-W -n`; English linkcheck and
+the rendered semantic/direction checks also passed. Exact real POT message IDs
+match the complete FA/DE catalogs, and rendered pages are checked against silent
+English fallback.
+
+The opt-in Playwright test produced exactly two nonempty Persian HTML report
+screenshots locally with Edge 151 and verified computed RTL/right alignment plus
+LTR/isolate handling for Latin fragments on both success and failure reports.
+The workflow pins Playwright 1.62.0 and requires its matched Chromium, but that
+remote CI execution is still **UNVERIFIED**. This evidence covers report HTML,
+not PDF; no bundled-font or pixel-baseline claim is made.
