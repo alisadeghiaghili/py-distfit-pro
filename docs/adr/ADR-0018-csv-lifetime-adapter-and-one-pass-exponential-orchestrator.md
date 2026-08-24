@@ -116,9 +116,9 @@ SOURCE_ROW_INVALID.  The adapter reuses CHUNK_TOO_LARGE for an oversized
 record and SOURCE_REVISION_MISMATCH for detected source mutation.
 CsvLifetimeAdapterError is an EngineContractError subclass.  Its allowlisted
 immutable context distinguishes only closed non-sensitive reasons:
-header_missing, header_duplicate, extra_column, malformed_record, and
-row_invalid.  It never exposes a path, cell, parser exception text, or private
-file revision.
+open_failed, decode_failed, header_missing, header_duplicate, extra_column,
+malformed_record, row_invalid, record_too_large, and source_mutated.  It never
+exposes a path, cell, parser exception text, or private file revision.
 
 The caller supplies a typed PublicSourceId, not an arbitrary string.  It must
 satisfy the existing opaque src_<32 lowercase hexadecimal> public contract.

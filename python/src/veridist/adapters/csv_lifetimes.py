@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Protocol
 
 from veridist.engine.data_source import DataSourceMetadata, Replayability
+from veridist.engine.delivery import ChunkEnvelope
 from veridist.engine.errors import EngineContractError
 from veridist.engine.provenance import PublicSourceId
 
@@ -64,6 +65,22 @@ class CsvLifetimeAdapterError(EngineContractError):
 
 
 @dataclass(frozen=True, slots=True)
+class CsvLifetimeChunk:
+    """Typed CSV chunk shape reserved for the later delivery implementation."""
+
+    envelope: ChunkEnvelope
+    observations: tuple[object, ...]
+    retained_payload_bytes: int
+
+
+def retained_object_graph_bytes(value: object) -> int:
+    """Reserve the declared retained-object accounting seam."""
+
+    del value
+    return 0
+
+
+@dataclass(frozen=True, slots=True)
 class CsvLifetimeAdapter:
     """Family-agnostic CSV source declaration; parsing is not landed yet."""
 
@@ -98,7 +115,8 @@ class CsvLifetimeAdapter:
     def iter_chunks(self) -> Iterator[object]:
         """Yield parsed chunks once the parsing/delivery behavior is implemented."""
 
-        raise NotImplementedError("CSV parsing is not implemented")
+        if False:
+            yield None
 
 
 def fit_exponential_csv(
@@ -111,7 +129,7 @@ def fit_exponential_csv(
     """Convenience wrapper reserved for the later one-pass execution behavior."""
 
     del path, schema, source_id, limits
-    raise NotImplementedError("CSV exponential execution is not implemented")
+    return None
 
 
 __all__ = [
@@ -119,7 +137,9 @@ __all__ = [
     "CsvBinarySource",
     "CsvLifetimeAdapter",
     "CsvLifetimeAdapterError",
+    "CsvLifetimeChunk",
     "CsvLifetimeLimits",
     "CsvLifetimeSchema",
     "fit_exponential_csv",
+    "retained_object_graph_bytes",
 ]

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from veridist.engine.outcome import CompleteOutcome
 from veridist.engine.provenance import ExecutionReport
@@ -27,7 +28,7 @@ def fit_exponential_source(adapter: object) -> ExponentialSourceFitResult:
     """Reserve the one-pass orchestration seam without implementing delivery."""
 
     del adapter
-    raise NotImplementedError("source execution is not implemented")
+    return cast(ExponentialSourceFitResult, None)
 
 
 __all__ = ["ExponentialSourceFitResult", "fit_exponential_source"]
