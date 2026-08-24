@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import re
+import tomllib
 import unittest
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "v1-ci.yml"
+PYPROJECT_PATH = REPOSITORY_ROOT / "python" / "pyproject.toml"
+BROWSER_TEST_PATH = (
+    REPOSITORY_ROOT / "python" / "tests" / "browser" / "test_exponential_report_rtl.py"
+)
 
 
 class VeridistWorkflowContractTests(unittest.TestCase):
@@ -84,16 +89,47 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("sphinx-intl update", self.workflow)
         self.assertNotIn("-b doctest", self.workflow)
 
+    def test_browser_job_uses_pinned_extra_and_requires_exact_screenshot_evidence(self) -> None:
+        project = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))
+        extras = project["project"]["optional-dependencies"]
+        self.assertEqual(extras["browser"], ["playwright==1.62.0"])
+        self.assertFalse(any("playwright" in dependency for dependency in extras["test"]))
+
+        self.assertIn("  browser-rtl:", self.workflow)
+        self.assertIn("name: veridist / browser rtl", self.workflow)
+        self.assertIn("key: playwright-${{ runner.os }}-1.62.0", self.workflow)
+        self.assertIn('python -m pip install -e ".[test,browser]"', self.workflow)
+        self.assertIn("python -m playwright install --with-deps chromium", self.workflow)
+        self.assertIn('VERIDIST_BROWSER_TESTS: "1"', self.workflow)
+        self.assertIn("find artifacts/browser-rtl", self.workflow)
+        self.assertIn("-type f -name '*.png' -size +0c", self.workflow)
+        self.assertIn('test "${#screenshots[@]}" -eq 2', self.workflow)
+        self.assertIn("exponential-report-fa-failure.png", self.workflow)
+        self.assertIn("exponential-report-fa-success.png", self.workflow)
+        self.assertIn("if-no-files-found: error", self.workflow)
+
+    def test_browser_contract_is_opt_in_and_cleans_default_temporary_artifacts(self) -> None:
+        browser_test = BROWSER_TEST_PATH.read_text(encoding="utf-8")
+        self.assertIn('os.environ.get("VERIDIST_BROWSER_TESTS") == "1"', browser_test)
+        self.assertIn("tempfile.TemporaryDirectory()", browser_test)
+        self.assertNotIn("tempfile.mkdtemp()", browser_test)
+        for property_name in ("documentDirection", "reportDirection", "reportAlignment"):
+            with self.subTest(property_name=property_name):
+                self.assertIn(property_name, browser_test)
+        self.assertIn('"unicodeBidi": "isolate"', browser_test)
+        self.assertIn("self.assertGreater(screenshot.stat().st_size, 0)", browser_test)
+
     def test_aggregate_gate_fails_if_any_required_job_does_not_succeed(self) -> None:
         self.assertIn("  veridist-gate:", self.workflow)
         self.assertIn("name: veridist / gate", self.workflow)
-        self.assertIn("needs: [static, tests, package, docs]", self.workflow)
+        self.assertIn("needs: [static, tests, package, docs, browser-rtl]", self.workflow)
         self.assertIn("if: always()", self.workflow)
         for result in (
             "needs.static.result",
             "needs.tests.result",
             "needs.package.result",
             "needs.docs.result",
+            "needs.browser-rtl.result",
         ):
             with self.subTest(result=result):
                 self.assertIn(result, self.workflow)
@@ -102,7 +138,7 @@ class VeridistWorkflowContractTests(unittest.TestCase):
 
     def test_aggregate_gate_runs_from_the_checkout_root_without_a_checkout(self) -> None:
         self.assertNotIn("defaults:\n  run:\n    working-directory: python", self.workflow)
-        for job in ("static", "tests", "package", "docs"):
+        for job in ("static", "tests", "package", "docs", "browser-rtl"):
             with self.subTest(job=job):
                 job_block = re.search(
                     rf"(?ms)^  {job}:$(.*?)(?=^  \S|\Z)", self.workflow
