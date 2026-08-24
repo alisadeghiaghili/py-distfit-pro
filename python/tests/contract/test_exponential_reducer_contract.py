@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import tracemalloc
 import unittest
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 from decimal import Decimal
 from math import isclose
 
@@ -12,11 +12,16 @@ from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
 from veridist.families.exponential import (
     ExponentialFitFailure,
     ExponentialFitFailureCode,
+    ExponentialFitProvenance,
     ExponentialFitSuccess,
     fit_exponential,
     fit_exponential_chunks,
 )
-from veridist.statistics.exponential import ExponentialReductionState, reduce_exponential_chunks
+from veridist.statistics.exponential import (
+    ExponentialReductionState,
+    _ReductionOverflow,
+    reduce_exponential_chunks,
+)
 
 
 class ExponentialReducerContracts(unittest.TestCase):
@@ -198,6 +203,34 @@ class ExponentialReducerContracts(unittest.TestCase):
             with self.assertRaises((TypeError, ValueError)):
                 ExponentialReductionState(*arguments)
 
+    def test_exp14_reduction_state_rejects_invalid_counts_and_nonfinite_totals(self) -> None:
+        for arguments in (
+            (True, 0, 0.0, 0.0),
+            (1, 2, 1.0, 0.0),
+            (1, 1, float("inf"), 0.0),
+        ):
+            with self.subTest(arguments=arguments):
+                with self.assertRaises((TypeError, ValueError)):
+                    ExponentialReductionState(*arguments)
+
+    def test_exp14_final_sum_and_compensation_overflow_are_explicit(self) -> None:
+        maximum = float.fromhex("0x1.fffffffffffffp+1023")
+        total = float.fromhex("0x1.0000000000000p+1023")
+        state = ExponentialReductionState(1, 1, total, maximum)
+        with self.assertRaises(_ReductionOverflow):
+            _ = state.summed_time
+        with self.assertRaises(_ReductionOverflow):
+            state._add_value(0.5 * float.fromhex("0x1.0000000000000p+971"), 1, 1)
+
+    def test_exp14_reduction_boundaries_reject_wrong_containers_and_merge_types(self) -> None:
+        state = ExponentialReductionState.empty()
+        with self.assertRaises(TypeError):
+            state.merge(object())  # type: ignore[arg-type]
+        with self.assertRaises(TypeError):
+            reduce_exponential_chunks(1)  # type: ignore[arg-type]
+        with self.assertRaises(TypeError):
+            reduce_exponential_chunks((1,))  # type: ignore[arg-type]
+
     def test_exp14_public_constructors_reject_inconsistent_facts_and_have_no_dict(self) -> None:
         with self.assertRaises((TypeError, ValueError)):
             ExponentialFitSuccess(
@@ -229,3 +262,31 @@ class ExponentialReducerContracts(unittest.TestCase):
             )
         result = fit_exponential((ExactLifetime(Decimal("1")),))
         self.assertFalse(hasattr(result, "__dict__"))
+
+    def test_exp14_success_constructor_rejects_each_inconsistent_derived_fact(self) -> None:
+        valid = fit_exponential((ExactLifetime(Decimal("1")),))
+        assert isinstance(valid, ExponentialFitSuccess)
+        invalid_changes = (
+            {"observation_count": True},
+            {"censored_count": 1},
+            {"total_time": float("nan")},
+            {"mean": 2.0},
+            {"log_likelihood": 1.0},
+        )
+        for changes in invalid_changes:
+            with self.subTest(changes=changes):
+                with self.assertRaises((TypeError, ValueError)):
+                    replace(valid, **changes)
+
+    def test_exp14_provenance_and_failure_constructors_reject_spoofed_facts(self) -> None:
+        with self.assertRaises(ValueError):
+            ExponentialFitProvenance(raw_data_retained=True)
+        invalid_failures = (
+            ("EMPTY_SAMPLE", 0, 0, 0.0),
+            (ExponentialFitFailureCode.EMPTY_SAMPLE, True, 0, 0.0),
+            (ExponentialFitFailureCode.NO_OBSERVED_EVENTS, 1, 2, 1.0),
+        )
+        for arguments in invalid_failures:
+            with self.subTest(arguments=arguments):
+                with self.assertRaises((TypeError, ValueError)):
+                    ExponentialFitFailure(*arguments)  # type: ignore[arg-type]

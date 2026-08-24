@@ -7,7 +7,10 @@ import unicodedata
 import unittest
 from decimal import Decimal
 from html.parser import HTMLParser
+from math import inf
+from unittest.mock import patch
 
+import veridist.reporting.exponential as report_module
 from veridist.domain.lifetimes import ExactLifetime
 from veridist.families.exponential import (
     ExponentialFitFailure,
@@ -276,3 +279,15 @@ class ExponentialReportI18nContracts(unittest.TestCase):
         )
         self.assertIn("text-align:start", html)
         self.assertIn('[dir="rtl"] .report{text-align:right}', html)
+
+    def test_i18n_exp12_rejects_nonfinite_machine_numbers_and_schema_spoofing(self) -> None:
+        with self.assertRaises(ValueError):
+            report_module._machine_number(inf)
+        result = fit_exponential((ExactLifetime(Decimal("2")),))
+        with patch.object(
+            report_module,
+            "_machine_facts",
+            return_value=({"status": "success"}, "failure.NONE"),
+        ):
+            with self.assertRaises(ValueError):
+                render_exponential_report(result, ReportLocale.EN)
