@@ -6,14 +6,19 @@ import re
 import unittest
 from io import BytesIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from veridist.adapters.csv_lifetimes import (
     CsvLifetimeAdapter,
     CsvLifetimeAdapterError,
+    CsvLifetimeChunk,
     CsvLifetimeLimits,
     CsvLifetimeSchema,
+    fit_exponential_csv,
     retained_object_graph_bytes,
 )
+from veridist.domain.lifetimes import ExactLifetime
+from veridist.engine.delivery import ChunkEnvelope
 from veridist.engine.errors import FailureCode
 from veridist.engine.provenance import PublicSourceId
 
@@ -84,6 +89,35 @@ class UnexpectedSource(TrackingSource):
         raise RuntimeError("unexpected source fault")
 
 
+class IdentityUnavailableSource(TrackingSource):
+    def identity(self, path: Path) -> object:
+        del path
+        if self.open_count:
+            raise OSError("private revision unavailable")
+        return "rev0"
+
+
+class NonBinarySource:
+    def identity(self, path: Path) -> object:
+        del path
+        return "rev0"
+
+    def open_binary(self, path: Path) -> object:
+        del path
+        return _ClosableNonBinary()
+
+
+class _ClosableNonBinary:
+    def close(self) -> None:
+        pass
+
+
+class MissingIdentitySource:
+    def open_binary(self, path: Path) -> TrackingBinaryStream:
+        del path
+        return TrackingBinaryStream(b"time,event_observed\n1,1\n")
+
+
 class CsvLifetimeAdapterContracts(unittest.TestCase):
     """Strict CSV semantics must be proven through adapter and execution seams."""
 
@@ -124,9 +158,11 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         with self.assertRaises(CsvLifetimeAdapterError) as captured:
             tuple(adapter.iter_chunks())
         self.assertEqual(captured.exception.code, code)
-        self.assertEqual(
-            captured.exception.context, {"reason": reason} if context is None else context
-        )
+        if context is None:
+            self.assertEqual(captured.exception.context["reason"], reason)
+            self.assertTrue(set(captured.exception.context) <= {"reason", "record_offset"})
+        else:
+            self.assertEqual(captured.exception.context, context)
         self.assert_redacted(captured.exception)
 
     def test_csv01_exact_schema_tokens_and_ascii_decimal_grammar(self) -> None:
@@ -142,6 +178,14 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
                     invalid,
                     code=FailureCode.SOURCE_ROW_INVALID,
                     reason="invalid_time",
+                )
+        for token in (b" 1", b"1 ", b"01", b"true"):
+            with self.subTest(token=token):
+                invalid, _ = self.adapter(b"time,event_observed\n1," + token + b"\n")
+                self.assert_adapter_error(
+                    invalid,
+                    code=FailureCode.SOURCE_ROW_INVALID,
+                    reason="invalid_event_token",
                 )
 
     def test_csv02_logical_offsets_are_stable_but_chunk_ids_vary_with_budget(self) -> None:
@@ -168,7 +212,11 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         self.assertTrue(
             all(_CHUNK_ID.fullmatch(chunk.envelope.chunk_id) for chunk in narrow_chunks)
         )
+        self.assertTrue(all(chunk.envelope.chunk_id != SOURCE_ID.value for chunk in narrow_chunks))
         self.assertTrue(all(_CHUNK_ID.fullmatch(chunk.envelope.chunk_id) for chunk in wide_chunks))
+        self.assertTrue(
+            all(SOURCE_ID.value.removeprefix("src_") not in chunk.envelope.chunk_id for chunk in narrow_chunks)
+        )
 
         multiline, _ = self.adapter(b'time,event_observed\n1,1\n"super-secret-cell\n",0\n')
         self.assert_adapter_error(
@@ -195,7 +243,11 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             )
         )
 
-        oversized, _ = self.adapter(b"time,event_observed\n1" + b"0" * 10000 + b",1\n")
+        oversized, _ = self.adapter(
+            b"time,event_observed\n1,1\n",
+            chunk_bytes=1,
+            max_inflight_bytes=1,
+        )
         self.assert_adapter_error(
             oversized,
             code=FailureCode.CHUNK_TOO_LARGE,
@@ -258,8 +310,9 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         )
         self.assertEqual(source.close_count, 1)
 
-        early, source = self.adapter(b"time,event_observed\n1,1\n")
+        early, source = self.adapter(b"time,event_observed\n" + b"1,1\n" * 30)
         iterator = early.iter_chunks()
+        next(iterator)
         iterator.close()
         self.assertEqual(source.close_count, 1)
 
@@ -297,6 +350,7 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             (0, 1),
             (1, 0),
             (2, 1),
+            (1, True),
         ):
             with self.subTest(limits=limits):
                 with self.assertRaises((TypeError, ValueError)):
@@ -316,6 +370,148 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
                 limits=CsvLifetimeLimits(2048, 2048),
                 opener=object(),  # type: ignore[arg-type]
             )
+        for field in ("schema", "source_id", "limits"):
+            with self.subTest(field=field):
+                arguments: dict[str, object] = {
+                    "schema": SCHEMA,
+                    "source_id": SOURCE_ID,
+                    "limits": CsvLifetimeLimits(2048, 2048),
+                }
+                arguments[field] = object()
+                with self.assertRaises(TypeError):
+                    CsvLifetimeAdapter(
+                        Path("private-lifetime-data.csv"),
+                        **arguments,  # type: ignore[arg-type]
+                    )
+
+    def test_csv07_public_metadata_and_default_source_failures_are_redacted(self) -> None:
+        adapter = CsvLifetimeAdapter(
+            Path("private-missing-source.csv"),
+            schema=SCHEMA,
+            source_id=SOURCE_ID,
+            limits=CsvLifetimeLimits(2048, 2048),
+        )
+        metadata = adapter.metadata
+        self.assertEqual(metadata.source_id, SOURCE_ID.value)
+        self.assertEqual(metadata.schema_version, "1")
+        self.assertEqual(metadata.redaction_reason, "hash_unavailable")
+        self.assert_adapter_error(
+            adapter,
+            code=FailureCode.SOURCE_OPEN_FAILED,
+            reason="open_failed",
+        )
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "lifetimes.csv"
+            path.write_bytes(b"time,event_observed\n1,1\n")
+            filesystem = CsvLifetimeAdapter(
+                path,
+                schema=SCHEMA,
+                source_id=SOURCE_ID,
+                limits=CsvLifetimeLimits(2048, 2048),
+            )
+            self.assertEqual(len(tuple(filesystem.iter_chunks())), 1)
+
+    def test_csv08_value_guards_and_owned_graph_accounting(self) -> None:
+        for code, reason in (
+            (FailureCode.CANCELLED, "open_failed"),
+            (FailureCode.SOURCE_OPEN_FAILED, "unapproved"),
+        ):
+            with self.subTest(code=code, reason=reason):
+                with self.assertRaises(ValueError):
+                    CsvLifetimeAdapterError(code, reason=reason)
+        for offset in (True, -1):
+            with self.subTest(offset=offset):
+                with self.assertRaises((TypeError, ValueError)):
+                    CsvLifetimeAdapterError(
+                        FailureCode.SOURCE_ROW_INVALID,
+                        reason="invalid_time",
+                        record_offset=offset,
+                    )
+
+        envelope = ChunkEnvelope(
+            SOURCE_ID.value, "chk_0123456789abcdef0123456789abcdef", 0, 0, 1, 1
+        )
+        with self.assertRaises(TypeError):
+            CsvLifetimeChunk(  # type: ignore[arg-type]
+                object(), (ExactLifetime(1),), 1
+            )
+        with self.assertRaises(TypeError):
+            CsvLifetimeChunk(envelope, [ExactLifetime(1)], 1)  # type: ignore[arg-type]
+        with self.assertRaises(TypeError):
+            CsvLifetimeChunk(envelope, (object(),), 1)  # type: ignore[arg-type]
+        with self.assertRaises((TypeError, ValueError)):
+            CsvLifetimeChunk(envelope, (ExactLifetime(1),), True)
+        with self.assertRaises(ValueError):
+            CsvLifetimeChunk(envelope, (ExactLifetime(1),), 2)
+        with self.assertRaises(ValueError):
+            CsvLifetimeChunk(envelope, (ExactLifetime(1),), 0)
+        mismatched = ChunkEnvelope(
+            SOURCE_ID.value, "chk_0123456789abcdef0123456789abcdef", 0, 0, 2, 1
+        )
+        with self.assertRaises(ValueError):
+            CsvLifetimeChunk(mismatched, (ExactLifetime(1),), 1)
+
+        shared = (ExactLifetime(1),)
+        self.assertLess(
+            retained_object_graph_bytes((shared, shared)),
+            2 * retained_object_graph_bytes((shared,)),
+        )
+
+    def test_csv09_adapter_boundary_branches_and_reserved_execution_api(self) -> None:
+        nonbinary = CsvLifetimeAdapter(
+            Path("private-lifetime-data.csv"),
+            schema=SCHEMA,
+            source_id=SOURCE_ID,
+            limits=CsvLifetimeLimits(2048, 2048),
+            opener=NonBinarySource(),
+        )
+        with self.assertRaises(TypeError):
+            tuple(nonbinary.iter_chunks())
+
+        unavailable = IdentityUnavailableSource(b"time,event_observed\n1,1\n")
+        identity_unknown = CsvLifetimeAdapter(
+            Path("private-lifetime-data.csv"),
+            schema=SCHEMA,
+            source_id=SOURCE_ID,
+            limits=CsvLifetimeLimits(2048, 2048),
+            opener=unavailable,
+        )
+        self.assertEqual(len(tuple(identity_unknown.iter_chunks())), 1)
+        self.assertEqual(unavailable.close_count, 1)
+
+        baseline, _ = self.adapter(b"time,event_observed\n1,1\n2,0\n")
+        combined = next(baseline.iter_chunks())
+        split, _ = self.adapter(
+            b"time,event_observed\n1,1\n2,0\n",
+            chunk_bytes=combined.retained_payload_bytes - 1,
+            max_inflight_bytes=combined.retained_payload_bytes - 1,
+        )
+        self.assertEqual([chunk.envelope.sequence_number for chunk in split.iter_chunks()], [0, 1])
+        with self.assertRaises(NotImplementedError):
+            fit_exponential_csv(
+                Path("private-lifetime-data.csv"),
+                schema=SCHEMA,
+                source_id=SOURCE_ID,
+                limits=CsvLifetimeLimits(2048, 2048),
+            )
+
+    def test_csv10_closed_source_protocol_and_full_scan_after_failure(self) -> None:
+        with self.assertRaises(TypeError):
+            CsvLifetimeAdapter(
+                Path("private-lifetime-data.csv"),
+                schema=SCHEMA,
+                source_id=SOURCE_ID,
+                limits=CsvLifetimeLimits(2048, 2048),
+                opener=MissingIdentitySource(),  # type: ignore[arg-type]
+            )
+
+        invalid_then_valid, _ = self.adapter(b"time,event_observed\n1,x\n2,1\n")
+        self.assert_adapter_error(
+            invalid_then_valid,
+            code=FailureCode.SOURCE_ROW_INVALID,
+            reason="invalid_event_token",
+        )
 
 
 if __name__ == "__main__":
