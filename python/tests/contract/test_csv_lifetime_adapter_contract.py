@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import re
 import unittest
-from io import BytesIO
+from io import BytesIO, TextIOWrapper
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from veridist.adapters.csv_lifetimes import (
     CsvLifetimeAdapter,
@@ -215,7 +216,10 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         self.assertTrue(all(chunk.envelope.chunk_id != SOURCE_ID.value for chunk in narrow_chunks))
         self.assertTrue(all(_CHUNK_ID.fullmatch(chunk.envelope.chunk_id) for chunk in wide_chunks))
         self.assertTrue(
-            all(SOURCE_ID.value.removeprefix("src_") not in chunk.envelope.chunk_id for chunk in narrow_chunks)
+            all(
+                SOURCE_ID.value.removeprefix("src_") not in chunk.envelope.chunk_id
+                for chunk in narrow_chunks
+            )
         )
 
         multiline, _ = self.adapter(b'time,event_observed\n1,1\n"super-secret-cell\n",0\n')
@@ -326,6 +330,20 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         )
         with self.assertRaises(RuntimeError):
             tuple(unexpected.iter_chunks())
+
+    def test_csv05b_explicit_text_wrapper_close_is_not_left_to_finalization(self) -> None:
+        adapter, _ = self.adapter(b"time,event_observed\n1,1\n")
+        wrappers: list[TextIOWrapper] = []
+
+        def retained_wrapper(*args: object, **kwargs: object) -> TextIOWrapper:
+            wrapper = TextIOWrapper(*args, **kwargs)  # type: ignore[arg-type]
+            wrappers.append(wrapper)
+            return wrapper
+
+        with patch("veridist.adapters.csv_lifetimes.TextIOWrapper", retained_wrapper):
+            self.assertEqual(len(tuple(adapter.iter_chunks())), 1)
+        self.assertEqual(len(wrappers), 1)
+        self.assertTrue(wrappers[0].closed)
 
     def test_csv06_empty_header_and_full_scan_precedence_constructor_and_result_invariants(
         self,
