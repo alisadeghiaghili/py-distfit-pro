@@ -160,6 +160,22 @@ class NoneIdentitySource(TrackingSource):
         return "rev0"
 
 
+class PostIdentityFailureSource(TrackingSource):
+    def __init__(self, payload: bytes, value: object) -> None:
+        super().__init__(payload)
+        self.value = value
+        self.calls = 0
+
+    def identity(self, path: Path) -> object:
+        del path
+        self.calls += 1
+        if self.calls == 1:
+            return "rev0"
+        if isinstance(self.value, Exception):
+            raise self.value
+        return self.value
+
+
 class NonBinarySource:
     def identity(self, path: Path) -> object:
         del path
@@ -824,6 +840,24 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
                 self.assert_adapter_error(
                     adapter, code=FailureCode.SOURCE_ROW_INVALID, reason=reason
                 )
+
+    def test_csv16_post_identity_failures_and_static_type_accounting(self) -> None:
+        for value in (OSError("private post identity"), None):
+            source = PostIdentityFailureSource(b"time,event_observed\n1,1\n", value)
+            adapter = CsvLifetimeAdapter(
+                Path("private-lifetime-data.csv"),
+                SCHEMA,
+                SOURCE_ID,
+                CsvLifetimeLimits(2048, 2048),
+                source,
+            )
+            self.assert_adapter_error(
+                adapter,
+                code=FailureCode.SOURCE_REVISION_UNAVAILABLE,
+                reason="identity_unavailable",
+            )
+            self.assertEqual(source.close_count, 1)
+        self.assertEqual(retained_object_graph_bytes(CsvLifetimeAdapter), 0)
 
 
 if __name__ == "__main__":
