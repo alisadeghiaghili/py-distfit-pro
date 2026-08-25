@@ -148,6 +148,18 @@ class InitialIdentityUnexpectedSource(TrackingSource):
         raise RuntimeError("unexpected initial identity fault")
 
 
+class NoneIdentitySource(TrackingSource):
+    def __init__(self, payload: bytes, *, after_open: bool) -> None:
+        super().__init__(payload)
+        self.after_open = after_open
+
+    def identity(self, path: Path) -> object:
+        del path
+        if self.after_open or self.open_count:
+            return None
+        return "rev0"
+
+
 class NonBinarySource:
     def identity(self, path: Path) -> object:
         del path
@@ -765,6 +777,53 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "unexpected initial identity fault"):
             tuple(initial_unexpected.iter_chunks())
         self.assertEqual(initial_source.close_count, 1)
+
+    def test_csv15_identity_none_cleanup_and_strict_malformed_corpus(self) -> None:
+        for source in (
+            NoneIdentitySource(b"time,event_observed\n1,1\n", after_open=True),
+            NoneIdentitySource(b"time,event_observed\n1,1\n", after_open=False),
+        ):
+            adapter = CsvLifetimeAdapter(
+                Path("private-lifetime-data.csv"),
+                SCHEMA,
+                SOURCE_ID,
+                CsvLifetimeLimits(2048, 2048),
+                source,
+            )
+            self.assert_adapter_error(
+                adapter,
+                code=FailureCode.SOURCE_REVISION_UNAVAILABLE,
+                reason="identity_unavailable",
+            )
+            self.assertEqual(source.close_count, 1)
+
+        cleanup_only = CloseFailingBinaryStream(b"time,event_observed\n1,1\n")
+        cleanup_adapter = CsvLifetimeAdapter(
+            Path("private-lifetime-data.csv"),
+            SCHEMA,
+            SOURCE_ID,
+            CsvLifetimeLimits(2048, 2048),
+            FixedStreamSource(cleanup_only),
+        )
+        with self.assertRaisesRegex(OSError, "private close failure"):
+            tuple(cleanup_adapter.iter_chunks())
+        self.assertEqual(cleanup_only.close_count, 1)
+
+        corpus = (
+            (b'time,event_observed\n"1"junk,1\n', "malformed_record"),
+            (b"time,event_observed\n1\x00,1\n", "invalid_time"),
+            (b"time,event_observed\r\n1,1\r\n", None),
+            (b"time,event_observed\n1,1\n\n", "blank_record"),
+            (b'time,event_observed\n"1\n",1\n', "invalid_time"),
+        )
+        for payload, reason in corpus:
+            adapter, _ = self.adapter(payload)
+            if reason is None:
+                self.assertEqual(len(tuple(adapter.iter_chunks())), 1)
+            else:
+                self.assert_adapter_error(
+                    adapter, code=FailureCode.SOURCE_ROW_INVALID, reason=reason
+                )
 
 
 if __name__ == "__main__":
