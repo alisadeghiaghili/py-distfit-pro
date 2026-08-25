@@ -531,6 +531,83 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             reason="invalid_event_token",
         )
 
+    def test_csv11_translated_failures_drop_private_causes(self) -> None:
+        class OpenFailure:
+            def identity(self, path: Path) -> object:
+                del path
+                return "private-revision"
+
+            def open_binary(self, path: Path) -> TrackingBinaryStream:
+                del path
+                raise OSError("private-path-and-message")
+
+        cases: tuple[CsvLifetimeAdapter, ...] = (
+            CsvLifetimeAdapter(
+                Path("private-lifetime-data.csv"),
+                schema=SCHEMA,
+                source_id=SOURCE_ID,
+                limits=CsvLifetimeLimits(2048, 2048),
+                opener=OpenFailure(),
+            ),
+            self.adapter(b"time,event_observed\n\xff,1\n")[0],
+            self.adapter(b'time,event_observed\n"unterminated,1\n')[0],
+        )
+        for adapter in cases:
+            with self.subTest(adapter=type(adapter.opener).__name__):
+                with self.assertRaises(CsvLifetimeAdapterError) as captured:
+                    tuple(adapter.iter_chunks())
+                self.assertIsNone(captured.exception.__cause__)
+                self.assert_redacted(captured.exception)
+
+    def test_csv12_exact_chunk_boundaries_and_ids_are_range_source_sensitive(self) -> None:
+        payload = b"time,event_observed\n1,1\n2,0\n"
+        wide, _ = self.adapter(payload, chunk_bytes=4096, max_inflight_bytes=4096)
+        combined = next(wide.iter_chunks())
+        exact_combined, _ = self.adapter(
+            payload,
+            chunk_bytes=combined.retained_payload_bytes,
+            max_inflight_bytes=combined.retained_payload_bytes,
+        )
+        self.assertEqual([item.envelope.row_count for item in exact_combined.iter_chunks()], [2])
+        split, _ = self.adapter(
+            payload,
+            chunk_bytes=combined.retained_payload_bytes - 1,
+            max_inflight_bytes=combined.retained_payload_bytes - 1,
+        )
+        split_chunks = tuple(split.iter_chunks())
+        self.assertEqual([(item.envelope.row_start, item.envelope.row_stop) for item in split_chunks], [(0, 1), (1, 2)])
+        self.assertEqual([item.envelope.sequence_number for item in split_chunks], [0, 1])
+        self.assertTrue(all(item.retained_payload_bytes <= split.limits.chunk_bytes for item in split_chunks))
+        self.assertNotEqual(combined.envelope.chunk_id, split_chunks[0].envelope.chunk_id)
+        self.assertEqual(combined.envelope.chunk_id, next(wide.iter_chunks()).envelope.chunk_id)
+
+        other = CsvLifetimeAdapter(
+            Path("private-lifetime-data.csv"),
+            schema=SCHEMA,
+            source_id=PublicSourceId("src_fedcba9876543210fedcba9876543210"),
+            limits=CsvLifetimeLimits(4096, 4096),
+            opener=TrackingSource(payload),
+        )
+        self.assertNotEqual(combined.envelope.chunk_id, next(other.iter_chunks()).envelope.chunk_id)
+
+    def test_csv13_error_precedence_is_first_semantic_then_mutation(self) -> None:
+        first, _ = self.adapter(b"time,event_observed\n1,x\n2,bad\n")
+        self.assert_adapter_error(
+            first,
+            code=FailureCode.SOURCE_ROW_INVALID,
+            reason="invalid_event_token",
+            context={"reason": "invalid_event_token", "record_offset": 0},
+        )
+        mutated, _ = self.adapter(
+            b"time,event_observed\n1,x\n",
+            changed_after_open=True,
+        )
+        self.assert_adapter_error(
+            mutated,
+            code=FailureCode.SOURCE_REVISION_MISMATCH,
+            reason="source_mutated",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
