@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sys
 import unittest
 from io import BytesIO, TextIOWrapper
 from pathlib import Path
@@ -37,10 +38,25 @@ class TrackingBinaryStream(BytesIO):
         self.read_requests: list[int] = []
 
     def read(self, size: int = -1) -> bytes:
+        self._record_read(size)
+        return super().read(size)
+
+    def read1(self, size: int = -1) -> bytes:
+        self._record_read(size)
+        return super().read1(size)
+
+    def readinto(self, buffer: bytearray) -> int:
+        self._record_read(len(buffer))
+        return super().readinto(buffer)
+
+    def readinto1(self, buffer: bytearray) -> int:
+        self._record_read(len(buffer))
+        return super().readinto1(buffer)
+
+    def _record_read(self, size: int) -> None:
         if size < 0 or size > 8192:
             raise AssertionError("unbounded binary read")
         self.read_requests.append(size)
-        return super().read(size)
 
     def readall(self) -> bytes:
         raise AssertionError("readall is forbidden")
@@ -54,6 +70,25 @@ class TrackingBinaryStream(BytesIO):
         super().close()
 
 
+class CloseFailingBinaryStream(TrackingBinaryStream):
+    def close(self) -> None:
+        if self.closed:
+            return
+        self.close_count += 1
+        BytesIO.close(self)
+        raise OSError("private close failure")
+
+
+class MidReadFaultStream(TrackingBinaryStream):
+    def read(self, size: int = -1) -> bytes:
+        del size
+        raise RuntimeError("unexpected mid-read fault")
+
+    def read1(self, size: int = -1) -> bytes:
+        del size
+        raise RuntimeError("unexpected mid-read fault")
+
+
 class TrackingSource:
     """Replayable test seam with observable opens, identities, and close lifecycle."""
 
@@ -61,18 +96,21 @@ class TrackingSource:
         self._changed_after_open = changed_after_open
         self._payload = payload
         self._revision = "rev0"
+        self._identity_calls = 0
         self.open_count = 0
         self.streams: list[TrackingBinaryStream] = []
 
     def identity(self, path: Path) -> object:
         del path
+        self._identity_calls += 1
+        if self._changed_after_open and self._identity_calls == 1:
+            self._revision = "rev1"
+            return "rev0"
         return self._revision
 
     def open_binary(self, path: Path) -> TrackingBinaryStream:
         del path
         self.open_count += 1
-        if self._changed_after_open:
-            self._revision = "rev1"
         stream = TrackingBinaryStream(self._payload)
         self.streams.append(stream)
         return stream
@@ -98,6 +136,18 @@ class IdentityUnavailableSource(TrackingSource):
         return "rev0"
 
 
+class InitialIdentityUnavailableSource(TrackingSource):
+    def identity(self, path: Path) -> object:
+        del path
+        raise OSError("private initial identity unavailable")
+
+
+class InitialIdentityUnexpectedSource(TrackingSource):
+    def identity(self, path: Path) -> object:
+        del path
+        raise RuntimeError("unexpected initial identity fault")
+
+
 class NonBinarySource:
     def identity(self, path: Path) -> object:
         del path
@@ -117,6 +167,19 @@ class MissingIdentitySource:
     def open_binary(self, path: Path) -> TrackingBinaryStream:
         del path
         return TrackingBinaryStream(b"time,event_observed\n1,1\n")
+
+
+class FixedStreamSource:
+    def __init__(self, stream: TrackingBinaryStream) -> None:
+        self.stream = stream
+
+    def identity(self, path: Path) -> object:
+        del path
+        return "rev0"
+
+    def open_binary(self, path: Path) -> TrackingBinaryStream:
+        del path
+        return self.stream
 
 
 class CsvLifetimeAdapterContracts(unittest.TestCase):
@@ -239,6 +302,7 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             self.assertLessEqual(chunk.retained_payload_bytes, adapter.limits.chunk_bytes)
             self.assertEqual(chunk.envelope.byte_size, chunk.retained_payload_bytes)
         self.assertTrue(source.streams)
+        self.assertTrue(all(stream.read_requests for stream in source.streams))
         self.assertTrue(
             all(
                 request >= 0 and request <= 8192
@@ -356,7 +420,7 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         self.assert_adapter_error(
             overflow_then_invalid,
             code=FailureCode.SOURCE_ROW_INVALID,
-            reason="invalid_event_token",
+            reason="invalid_time",
         )
 
         for columns in (("", "event_observed"), ("time", "time")):
@@ -475,6 +539,9 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             retained_object_graph_bytes((shared, shared)),
             2 * retained_object_graph_bytes((shared,)),
         )
+        dynamic = "chunk-id-" + "x" * 128
+        manual = sys.getsizeof((dynamic,)) + sys.getsizeof(dynamic)
+        self.assertEqual(retained_object_graph_bytes((dynamic,)), manual)
 
     def test_csv09_adapter_boundary_branches_and_reserved_execution_api(self) -> None:
         nonbinary = CsvLifetimeAdapter(
@@ -495,8 +562,25 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             limits=CsvLifetimeLimits(2048, 2048),
             opener=unavailable,
         )
-        self.assertEqual(len(tuple(identity_unknown.iter_chunks())), 1)
+        self.assert_adapter_error(
+            identity_unknown,
+            code=FailureCode.SOURCE_REVISION_UNAVAILABLE,
+            reason="identity_unavailable",
+        )
         self.assertEqual(unavailable.close_count, 1)
+
+        initial_identity_unknown = CsvLifetimeAdapter(
+            Path("private-lifetime-data.csv"),
+            schema=SCHEMA,
+            source_id=SOURCE_ID,
+            limits=CsvLifetimeLimits(2048, 2048),
+            opener=InitialIdentityUnavailableSource(b"time,event_observed\n1,1\n"),
+        )
+        self.assert_adapter_error(
+            initial_identity_unknown,
+            code=FailureCode.SOURCE_REVISION_UNAVAILABLE,
+            reason="identity_unavailable",
+        )
 
         baseline, _ = self.adapter(b"time,event_observed\n1,1\n2,0\n")
         combined = next(baseline.iter_chunks())
@@ -575,9 +659,14 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             max_inflight_bytes=combined.retained_payload_bytes - 1,
         )
         split_chunks = tuple(split.iter_chunks())
-        self.assertEqual([(item.envelope.row_start, item.envelope.row_stop) for item in split_chunks], [(0, 1), (1, 2)])
+        self.assertEqual(
+            [(item.envelope.row_start, item.envelope.row_stop) for item in split_chunks],
+            [(0, 1), (1, 2)],
+        )
         self.assertEqual([item.envelope.sequence_number for item in split_chunks], [0, 1])
-        self.assertTrue(all(item.retained_payload_bytes <= split.limits.chunk_bytes for item in split_chunks))
+        self.assertTrue(
+            all(item.retained_payload_bytes <= split.limits.chunk_bytes for item in split_chunks)
+        )
         self.assertNotEqual(combined.envelope.chunk_id, split_chunks[0].envelope.chunk_id)
         self.assertEqual(combined.envelope.chunk_id, next(wide.iter_chunks()).envelope.chunk_id)
 
@@ -589,6 +678,26 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             opener=TrackingSource(payload),
         )
         self.assertNotEqual(combined.envelope.chunk_id, next(other.iter_chunks()).envelope.chunk_id)
+
+        one_row, _ = self.adapter(b"time,event_observed\n1,1\n", chunk_bytes=4096)
+        single = next(one_row.iter_chunks())
+        exact_single, _ = self.adapter(
+            b"time,event_observed\n1,1\n",
+            chunk_bytes=single.retained_payload_bytes,
+            max_inflight_bytes=single.retained_payload_bytes,
+        )
+        self.assertEqual(len(tuple(exact_single.iter_chunks())), 1)
+        below_single, _ = self.adapter(
+            b"time,event_observed\n1,1\n",
+            chunk_bytes=single.retained_payload_bytes - 1,
+            max_inflight_bytes=single.retained_payload_bytes - 1,
+        )
+        self.assert_adapter_error(
+            below_single,
+            code=FailureCode.CHUNK_TOO_LARGE,
+            reason="record_too_large",
+            context={"reason": "record_too_large", "record_offset": 0},
+        )
 
     def test_csv13_error_precedence_is_first_semantic_then_mutation(self) -> None:
         first, _ = self.adapter(b"time,event_observed\n1,x\n2,bad\n")
@@ -607,6 +716,55 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             code=FailureCode.SOURCE_REVISION_MISMATCH,
             reason="source_mutated",
         )
+
+    def test_csv14_cleanup_never_masks_primary_and_midread_fault_closes_once(self) -> None:
+        close_failing = CloseFailingBinaryStream(b"time,event_observed\n\xff,1\n")
+        protected = CsvLifetimeAdapter(
+            Path("private-lifetime-data.csv"),
+            schema=SCHEMA,
+            source_id=SOURCE_ID,
+            limits=CsvLifetimeLimits(2048, 2048),
+            opener=FixedStreamSource(close_failing),
+        )
+        wrappers: list[TextIOWrapper] = []
+
+        def retained_wrapper(*args: object, **kwargs: object) -> TextIOWrapper:
+            wrapper = TextIOWrapper(*args, **kwargs)  # type: ignore[arg-type]
+            wrappers.append(wrapper)
+            return wrapper
+
+        with patch("veridist.adapters.csv_lifetimes.TextIOWrapper", retained_wrapper):
+            self.assert_adapter_error(
+                protected,
+                code=FailureCode.SOURCE_DECODE_FAILED,
+                reason="invalid_utf8",
+            )
+        self.assertEqual(close_failing.close_count, 1)
+        self.assertTrue(wrappers[0].closed)
+
+        midread = MidReadFaultStream(b"time,event_observed\n1,1\n")
+        unexpected = CsvLifetimeAdapter(
+            Path("private-lifetime-data.csv"),
+            schema=SCHEMA,
+            source_id=SOURCE_ID,
+            limits=CsvLifetimeLimits(2048, 2048),
+            opener=FixedStreamSource(midread),
+        )
+        with self.assertRaisesRegex(RuntimeError, "unexpected mid-read fault"):
+            tuple(unexpected.iter_chunks())
+        self.assertEqual(midread.close_count, 1)
+
+        initial_source = InitialIdentityUnexpectedSource(b"time,event_observed\n1,1\n")
+        initial_unexpected = CsvLifetimeAdapter(
+            Path("private-lifetime-data.csv"),
+            schema=SCHEMA,
+            source_id=SOURCE_ID,
+            limits=CsvLifetimeLimits(2048, 2048),
+            opener=initial_source,
+        )
+        with self.assertRaisesRegex(RuntimeError, "unexpected initial identity fault"):
+            tuple(initial_unexpected.iter_chunks())
+        self.assertEqual(initial_source.close_count, 1)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import csv
 import hashlib
 import re
 import sys
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from dataclasses import dataclass, fields, is_dataclass, replace
 from decimal import Decimal
 from io import BufferedIOBase, TextIOWrapper
@@ -31,6 +31,7 @@ _CSV_FAILURE_CODES = frozenset(
         FailureCode.SOURCE_ROW_INVALID,
         FailureCode.CHUNK_TOO_LARGE,
         FailureCode.SOURCE_REVISION_MISMATCH,
+        FailureCode.SOURCE_REVISION_UNAVAILABLE,
     }
 )
 _REASONS = frozenset(
@@ -46,6 +47,7 @@ _REASONS = frozenset(
         "invalid_event_token",
         "record_too_large",
         "source_mutated",
+        "identity_unavailable",
     }
 )
 
@@ -160,7 +162,7 @@ def retained_object_graph_bytes(value: object) -> int:
         if identity in seen:
             return 0
         seen.add(identity)
-        if isinstance(item, str) or isinstance(item, type) or isinstance(item, type(sys)):
+        if isinstance(item, type) or isinstance(item, type(sys)):
             return 0
         total = sys.getsizeof(item)
         if type(item) is tuple:
@@ -214,51 +216,82 @@ class CsvLifetimeAdapter:
 
         source = self.opener if self.opener is not None else _FilesystemCsvSource()
         try:
-            before_identity = source.identity(self.path)
             binary = source.open_binary(self.path)
-        except OSError as error:
+        except OSError:
             raise CsvLifetimeAdapterError(
                 FailureCode.SOURCE_OPEN_FAILED, reason="open_failed"
-            ) from error
+            ) from None
         text: TextIOWrapper | None = None
+        primary_error: BaseException | None = None
         try:
+            try:
+                before_identity = source.identity(self.path)
+            except OSError:
+                raise CsvLifetimeAdapterError(
+                    FailureCode.SOURCE_REVISION_UNAVAILABLE,
+                    reason="identity_unavailable",
+                ) from None
+            if before_identity is None:
+                raise CsvLifetimeAdapterError(
+                    FailureCode.SOURCE_REVISION_UNAVAILABLE,
+                    reason="identity_unavailable",
+                )
             if not isinstance(binary, BufferedIOBase) and not hasattr(binary, "read"):
                 raise TypeError("source must return a binary readable stream")
             text = TextIOWrapper(binary, encoding="utf-8-sig", newline="")
             reader = cast(Iterator[list[str]], csv.reader(text, strict=True))
             header = self._read_header(reader)
             self._validate_header(header)
-            yield from self._read_chunks(reader)
+            semantic_failure = yield from self._read_chunks(reader)
             try:
                 after_identity = source.identity(self.path)
             except OSError:
-                after_identity = before_identity
+                raise CsvLifetimeAdapterError(
+                    FailureCode.SOURCE_REVISION_UNAVAILABLE,
+                    reason="identity_unavailable",
+                ) from None
+            if after_identity is None:
+                raise CsvLifetimeAdapterError(
+                    FailureCode.SOURCE_REVISION_UNAVAILABLE,
+                    reason="identity_unavailable",
+                )
             if after_identity != before_identity:
                 raise CsvLifetimeAdapterError(
                     FailureCode.SOURCE_REVISION_MISMATCH,
                     reason="source_mutated",
                 )
+            if semantic_failure is not None:
+                raise semantic_failure
         except UnicodeDecodeError as error:
+            primary_error = error
             raise CsvLifetimeAdapterError(
                 FailureCode.SOURCE_DECODE_FAILED, reason="invalid_utf8"
-            ) from error
+            ) from None
         except csv.Error as error:
+            primary_error = error
             raise CsvLifetimeAdapterError(
                 FailureCode.SOURCE_ROW_INVALID, reason="malformed_record"
-            ) from error
+            ) from None
+        except BaseException as error:
+            primary_error = error
+            raise
         finally:
-            if text is not None:
-                text.close()
-            else:
-                binary.close()
+            try:
+                if text is not None:
+                    text.close()
+                else:
+                    binary.close()
+            except Exception:
+                if primary_error is None:
+                    raise
 
     def _read_header(self, reader: Iterator[list[str]]) -> list[str]:
         try:
             return next(reader)
-        except StopIteration as error:
+        except StopIteration:
             raise CsvLifetimeAdapterError(
                 FailureCode.SOURCE_SCHEMA_INVALID, reason="header_missing"
-            ) from error
+            ) from None
 
     def _validate_header(self, header: list[str]) -> None:
         if len(header) != len(set(header)):
@@ -271,7 +304,9 @@ class CsvLifetimeAdapter:
                 reason="header_columns_mismatch",
             )
 
-    def _read_chunks(self, reader: Iterator[list[str]]) -> Iterator[CsvLifetimeChunk]:
+    def _read_chunks(
+        self, reader: Iterator[list[str]]
+    ) -> Generator[CsvLifetimeChunk, None, CsvLifetimeAdapterError | None]:
         records: list[LifetimeObservation] = []
         start = 0
         record_offset = 0
@@ -281,7 +316,8 @@ class CsvLifetimeAdapter:
             try:
                 observation = self._parse_row(row, record_offset)
             except CsvLifetimeAdapterError as error:
-                failure = error
+                if failure is None:
+                    failure = error
                 record_offset += 1
                 continue
             if failure is not None:
@@ -305,9 +341,10 @@ class CsvLifetimeAdapter:
                 records.append(observation)
             record_offset += 1
         if failure is not None:
-            raise failure
+            return failure
         if records:
             yield self._chunk(tuple(records), start, sequence)
+        return None
 
     def _parse_row(self, row: list[str], record_offset: int) -> LifetimeObservation:
         if not row:

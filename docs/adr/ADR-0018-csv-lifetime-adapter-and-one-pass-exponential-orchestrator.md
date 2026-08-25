@@ -47,18 +47,20 @@ path, raw cell, parser exception text, or private file revision.  File identity
 is sampled before and after the single read to detect observable mutations on a
 best-effort basis.  This cannot prove a stable snapshot where a filesystem
 does not expose a reliable identity or mutation occurs without a distinguishable
-identity change.  An optional SHA-256 may cover only bytes actually consumed;
+identity change.  For this cell, identity sampling itself is mandatory: an
+unavailable initial or final sample is the typed fail-closed
+`SOURCE_REVISION_UNAVAILABLE` / `identity_unavailable` failure, rather than a
+successful run with an unverified identity.  An optional SHA-256 may cover only bytes actually consumed;
 it does not prove an independently snapshotted source.
 
 `CsvLifetimeLimits(chunk_bytes, max_inflight_bytes)` accepts positive built-in
 integers only; booleans are rejected and `max_inflight_bytes >= chunk_bytes`.
-For this sequential adapter, `chunk_bytes` is a deterministic logical
-retained-payload accounting unit defined by the adapter contract.  It is not
-serialized file bytes, Python object size, allocator usage, or RSS.  Each
-emitted record has a defined retained payload cost, chunks stay within the
-declared logical bound, and one oversized record produces a typed failure.
-RSS and `tracemalloc` are separate measured evidence, not substitutions for
-this accounting invariant.
+For this sequential adapter, `chunk_bytes` is the deterministic Python
+owned-object accounting unit defined below.  It is not serialized file bytes,
+allocator usage, or RSS.  Each emitted record has a defined retained payload
+cost, chunks stay within the declared logical bound, and one oversized record
+produces a typed failure.  RSS and `tracemalloc` are separate measured
+evidence, not substitutions for this accounting invariant.
 
 The planned entry point is
 `fit_exponential_csv(path, *, schema, source_id, limits)`.  A tested
@@ -73,6 +75,13 @@ Cancellation is unsupported by this adapter API.  The adapter guarantees only
 that a successfully opened stream is closed exactly once on success, typed
 failure, early iterator close, or an unexpected exception.  The execution
 outcome and provenance mapping is the closed mapping specified below.
+
+`max_inflight_bytes` is deliberately not enforced by this sequential adapter:
+the adapter has no producer/consumer buffer and therefore cannot honestly make
+a peak-inflight claim.  The value is retained in `CsvLifetimeLimits` as the
+future execution-layer `BoundedChunkBuffer` budget.  That layer must enforce
+backpressure and prove the peak before claiming the bound; this adapter
+enforces only `chunk_bytes`.
 
 ## Test implications
 
@@ -154,7 +163,9 @@ retained_payload_bytes is the recursive sum of sys.getsizeof over its declared
 owned retained object graph, with object identities de-duplicated.  The graph
 is exactly the chunk object, its frozen ChunkEnvelope, its observations tuple,
 each observation, and their owned scalar objects.  Shared class objects,
-Enum members, and static strings are excluded.  The adapter records CPython,
+Enum members, and static module constants are excluded.  Every dynamically
+reachable string, including chunk and public-source IDs, is counted once by
+identity.  The adapter records CPython,
 Python-version, and platform labels with a measured evidence artifact.  This
 is a deterministic accounting model only within a declared interpreter build.
 Parser buffers, temporary builders, file/kernel caches, allocator overhead,
@@ -184,3 +195,11 @@ and unknown final extent.  A detected post-read mutation is a finalization
 failure.  Cancellation is explicitly outside this PR and API; it makes no
 cancellation or backpressure guarantee beyond closing/releasing resources on
 success, typed failure, early iterator close, and unexpected exception.
+
+Failure precedence is frozen as follows: transport corruption (UTF-8 decode or
+CSV parser failure) dominates semantic row validation; absent transport
+corruption, the first semantic row failure is retained while the remainder is
+scanned; a detected post-read source mutation dominates any semantic failure,
+because source integrity invalidates the interpretation.  Cleanup never masks
+a primary failure; an unexpected cleanup exception propagates only when no
+primary failure exists.
