@@ -10,10 +10,14 @@ from tests.contract.test_csv_lifetime_adapter_contract import (
     SOURCE_ID,
     CsvLifetimeAdapterContracts,
 )
-from veridist.adapters.csv_lifetimes import CsvLifetimeLimits, fit_exponential_csv
+from veridist.adapters.csv_lifetimes import CsvLifetimeLimits
 from veridist.engine.errors import FailureCode
 from veridist.engine.outcome import FailedOutcome, UnknownMissingRanges
-from veridist.execution import ExponentialSourceFitResult, fit_exponential_source
+from veridist.execution import (
+    ExponentialSourceFitResult,
+    fit_exponential_csv,
+    fit_exponential_source,
+)
 from veridist.families.exponential import ExponentialFitFailure, ExponentialFitFailureCode
 
 

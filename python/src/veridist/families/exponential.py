@@ -10,7 +10,11 @@ from types import MappingProxyType
 from typing import Final
 
 from veridist.domain.lifetimes import LifetimeObservation
-from veridist.statistics.exponential import _ReductionOverflow, reduce_exponential_chunks
+from veridist.statistics.exponential import (
+    ExponentialReductionState,
+    _ReductionOverflow,
+    reduce_exponential_chunks,
+)
 
 
 class ExponentialFitFailureCode(StrEnum):
@@ -177,12 +181,28 @@ def fit_exponential_chunks(chunks: Iterable[Iterable[LifetimeObservation]]) -> E
 
     try:
         state = reduce_exponential_chunks(chunks)
-        total_time = state.summed_time
     except _ReductionOverflow as error:
         return ExponentialFitFailure(
             ExponentialFitFailureCode.NUMERICAL_OVERFLOW,
             error.observation_count,
             error.event_count,
+            None,
+        )
+    return fit_exponential_reduction_state(state)
+
+
+def fit_exponential_reduction_state(state: ExponentialReductionState) -> ExponentialFit:
+    """Finalize a fixed-state streaming reduction without retaining samples."""
+
+    if type(state) is not ExponentialReductionState:
+        raise TypeError("state must be ExponentialReductionState")
+    try:
+        total_time = state.summed_time
+    except _ReductionOverflow:
+        return ExponentialFitFailure(
+            ExponentialFitFailureCode.NUMERICAL_OVERFLOW,
+            state.observation_count,
+            state.event_count,
             None,
         )
     count = state.observation_count
@@ -218,4 +238,5 @@ __all__ = [
     "ExponentialFitSuccess",
     "fit_exponential",
     "fit_exponential_chunks",
+    "fit_exponential_reduction_state",
 ]
