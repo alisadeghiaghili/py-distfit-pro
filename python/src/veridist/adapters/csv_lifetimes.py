@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import os
 import re
 import sys
 from collections.abc import Generator, Iterator
 from dataclasses import dataclass, field, fields, is_dataclass, replace
 from decimal import Decimal
+from enum import StrEnum
 from io import BufferedIOBase, TextIOWrapper
 from math import isfinite
 from pathlib import Path
@@ -51,6 +53,14 @@ _REASONS = frozenset(
         "identity_unavailable",
     }
 )
+
+
+class CsvAdapterFailurePhase(StrEnum):
+    """Lifecycle phase assigned by the adapter, never inferred from yielded rows."""
+
+    PREFLIGHT = "preflight"
+    DELIVERY = "delivery"
+    FINALIZATION = "finalization"
 
 
 class CsvBinarySource(Protocol):
@@ -109,11 +119,24 @@ class CsvLifetimeLimits:
 class CsvLifetimeAdapterError(EngineContractError):
     """Typed redacted adapter failure from the closed engine code taxonomy."""
 
-    def __init__(self, code: FailureCode, *, reason: str, record_offset: int | None = None) -> None:
+    def __init__(
+        self,
+        code: FailureCode,
+        *,
+        reason: str,
+        phase: CsvAdapterFailurePhase = CsvAdapterFailurePhase.PREFLIGHT,
+        record_offset: int | None = None,
+    ) -> None:
         if code not in _CSV_FAILURE_CODES:
             raise ValueError("unsupported CSV adapter failure code")
         if reason not in _REASONS:
             raise ValueError("unsupported CSV adapter failure reason")
+        if type(phase) is not CsvAdapterFailurePhase:
+            raise TypeError("phase must be CsvAdapterFailurePhase")
+        self.phase = phase
+        # Phase is typed metadata on the exception, not public diagnostic
+        # context.  Keeping context restricted prevents a lifecycle refactor
+        # from expanding the redacted failure payload.
         context: dict[str, object] = {"reason": reason}
         if record_offset is not None:
             if isinstance(record_offset, bool) or not isinstance(record_offset, int):
@@ -226,7 +249,9 @@ class CsvLifetimeAdapter:
             binary = source.open_binary(self.path)
         except OSError:
             open_failure = CsvLifetimeAdapterError(
-                FailureCode.SOURCE_OPEN_FAILED, reason="open_failed"
+                FailureCode.SOURCE_OPEN_FAILED,
+                reason="open_failed",
+                phase=CsvAdapterFailurePhase.PREFLIGHT,
             )
             binary = None
         if open_failure is not None:
@@ -236,7 +261,9 @@ class CsvLifetimeAdapter:
         primary_error: BaseException | None = None
         translated: CsvLifetimeAdapterError | None = None
         try:
-            before_identity, identity_failure = _identity_or_failure(source, self.path)
+            before_identity, identity_failure = _identity_or_failure(
+                source, self.path, binary=binary
+            )
             if identity_failure is not None:
                 raise identity_failure
             if not isinstance(binary, BufferedIOBase) and not hasattr(binary, "read"):
@@ -246,25 +273,32 @@ class CsvLifetimeAdapter:
             header = self._read_header(reader)
             self._validate_header(header)
             semantic_failure = yield from self._read_chunks(reader)
-            after_identity, identity_failure = _identity_or_failure(source, self.path)
+            after_identity, identity_failure = _identity_or_failure(
+                source, self.path, phase=CsvAdapterFailurePhase.FINALIZATION
+            )
             if identity_failure is not None:
                 raise identity_failure
             if after_identity != before_identity:
                 raise CsvLifetimeAdapterError(
                     FailureCode.SOURCE_REVISION_MISMATCH,
                     reason="source_mutated",
+                    phase=CsvAdapterFailurePhase.FINALIZATION,
                 )
             if semantic_failure is not None:
                 raise semantic_failure
         except UnicodeDecodeError as error:
             primary_error = error
             translated = CsvLifetimeAdapterError(
-                FailureCode.SOURCE_DECODE_FAILED, reason="invalid_utf8"
+                FailureCode.SOURCE_DECODE_FAILED,
+                reason="invalid_utf8",
+                phase=CsvAdapterFailurePhase.DELIVERY,
             )
         except csv.Error as error:
             primary_error = error
             translated = CsvLifetimeAdapterError(
-                FailureCode.SOURCE_ROW_INVALID, reason="malformed_record"
+                FailureCode.SOURCE_ROW_INVALID,
+                reason="malformed_record",
+                phase=CsvAdapterFailurePhase.DELIVERY,
             )
         except BaseException as error:
             primary_error = error
@@ -287,7 +321,9 @@ class CsvLifetimeAdapter:
             return next(reader)
         except StopIteration:
             failure = CsvLifetimeAdapterError(
-                FailureCode.SOURCE_SCHEMA_INVALID, reason="header_missing"
+                FailureCode.SOURCE_SCHEMA_INVALID,
+                reason="header_missing",
+                phase=CsvAdapterFailurePhase.PREFLIGHT,
             )
         assert failure is not None
         raise failure
@@ -295,12 +331,15 @@ class CsvLifetimeAdapter:
     def _validate_header(self, header: list[str]) -> None:
         if len(header) != len(set(header)):
             raise CsvLifetimeAdapterError(
-                FailureCode.SOURCE_SCHEMA_INVALID, reason="header_duplicate"
+                FailureCode.SOURCE_SCHEMA_INVALID,
+                reason="header_duplicate",
+                phase=CsvAdapterFailurePhase.PREFLIGHT,
             )
         if header != [self.schema.time_column, self.schema.event_observed_column]:
             raise CsvLifetimeAdapterError(
                 FailureCode.SOURCE_SCHEMA_INVALID,
                 reason="header_columns_mismatch",
+                phase=CsvAdapterFailurePhase.PREFLIGHT,
             )
 
     def _read_chunks(
@@ -328,12 +367,13 @@ class CsvLifetimeAdapter:
                 raise CsvLifetimeAdapterError(
                     FailureCode.CHUNK_TOO_LARGE,
                     reason="record_too_large",
+                    phase=CsvAdapterFailurePhase.DELIVERY,
                     record_offset=record_offset,
                 )
             candidate_bytes = self._estimated_chunk_bytes(
                 records, record_bytes + retained_object_graph_bytes(observation), start, sequence
             )
-            if candidate_bytes > self.limits.chunk_bytes:
+            if records and candidate_bytes > self.limits.chunk_bytes:
                 yield self._chunk(tuple(records), start, sequence)
                 start = record_offset
                 sequence += 1
@@ -363,34 +403,38 @@ class CsvLifetimeAdapter:
         chunk (the former quadratic hot path).
         """
         count = len(records) + 1
-        stop = start + count
-        # Container and scalar costs are tiny, deterministic and intentionally
-        # over-estimate the final graph; exact accounting remains authoritative.
-        fixed = (
-            # Slotted instance headers, not class-object metadata.  The latter
-            # is global interpreter state and made the old estimate reject
-            # valid chunks by more than a kilobyte.
-            112
-            + sys.getsizeof(tuple([None] * count))
-            + sys.getsizeof(self.source_id.value)
-            + sys.getsizeof(_chunk_id(self.source_id, start, stop))
-            # Numeric fields share small integer objects in the closed graph;
-            # account for the six independently retained scalar slots.
-            + 4 * sys.getsizeof(0)
+        # Account from declared graph components.  The tuple capacity follows
+        # CPython's published object-size seam (empty tuple plus one element),
+        # so no O(k) prefix tuple is ever constructed merely to estimate it.
+        # The final emitted chunk is still measured exactly below.
+        empty_envelope = ChunkEnvelope(
+            source_id=self.source_id.value,
+            chunk_id=_chunk_id(self.source_id, start, start),
+            sequence_number=sequence,
+            row_start=start,
+            row_stop=start,
+            byte_size=1,
         )
-        return fixed + observation_bytes - 4
+        fixed = retained_object_graph_bytes(CsvLifetimeChunk(empty_envelope, (), 1))
+        tuple_slot_bytes = sys.getsizeof((None,)) - sys.getsizeof(())
+        # The final measured byte-size is retained by both chunk and envelope
+        # as one shared integer object.  Its upper bound is the declared limit.
+        byte_size_field_bytes = sys.getsizeof(self.limits.chunk_bytes)
+        return fixed + tuple_slot_bytes * count + observation_bytes + byte_size_field_bytes
 
     def _parse_row(self, row: list[str], record_offset: int) -> LifetimeObservation:
         if not row:
             raise CsvLifetimeAdapterError(
                 FailureCode.SOURCE_ROW_INVALID,
                 reason="blank_record",
+                phase=CsvAdapterFailurePhase.DELIVERY,
                 record_offset=record_offset,
             )
         if len(row) != 2:
             raise CsvLifetimeAdapterError(
                 FailureCode.SOURCE_ROW_INVALID,
                 reason="malformed_record",
+                phase=CsvAdapterFailurePhase.DELIVERY,
                 record_offset=record_offset,
             )
         time = self._parse_time(row[0], record_offset)
@@ -401,6 +445,7 @@ class CsvLifetimeAdapter:
         raise CsvLifetimeAdapterError(
             FailureCode.SOURCE_ROW_INVALID,
             reason="invalid_event_token",
+            phase=CsvAdapterFailurePhase.DELIVERY,
             record_offset=record_offset,
         )
 
@@ -410,6 +455,7 @@ class CsvLifetimeAdapter:
             raise CsvLifetimeAdapterError(
                 FailureCode.SOURCE_ROW_INVALID,
                 reason="invalid_time",
+                phase=CsvAdapterFailurePhase.DELIVERY,
                 record_offset=record_offset,
             )
         decimal = Decimal(value)
@@ -418,6 +464,7 @@ class CsvLifetimeAdapter:
             raise CsvLifetimeAdapterError(
                 FailureCode.SOURCE_ROW_INVALID,
                 reason="invalid_time",
+                phase=CsvAdapterFailurePhase.DELIVERY,
                 record_offset=record_offset,
             )
         return decimal
@@ -462,25 +509,38 @@ def _chunk_id(source_id: PublicSourceId, start: int, stop: int) -> str:
 
 
 def _identity_or_failure(
-    source: CsvBinarySource, path: Path
+    source: CsvBinarySource,
+    path: Path,
+    *,
+    phase: CsvAdapterFailurePhase = CsvAdapterFailurePhase.PREFLIGHT,
+    binary: BinaryIO | None = None,
 ) -> tuple[object | None, CsvLifetimeAdapterError | None]:
     try:
-        value = source.identity(path)
+        # For the built-in filesystem source the initial identity comes from the
+        # opened handle, not a second path lookup that could race the open.
+        if type(source) is _FilesystemCsvSource and binary is not None:
+            stat = os.fstat(binary.fileno())
+            value: object = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns)
+        else:
+            value = source.identity(path)
     except OSError:
         return None, CsvLifetimeAdapterError(
             FailureCode.SOURCE_REVISION_UNAVAILABLE,
             reason="identity_unavailable",
+            phase=phase,
         )
     if value is None:
         return None, CsvLifetimeAdapterError(
             FailureCode.SOURCE_REVISION_UNAVAILABLE,
             reason="identity_unavailable",
+            phase=phase,
         )
     return value, None
 
 
 __all__ = [
     "CSV_SCHEMA_VERSION",
+    "CsvAdapterFailurePhase",
     "CsvBinarySource",
     "CsvLifetimeAdapter",
     "CsvLifetimeAdapterError",

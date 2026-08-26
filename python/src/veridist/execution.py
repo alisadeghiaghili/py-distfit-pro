@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import secrets
+from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 from veridist.adapters.csv_lifetimes import (
     CsvLifetimeAdapter,
+    CsvLifetimeAdapterError,
     CsvLifetimeLimits,
     CsvLifetimeSchema,
 )
+from veridist.domain.lifetimes import LifetimeObservation
 from veridist.engine.data_source import ExecutionPlan, SpoolPolicy, plan_passes
 from veridist.engine.delivery import (
     AdapterKind,
@@ -46,8 +53,7 @@ from veridist.engine.provenance import (
     failure_record_from_error,
     snapshot_execution_observation,
 )
-from veridist.families.exponential import ExponentialFit, fit_exponential_reduction_state
-from veridist.statistics.exponential import ExponentialReductionState
+from veridist.families.exponential import ExponentialFit, fit_exponential_chunks
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,31 +82,63 @@ def fit_exponential_source(adapter: object) -> ExponentialSourceFitResult:
         max_inflight_bytes=adapter.limits.max_inflight_bytes,
     )
     validator = DeliveryValidator(adapter.source_id.value)
-    state = ExponentialReductionState.empty()
     stage = FailureStage.PREFLIGHT
     error: EngineContractError | None = None
+    fit: ExponentialFit | None = None
+    expected_row_stop = 0
+    expected_chunk_count = 0
+    iterator: object | None = None
+
+    def delivered_payloads() -> Generator[tuple[LifetimeObservation, ...], None, None]:
+        """Deliver one validated payload at a time and release it before advancing."""
+
+        nonlocal stage, expected_row_stop, expected_chunk_count, iterator
+        acquired = iter(adapter.iter_chunks())
+        iterator = acquired
+        try:
+            for chunk in acquired:
+                stage = FailureStage.DELIVERY
+                validator.accept(chunk.envelope)
+                # These terminal facts are deliberately maintained separately
+                # from DeliveryValidator, so finish validates rather than merely
+                # echoes the validator's own counters.
+                expected_row_stop = chunk.envelope.row_stop
+                expected_chunk_count += 1
+                lease = BufferedChunk(envelope=chunk.envelope, payload=chunk.observations)
+                buffer.put(lease)
+                received = buffer.get()
+                try:
+                    payload = received.payload
+                    if type(payload) is not tuple:
+                        raise TypeError("CSV chunk payload must be a tuple")
+                    yield cast(tuple[LifetimeObservation, ...], payload)
+                finally:
+                    received.release()
+            stage = FailureStage.FINALIZATION
+            validator.finish(
+                expected_row_stop=expected_row_stop,
+                expected_chunk_count=expected_chunk_count,
+            )
+        finally:
+            close = getattr(acquired, "close", None)
+            if callable(close):
+                close()
+            # This is idempotent; it drains/reclaims a lease if a consumer,
+            # validator, or reducer fails between put and get.
+            buffer.cancel()
+
     try:
-        for chunk in passes.begin_pass(adapter.iter_chunks()):
-            stage = FailureStage.DELIVERY
-            validator.accept(chunk.envelope)
-            lease = BufferedChunk(envelope=chunk.envelope, payload=chunk.observations)
-            buffer.put(lease)
-            received = buffer.get()
-            try:
-                payload = received.payload
-                if type(payload) is not tuple:
-                    raise TypeError("CSV chunk payload must be a tuple")
-                for observation in payload:
-                    state = state.add(observation)
-            finally:
-                received.release()
-        stage = FailureStage.FINALIZATION
-        validator.finish(
-            expected_row_stop=validator.next_offset,
-            expected_chunk_count=validator.next_sequence,
-        )
+        fit = fit_exponential_chunks(passes.begin_pass(delivered_payloads()))
     except EngineContractError as captured:
         error = captured
+        if type(captured) is CsvLifetimeAdapterError:
+            stage = FailureStage(captured.phase.value)
+    finally:
+        if iterator is not None:
+            close = getattr(iterator, "close", None)
+            if callable(close):
+                close()
+        buffer.cancel()
 
     if error is None:
         extent = KnownExtent(0, validator.next_offset)
@@ -111,7 +149,7 @@ def fit_exponential_source(adapter: object) -> ExponentialSourceFitResult:
             0,
         )
         outcome = classify_execution_outcome(coverage, None)
-        fit = fit_exponential_reduction_state(state)
+        assert fit is not None
         mutation = SourceMutationStatus.VERIFIED_UNCHANGED
     else:
         coverage = UnknownMissingRanges(
@@ -154,7 +192,7 @@ def _provenance(
 ) -> ExecutionProvenance:
     return ExecutionProvenance(
         schema_version="1",
-        run_id="run_00000000000000000000000000000000",
+        run_id=f"run_{secrets.token_hex(16)}",
         source=SourceProvenance(
             adapter.source_id,
             "1",
@@ -169,12 +207,26 @@ def _provenance(
             spool=SpoolNotUsed(),
         ),
         estimator=EstimatorProvenance(
-            "exponential", "censored_mle", "1", "0" * 64
+            "exponential", "censored_mle", "1", _exponential_settings_sha256()
         ),
         rng=RngProvenance(RngPolicy.NO_RANDOMNESS, "none", None),
         approximation=ExactComputation("closed_form_mle"),
         checkpoint=CheckpointNotUsed(),
     )
+
+
+def _exponential_settings_sha256() -> str:
+    """Hash the complete canonical settings contract rather than a placeholder."""
+
+    settings = {
+        "censoring_assumption": "independent_right_censoring",
+        "family": "exponential",
+        "location": 0.0,
+        "parameterization": "rate",
+        "reduction": "neumaier_canonical_input_order",
+    }
+    encoded = json.dumps(settings, sort_keys=True, separators=(",", ":")).encode("ascii")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 __all__ = ["ExponentialSourceFitResult", "fit_exponential_csv", "fit_exponential_source"]
