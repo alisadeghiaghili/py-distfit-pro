@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import unittest
 from io import BytesIO
 from pathlib import Path
@@ -12,8 +13,8 @@ from veridist.adapters.csv_lifetimes import (
     CsvLifetimeSchema,
 )
 from veridist.engine.errors import FailureCode
-from veridist.engine.outcome import FailedOutcome, UnknownMissingRanges
-from veridist.engine.provenance import PublicSourceId
+from veridist.engine.outcome import FailedOutcome, FailureStage, UnknownMissingRanges
+from veridist.engine.provenance import PublicSourceId, SourceMutationStatus
 from veridist.execution import (
     ExponentialSourceFitResult,
     fit_exponential_csv,
@@ -54,14 +55,16 @@ class _CountingBytesIO(BytesIO):
         super().close()
 
 
-def _adapter(payload: bytes) -> tuple[CsvLifetimeAdapter, _TrackingSource]:
+def _adapter(
+    payload: bytes, *, chunk_bytes: int = 2048
+) -> tuple[CsvLifetimeAdapter, _TrackingSource]:
     source = _TrackingSource(payload)
     return (
         CsvLifetimeAdapter(
             Path("private-lifetime-data.csv"),
             SCHEMA,
             SOURCE_ID,
-            CsvLifetimeLimits(2048, 4096),
+            CsvLifetimeLimits(chunk_bytes, chunk_bytes),
             source,
         ),
         source,
@@ -115,6 +118,59 @@ class CsvLifetimeExecutionContracts(unittest.TestCase):
         self.assertEqual((result.fit.observation_count, result.fit.event_count), (3, 2))
         self.assertEqual(source.open_count, 1)
         self.assertEqual(source.close_count, 1)
+
+    def test_csv_exec04_mixed_censoring_matches_decimal_oracle_across_chunk_budgets(self) -> None:
+        payload = b"time,event_observed\n1,1\n2,0\n3,1\n"
+        for budget in (530, 2048):
+            with self.subTest(chunk_bytes=budget):
+                adapter, source = _adapter(payload, chunk_bytes=budget)
+                result = fit_exponential_source(adapter)
+
+                self.assertTrue(result.execution.outcome.complete)
+                self.assertIsNotNone(result.fit)
+                assert result.fit is not None
+                self.assertEqual((result.fit.observation_count, result.fit.event_count), (3, 2))
+                self.assertAlmostEqual(result.fit.rate, 2.0 / 6.0)
+                self.assertEqual(source.close_count, 1)
+                self.assertLessEqual(
+                    result.execution.provenance.execution.buffer.peak_inflight_bytes,
+                    budget,
+                )
+
+    def test_csv_exec05_complete_statistical_nonestimates_and_typed_failure_stages(self) -> None:
+        cases = (
+            (b"time,event_observed\n1,0\n2,0\n", ExponentialFitFailureCode.NO_OBSERVED_EVENTS),
+            (b"time,event_observed\n0,1\n", ExponentialFitFailureCode.UNBOUNDED_LIKELIHOOD),
+        )
+        for payload, code in cases:
+            with self.subTest(code=code):
+                adapter, _ = _adapter(payload)
+                result = fit_exponential_source(adapter)
+                self.assertTrue(result.execution.outcome.complete)
+                self.assertIsInstance(result.fit, ExponentialFitFailure)
+                assert isinstance(result.fit, ExponentialFitFailure)
+                self.assertEqual(result.fit.code, code)
+
+        adapter, _ = _adapter(b"time,event_observed\ninvalid,1\n")
+        failed = fit_exponential_source(adapter)
+        self.assertIsInstance(failed.execution.outcome, FailedOutcome)
+        assert isinstance(failed.execution.outcome, FailedOutcome)
+        self.assertIs(failed.execution.outcome.failure.stage, FailureStage.DELIVERY)
+        self.assertIs(
+            failed.execution.provenance.source.mutation_status,
+            SourceMutationStatus.VERIFIED_UNCHANGED,
+        )
+
+    def test_csv_exec06_provenance_has_fresh_run_id_and_canonical_settings_hash(self) -> None:
+        first, _ = _adapter(b"time,event_observed\n1,1\n")
+        second, _ = _adapter(b"time,event_observed\n1,1\n")
+        left = fit_exponential_source(first).execution.provenance
+        right = fit_exponential_source(second).execution.provenance
+
+        self.assertRegex(left.run_id, re.compile(r"run_[0-9a-f]{32}"))
+        self.assertNotEqual(left.run_id, right.run_id)
+        self.assertEqual(left.estimator.settings_sha256, right.estimator.settings_sha256)
+        self.assertNotEqual(left.estimator.settings_sha256, "0" * 64)
 
 
 if __name__ == "__main__":

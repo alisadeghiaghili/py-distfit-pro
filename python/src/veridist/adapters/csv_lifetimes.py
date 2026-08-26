@@ -21,7 +21,7 @@ from veridist.engine.data_source import DataSourceMetadata, Replayability
 from veridist.engine.delivery import ChunkEnvelope
 from veridist.engine.errors import EngineContractError, FailureCode
 from veridist.engine.pass_budget import PassEnforcer
-from veridist.engine.provenance import PublicSourceId
+from veridist.engine.provenance import PublicSourceId, SourceMutationStatus
 
 CSV_SCHEMA_VERSION = "1"
 _TIME = re.compile(r"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?")
@@ -125,6 +125,7 @@ class CsvLifetimeAdapterError(EngineContractError):
         *,
         reason: str,
         phase: CsvAdapterFailurePhase = CsvAdapterFailurePhase.PREFLIGHT,
+        mutation_status: SourceMutationStatus = SourceMutationStatus.NOT_CHECKED,
         record_offset: int | None = None,
     ) -> None:
         if code not in _CSV_FAILURE_CODES:
@@ -133,7 +134,10 @@ class CsvLifetimeAdapterError(EngineContractError):
             raise ValueError("unsupported CSV adapter failure reason")
         if type(phase) is not CsvAdapterFailurePhase:
             raise TypeError("phase must be CsvAdapterFailurePhase")
+        if type(mutation_status) is not SourceMutationStatus:
+            raise TypeError("mutation_status must be SourceMutationStatus")
         self.phase = phase
+        self.mutation_status = mutation_status
         # Phase is typed metadata on the exception, not public diagnostic
         # context.  Keeping context restricted prevents a lifecycle refactor
         # from expanding the redacted failure payload.
@@ -145,6 +149,18 @@ class CsvLifetimeAdapterError(EngineContractError):
                 raise ValueError("record_offset must be non-negative")
             context["record_offset"] = record_offset
         super().__init__(code, context)
+
+    def with_mutation_status(self, status: SourceMutationStatus) -> CsvLifetimeAdapterError:
+        """Return a fresh error carrying a later identity-verification fact."""
+
+        offset = self.context.get("record_offset")
+        return CsvLifetimeAdapterError(
+            self.code,
+            reason=cast(str, self.context["reason"]),
+            phase=self.phase,
+            mutation_status=status,
+            record_offset=cast(int | None, offset),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -283,9 +299,10 @@ class CsvLifetimeAdapter:
                     FailureCode.SOURCE_REVISION_MISMATCH,
                     reason="source_mutated",
                     phase=CsvAdapterFailurePhase.FINALIZATION,
+                    mutation_status=SourceMutationStatus.MISMATCH_DETECTED,
                 )
             if semantic_failure is not None:
-                raise semantic_failure
+                raise semantic_failure.with_mutation_status(SourceMutationStatus.VERIFIED_UNCHANGED)
         except UnicodeDecodeError as error:
             primary_error = error
             translated = CsvLifetimeAdapterError(
@@ -528,12 +545,14 @@ def _identity_or_failure(
             FailureCode.SOURCE_REVISION_UNAVAILABLE,
             reason="identity_unavailable",
             phase=phase,
+            mutation_status=SourceMutationStatus.UNAVAILABLE,
         )
     if value is None:
         return None, CsvLifetimeAdapterError(
             FailureCode.SOURCE_REVISION_UNAVAILABLE,
             reason="identity_unavailable",
             phase=phase,
+            mutation_status=SourceMutationStatus.UNAVAILABLE,
         )
     return value, None
 

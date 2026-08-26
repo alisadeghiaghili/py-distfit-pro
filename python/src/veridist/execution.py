@@ -165,9 +165,9 @@ def fit_exponential_source(adapter: object) -> ExponentialSourceFitResult:
         outcome = classify_execution_outcome(coverage, failure_record_from_error(error, stage))
         fit = None
         mutation = (
-            SourceMutationStatus.MISMATCH_DETECTED
-            if error.code.value == "SOURCE_REVISION_MISMATCH"
-            else SourceMutationStatus.UNAVAILABLE
+            error.mutation_status
+            if type(error) is CsvLifetimeAdapterError
+            else SourceMutationStatus.NOT_CHECKED
         )
     execution = ExecutionReport(
         outcome,
