@@ -16,12 +16,12 @@ from veridist.adapters.csv_lifetimes import (
     CsvLifetimeChunk,
     CsvLifetimeLimits,
     CsvLifetimeSchema,
-    fit_exponential_csv,
     retained_object_graph_bytes,
 )
 from veridist.domain.lifetimes import ExactLifetime
 from veridist.engine.delivery import ChunkEnvelope
 from veridist.engine.errors import FailureCode
+from veridist.engine.pass_budget import PassBudgetError
 from veridist.engine.provenance import PublicSourceId
 
 SOURCE_ID = PublicSourceId("src_0123456789abcdef0123456789abcdef")
@@ -350,10 +350,14 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             reason="record_too_large",
         )
 
-    def test_csv04_replay_opens_a_replayable_source_once_per_iteration(self) -> None:
+    def test_csv04_single_pass_rejects_second_acquisition_before_a_second_open(self) -> None:
         adapter, source = self.adapter(b"time,event_observed\n1,1\n3,0\n")
-        self.assertEqual(tuple(adapter.iter_chunks()), tuple(adapter.iter_chunks()))
-        self.assertEqual(source.open_count, 2)
+        self.assertTrue(tuple(adapter.iter_chunks()))
+        with self.assertRaises(PassBudgetError) as captured:
+            tuple(adapter.iter_chunks())
+        self.assertEqual(captured.exception.code, FailureCode.PASS_BUDGET_EXCEEDED)
+        self.assertEqual(source.open_count, 1)
+        self.assertEqual(adapter.metadata.replayability.value, "single_pass")
 
     def test_csv05_failure_codes_reasons_lifecycle_and_closed_outcome_mapping(self) -> None:
         cases = (
@@ -571,7 +575,7 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         manual = sys.getsizeof((dynamic,)) + sys.getsizeof(dynamic)
         self.assertEqual(retained_object_graph_bytes((dynamic,)), manual)
 
-    def test_csv09_adapter_boundary_branches_and_reserved_execution_api(self) -> None:
+    def test_csv09_adapter_boundary_branches(self) -> None:
         nonbinary = CsvLifetimeAdapter(
             Path("private-lifetime-data.csv"),
             schema=SCHEMA,
@@ -618,13 +622,6 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             max_inflight_bytes=combined.retained_payload_bytes - 1,
         )
         self.assertEqual([chunk.envelope.sequence_number for chunk in split.iter_chunks()], [0, 1])
-        with self.assertRaises(NotImplementedError):
-            fit_exponential_csv(
-                Path("private-lifetime-data.csv"),
-                schema=SCHEMA,
-                source_id=SOURCE_ID,
-                limits=CsvLifetimeLimits(2048, 2048),
-            )
 
     def test_csv10_closed_source_protocol_and_full_scan_after_failure(self) -> None:
         with self.assertRaises(TypeError):
@@ -669,6 +666,7 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
                 with self.assertRaises(CsvLifetimeAdapterError) as captured:
                     tuple(adapter.iter_chunks())
                 self.assertIsNone(captured.exception.__cause__)
+                self.assertIsNone(captured.exception.__context__)
                 self.assert_redacted(captured.exception)
 
     def test_csv12_exact_chunk_boundaries_and_ids_are_range_source_sensitive(self) -> None:
@@ -696,7 +694,8 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             all(item.retained_payload_bytes <= split.limits.chunk_bytes for item in split_chunks)
         )
         self.assertNotEqual(combined.envelope.chunk_id, split_chunks[0].envelope.chunk_id)
-        self.assertEqual(combined.envelope.chunk_id, next(wide.iter_chunks()).envelope.chunk_id)
+        repeat, _ = self.adapter(payload, chunk_bytes=4096, max_inflight_bytes=4096)
+        self.assertEqual(combined.envelope.chunk_id, next(repeat.iter_chunks()).envelope.chunk_id)
 
         other = CsvLifetimeAdapter(
             Path("private-lifetime-data.csv"),
