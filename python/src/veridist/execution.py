@@ -17,7 +17,7 @@ from veridist.adapters.csv_lifetimes import (
     CsvLifetimeSchema,
 )
 from veridist.domain.lifetimes import LifetimeObservation
-from veridist.engine.data_source import ExecutionPlan, SpoolPolicy, plan_passes
+from veridist.engine.data_source import DataSourceLike, ExecutionPlan, SpoolPolicy, plan_passes
 from veridist.engine.delivery import (
     AdapterKind,
     BoundedChunkBuffer,
@@ -75,7 +75,11 @@ def fit_exponential_source(adapter: object) -> ExponentialSourceFitResult:
 
     if type(adapter) is not CsvLifetimeAdapter:
         raise TypeError("adapter must be CsvLifetimeAdapter")
-    plan = plan_passes(adapter, required_passes=1, spool=SpoolPolicy.disabled())
+    # CsvLifetimeAdapter exposes an immutable metadata property; the planning
+    # protocol's legacy writable attribute is semantically narrower.
+    plan = plan_passes(
+        cast(DataSourceLike, adapter), required_passes=1, spool=SpoolPolicy.disabled()
+    )
     passes = PassEnforcer(max_passes=1)
     buffer = BoundedChunkBuffer(
         chunk_bytes=adapter.limits.chunk_bytes,
@@ -85,6 +89,7 @@ def fit_exponential_source(adapter: object) -> ExponentialSourceFitResult:
     stage = FailureStage.PREFLIGHT
     error: EngineContractError | None = None
     fit: ExponentialFit | None = None
+    coverage: KnownCoverage | UnknownMissingRanges
     expected_row_stop = 0
     expected_chunk_count = 0
     iterator: object | None = None
