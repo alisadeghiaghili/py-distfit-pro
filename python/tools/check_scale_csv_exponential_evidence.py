@@ -7,6 +7,7 @@ production fitter. Acceptance is tied to an explicit frozen Git revision.
 from __future__ import annotations
 
 import argparse
+from functools import lru_cache
 import hashlib
 import json
 import math
@@ -70,6 +71,7 @@ def _exact_keys(value: object, expected: set[str], label: str, errors: list[str]
     return True
 
 
+@lru_cache(maxsize=None)
 def _fixture_facts(rows: int, formula_version: str) -> tuple[int, Decimal, int, str]:
     """Independently reproduce the v1 bytes and Decimal sufficient statistics."""
 

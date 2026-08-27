@@ -12,6 +12,7 @@ import tempfile
 import unittest
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 TOOLS = Path(__file__).parents[2] / "tools"
 CHECKER = TOOLS / "check_scale_csv_exponential_evidence.py"
@@ -21,6 +22,10 @@ CHECKER_SPEC = importlib.util.spec_from_file_location("scale_checker", CHECKER)
 assert CHECKER_SPEC is not None and CHECKER_SPEC.loader is not None
 CHECKER_MODULE = importlib.util.module_from_spec(CHECKER_SPEC)
 CHECKER_SPEC.loader.exec_module(CHECKER_MODULE)
+RUNNER_SPEC = importlib.util.spec_from_file_location("scale_runner", RUNNER)
+assert RUNNER_SPEC is not None and RUNNER_SPEC.loader is not None
+RUNNER_MODULE = importlib.util.module_from_spec(RUNNER_SPEC)
+RUNNER_SPEC.loader.exec_module(RUNNER_MODULE)
 
 
 def _head() -> str:
@@ -162,12 +167,13 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
 
     def test_scale06_rejects_extra_schema_key_and_path_key(self) -> None:
         artifact = _smoke_artifact()
-        artifact["unexpected_path/C:/secret"] = "safe"
+        artifact["run"]["platform"] = "C:/secret"
         artifact["cells"][0]["fit"]["extra"] = 1
         _seal(artifact)
         result = self._check(artifact)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("schema keys", result.stderr)
+        self.assertIn("path", result.stderr)
 
     def test_scale07_rejects_bad_worker_and_dirty_run(self) -> None:
         artifact = _smoke_artifact()
@@ -196,7 +202,28 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
             self.assertTrue(all(process.returncode == 0 for process in processes), results)
             self.assertTrue(all(output.exists() for output in outputs))
 
-    def test_scale10_retained_artifact_is_locked_and_accepted(self) -> None:
+    def test_scale10_full_contract_rejects_twelve_cells(self) -> None:
+        retained = Path(__file__).parents[2] / "evidence" / "scale-csv-exponential-v1.json"
+        artifact = json.loads(retained.read_text(encoding="utf-8"))
+        artifact["cells"].extend(artifact["cells"][:3])
+        _seal(artifact)
+        result = self._check(artifact, expected_sha="4490c9eb08e9ed5e420a2b677d9de843fdf66a5d", smoke=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("exactly nine", result.stderr)
+        self.assertIn("duplicate", result.stderr)
+
+    def test_scale11_runner_refuses_output_when_head_changes_mid_run(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "artifact.json"
+            facts = iter([_head(), "f" * 40])
+            command = [str(RUNNER), "--output", str(output), "--rows", "10", "--chunk-bytes", "2048,4096,8192"]
+            with patch.object(RUNNER_MODULE, "_clean_checkout_sha", side_effect=lambda _root: next(facts)), patch.object(sys, "argv", command):
+                with self.assertRaises(SystemExit) as failure:
+                    RUNNER_MODULE.main()
+            self.assertIn("HEAD changed", str(failure.exception))
+            self.assertFalse(output.exists())
+
+    def test_scale12_retained_artifact_is_locked_and_accepted(self) -> None:
         artifact = Path(__file__).parents[2] / "evidence" / "scale-csv-exponential-v1.json"
         result = subprocess.run([sys.executable, str(CHECKER), "--artifact", str(artifact), "--expected-git-sha", "4490c9eb08e9ed5e420a2b677d9de843fdf66a5d", "--repo-root", str(REPO)], check=False, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
