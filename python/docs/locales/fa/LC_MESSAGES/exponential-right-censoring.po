@@ -12,16 +12,43 @@ msgid "Model and estimate"
 msgstr "مدل و برآورد"
 
 msgid "For exact-event count `r` and total time on test `tau`, this vertical uses `r*log(rate)-rate*tau` and returns `rate=r/tau` only when both values permit a finite estimate. It accepts exact lifetimes and independent right censoring. Independent right censoring is an assumption visible in the result; it cannot be established from the observations by this library."
-msgstr "برای شمار رویدادهای دقیق `r` و کل زمان تحت آزمون `tau`، این قابلیت از `r*log(rate)-rate*tau` استفاده می‌کند و فقط هنگامی `rate=r/tau` را برمی‌گرداند که هر دو مقدار برآوردی متناهی را ممکن کنند. زمان‌های عمر دقیق و سانسور مستقل از راست پذیرفته می‌شوند. استقلال سانسور از راست فرضی است که در نتیجه آشکارا نمایش داده می‌شود؛ این کتابخانه نمی‌تواند آن را از روی مشاهده‌ها اثبات کند."
+msgstr "برای شمار رخدادهای دقیق `r` و کل زمان تحت آزمون `tau`، این قابلیت از `r*log(rate)-rate*tau` استفاده می‌کند و فقط وقتی `rate=r/tau` را برمی‌گرداند که هر دو مقدار برآورد متناهی را ممکن کنند. زمان‌عمرهای دقیق و سانسور مستقل از راست را می‌پذیرد. استقلال سانسور راست فرضی است که در نتیجه دیده می‌شود؛ این کتابخانه نمی‌تواند آن را از مشاهده‌ها اثبات کند."
+
+msgid "Strict CSV input"
+msgstr "ورودی CSV سخت‌گیرانه"
+
+msgid "The public adapter accepts UTF-8 CSV with exactly `time,event_observed` in that order. Each data row is one finite non-negative time and token `1` (event) or `0` (right censored). A caller supplies a non-secret `PublicSourceId` instead of relying on a local path in returned facts. The adapter never guesses columns, headers, encodings, delimiters, missing values, or censoring conventions."
+msgstr "آداپتور عمومی CSV با UTF-8 و دقیقاً `time,event_observed` را به همین ترتیب می‌پذیرد. هر سطر داده شامل یک زمان متناهی نامنفی و توکن `1` (رخداد) یا `0` (سانسورشده از راست) است. فراخواننده به جای اتکا به مسیر محلی در واقعیت‌های بازگردانده‌شده، یک `PublicSourceId` غیرمحرمانه می‌دهد. آداپتور هرگز ستون‌ها، سرستون‌ها، کدگذاری، جداکننده، مقدار گمشده یا قرارداد سانسور را حدس نمی‌زند."
+
+msgid "CSV field"
+msgstr "فیلد CSV"
+
+msgid "Meaning"
+msgstr "معنا"
+
+msgid "finite non-negative lifetime"
+msgstr "زمان‌عمر متناهی و نامنفی"
+
+msgid "`1` for an exact event; `0` for independent right censoring"
+msgstr "`1` برای رخداد دقیق؛ `0` برای سانسور مستقل از راست"
+
+msgid "`time`"
+msgstr "`time` (زمان)"
+
+msgid "`event_observed`"
+msgstr "`event_observed` (رخداد مشاهده‌شده)"
+
+msgid "\\widehat{rate} = r / tau"
+msgstr "\\widehat{rate} = r / tau\\quad\\text{(نرخ)}"
 
 msgid "Failure cases and limits"
 msgstr "حالت‌های شکست و محدودیت‌ها"
 
 msgid "An empty sample, no observed events, zero total time with an event, and numeric overflow produce typed non-estimates. There is no confidence interval, goodness-of-fit test, truncation, left or interval censoring, weights, covariates, or free location parameter in this vertical."
-msgstr "نمونهٔ خالی، نبود رویداد مشاهده‌شده، کل زمان صفر همراه با یک رویداد و سرریز عددی، عدم‌برآوردهای نوع‌دار تولید می‌کنند. در این قابلیت فاصلهٔ اطمینان، آزمون نیکویی برازش، برش، سانسور چپ یا فاصله‌ای، وزن، متغیر کمکی یا پارامتر مکان آزاد وجود ندارد."
+msgstr "نمونهٔ خالی، نبود رخداد مشاهده‌شده، کل زمان صفر همراه رخداد و سرریز عددی، عدم‌برآوردهای نوع‌دار ایجاد می‌کنند. در این قابلیت فاصلهٔ اطمینان، آزمون نیکویی برازش، برش، سانسور چپ یا فاصله‌ای، وزن، متغیر کمکی یا پارامتر مکان آزاد وجود ندارد."
 
-msgid "Streaming scope"
-msgstr "دامنهٔ پردازش جریانی"
+msgid "One-pass and scale scope"
+msgstr "دامنهٔ یک‌گذر و مقیاس"
 
-msgid "The reducer retains fixed O(1) accumulator state: counts and a compensated total-time sum. That algorithmic scope is not a claim of a production out-of-core adapter, bounded ingestion, or a benchmarked large-data tier."
-msgstr "کاهنده حالتی ثابت با مرتبهٔ O(1) نگه می‌دارد: شمارنده‌ها و مجموع جبران‌شدهٔ کل زمان. این دامنهٔ الگوریتمی به معنای ادعای رابط برون‌حافظه‌ای آمادهٔ تولید، دریافت با حافظهٔ کران‌دار یا ردهٔ دادهٔ بزرگِ بنچمارک‌شده نیست."
+msgid "The CSV adapter consumes one iterator pass. Its declared chunk byte budget is a logical bound on retained payload, not a portable process-memory or RSS limit. `SCALE-CSV-EXP-01` retains a checked 10k/100k/1m by 32KiB/64KiB/128KiB matrix for this strict adapter and estimator only. It demonstrates bounded internal payload for that matrix; it does not establish throughput, generic big-data support, another adapter, cancellation, retry, or checkpointing."
+msgstr "آداپتور CSV یک گذر از iterator مصرف می‌کند. بودجهٔ اعلام‌شدهٔ بایت قطعه، کران منطقی payload نگه‌داشته‌شده است، نه سقف قابل‌حمل حافظهٔ فرایند یا RSS. `SCALE-CSV-EXP-01` فقط برای این آداپتور و برآوردگر سخت‌گیرانه، ماتریس بررسی‌شدهٔ 10k/100k/1m در 32KiB/64KiB/128KiB را نگه می‌دارد. این شواهد payload داخلی کران‌دار برای آن ماتریس را نشان می‌دهد؛ اما سرعت، پشتیبانی عمومی دادهٔ بزرگ، آداپتور دیگر، لغو، تلاش‌مجدد یا checkpointing را اثبات نمی‌کند."

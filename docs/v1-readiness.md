@@ -83,6 +83,12 @@ as a statement about uninspected current files.
   database adapters, persistent checkpoint backend, cancellation/retry
   orchestration, broad streaming equivalence and production-scale RSS bounds
   remain **NOT IMPLEMENTED**.
+- The package top level now exposes the narrow strict CSV/exponential API:
+  `fit_exponential_csv`, `CsvLifetimeSchema`, `CsvLifetimeLimits`,
+  `PublicSourceId`, and `ExponentialSourceFitResult`. It is deliberately not
+  a broad distribution-fitting API or an alpha release claim. The version stays
+  `0.0.0.dev0`: the executable mutation runner, complete documentation RTL
+  render evidence, and release/publishing exits are still incomplete.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free
   semantic/hash checker, AST/dynamic-import isolation checks and built-artifact
   payload inspection in the configured package job. LM-002 records the

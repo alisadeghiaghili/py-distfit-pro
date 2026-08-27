@@ -3,82 +3,43 @@
   "canonical_locale": "en",
   "required_locales": ["en", "fa", "de"],
   "pages": [
-    {"id": "DOC-PAGE-HOME", "source": "index.md", "anchor": "veridist-home"},
-    {"id": "DOC-PAGE-API", "source": "api.md", "anchor": "veridist-api"},
-    {"id": "DOC-PAGE-EXPONENTIAL", "source": "exponential-right-censoring.md", "anchor": "veridist-exponential-right-censoring"}
+    {"id":"DOC-PAGE-HOME","source":"index.md","anchor":"veridist-home"},
+    {"id":"DOC-PAGE-API","source":"api.md","anchor":"veridist-api"},
+    {"id":"DOC-PAGE-EXPONENTIAL","source":"exponential-right-censoring.md","anchor":"veridist-exponential-right-censoring"}
   ],
   "messages": [
-    {
-      "id": "DOC-MSG-HOME-TITLE",
-      "page": "index.md",
-      "source": "Veridist documentation"
-    },
-    {
-      "id": "DOC-MSG-HOME-LEAD",
-      "page": "index.md",
-      "source": "Evidence-first distribution fitting."
-    },
-    {
-      "id": "DOC-MSG-VERTICAL-TITLE",
-      "page": "index.md",
-      "source": "First callable vertical"
-    },
-    {
-      "id": "DOC-MSG-VERTICAL-BODY",
-      "page": "index.md",
-      "source": "The first callable vertical fits a fixed-location exponential lifetime model with exact and independently right-censored observations. Its canonical parameter is a positive rate; the reported mean is derived as its reciprocal."
-    },
-    {
-      "id": "DOC-MSG-LIMITS-TITLE",
-      "page": "index.md",
-      "source": "Limits"
-    },
-    {
-      "id": "DOC-MSG-LIMITS-BODY",
-      "page": "index.md",
-      "source": "This vertical provides a point estimate only. `inference=not_provided` means no confidence interval, goodness-of-fit result, truncation, weights, covariates, or free location parameter is supplied."
-    },
-    {
-      "id": "DOC-MSG-EXAMPLE-TITLE",
-      "page": "index.md",
-      "source": "Executable example"
-    },
-    {
-      "id": "DOC-MSG-TRANSLATION-STATUS",
-      "page": "index.md",
-      "source": "Translations for this vertical are owner-reviewed provisional text; no external native-speaker review is claimed."
-    },
-    {
-      "id": "DOC-MSG-API-TITLE",
-      "page": "api.md",
-      "source": "Exponential MLE API"
-    },
-    {
-      "id": "DOC-MSG-API-BODY",
-      "page": "api.md",
-      "source": "`fit_exponential(observations)` and `fit_exponential_chunks(chunks)` return a finite rate-only estimate or a typed statistical non-estimate. Observations are `ExactLifetime(time)` or `RightCensoredLifetime(time)` with finite, non-negative times. A wrong observation object is a programmer-input error, not a fitting failure."
-    },
-    {
-      "id": "DOC-MSG-TUTORIAL-TITLE",
-      "page": "exponential-right-censoring.md",
-      "source": "Exponential right-censoring tutorial"
-    },
-    {"id":"DOC-MSG-EXAMPLE-BODY","page":"index.md","source":"The example below has one canonical executable source and reports only stable machine facts. Use an explicit report locale; no report-language fallback is performed."},
+    {"id":"DOC-MSG-HOME-TITLE","page":"index.md","source":"Veridist documentation"},
+    {"id":"DOC-MSG-HOME-LEAD","page":"index.md","source":"Evidence-first distribution fitting."},
+    {"id":"DOC-MSG-VERTICAL-TITLE","page":"index.md","source":"First CSV vertical"},
+    {"id":"DOC-MSG-VERTICAL-BODY","page":"index.md","source":"The first public vertical fits a fixed-location exponential lifetime model from a strict UTF-8 CSV source. Its canonical parameter is a positive rate; the reported mean is derived as its reciprocal."},
+    {"id":"DOC-MSG-LIMITS-TITLE","page":"index.md","source":"Limits"},
+    {"id":"DOC-MSG-LIMITS-BODY","page":"index.md","source":"The CSV schema is exactly `time,event_observed`; event `1` is exact and `0` is independent right censoring. The adapter makes one iterator pass and retains at most its declared logical payload budget. `inference=not_provided` means no confidence interval, goodness-of-fit result, truncation, weights, covariates, or free location parameter is supplied."},
+    {"id":"DOC-MSG-EXAMPLE-TITLE","page":"index.md","source":"Executable example"},
+    {"id":"DOC-MSG-EXAMPLE-BODY","page":"index.md","source":"The example below has one canonical executable source and reports only stable machine facts. Use an opaque public source identifier; file paths are not part of the returned provenance."},
+    {"id":"DOC-MSG-TRANSLATION-STATUS","page":"index.md","source":"Translations for this vertical are owner-reviewed provisional text; no external native-speaker review is claimed."},
     {"id":"DOC-MSG-EXAMPLE-CAPTION","page":"index.md","source":"Canonical executable example"},
-    {"id":"DOC-MSG-API-REPORT","page":"api.md","source":"`render_exponential_report(result, ReportLocale.EN|FA|DE)` renders safe pure HTML for one explicit locale. It has no silent locale fallback. Every successful result declares `inference=not_provided` and `censoring_assumption=independent_right_censoring`."},
-    {"id":"DOC-MSG-API-LIMIT","page":"api.md","source":"The vertical fixes `location=0`, has no confidence interval or goodness-of-fit claim, and does not claim a production out-of-core adapter or benchmarked large-data tier."},
+    {"id":"DOC-MSG-API-TITLE","page":"api.md","source":"CSV exponential API"},
+    {"id":"DOC-MSG-API-BODY","page":"api.md","source":"`fit_exponential_csv(path, *, schema, source_id, limits)` is the public source entry point. `CsvLifetimeSchema(\"time\", \"event_observed\")` selects the only accepted header; `PublicSourceId` is an opaque identifier safe for returned provenance; and `CsvLifetimeLimits` supplies positive byte budgets. The result is always an `ExponentialSourceFitResult`: a finite rate-only estimate, a typed statistical non-estimate, or a typed execution failure."},
+    {"id":"DOC-MSG-API-INPUT","page":"api.md","source":"Times must be finite and non-negative. Event token `1` denotes an exact event; token `0` denotes independent right censoring. The CSV contract is deliberately strict rather than a permissive spreadsheet reader: wrong encoding, headers, tokens, fields, budgets, or source access produce typed failures."},
+    {"id":"DOC-MSG-API-LIMIT","page":"api.md","source":"The vertical fixes `location=0`, has no confidence interval or goodness-of-fit claim, and supplies no weights, covariates, truncation, left/interval censoring, free location, model selection, retry, checkpointing, or cancellation."},
+    {"id":"DOC-MSG-TUTORIAL-TITLE","page":"exponential-right-censoring.md","source":"Exponential right-censoring tutorial"},
     {"id":"DOC-MSG-MODEL-TITLE","page":"exponential-right-censoring.md","source":"Model and estimate"},
     {"id":"DOC-MSG-MODEL-BODY","page":"exponential-right-censoring.md","source":"For exact-event count `r` and total time on test `tau`, this vertical uses `r*log(rate)-rate*tau` and returns `rate=r/tau` only when both values permit a finite estimate. It accepts exact lifetimes and independent right censoring. Independent right censoring is an assumption visible in the result; it cannot be established from the observations by this library."},
+    {"id":"DOC-MSG-CSV-TITLE","page":"exponential-right-censoring.md","source":"Strict CSV input"},
+    {"id":"DOC-MSG-CSV-BODY","page":"exponential-right-censoring.md","source":"The public adapter accepts UTF-8 CSV with exactly `time,event_observed` in that order. Each data row is one finite non-negative time and token `1` (event) or `0` (right censored). A caller supplies a non-secret `PublicSourceId` instead of relying on a local path in returned facts. The adapter never guesses columns, headers, encodings, delimiters, missing values, or censoring conventions."},
+    {"id":"DOC-MSG-TABLE-HEAD","page":"exponential-right-censoring.md","source":"CSV field"},
+    {"id":"DOC-MSG-TABLE-MEANING","page":"exponential-right-censoring.md","source":"Meaning"},
+    {"id":"DOC-MSG-TABLE-TIME","page":"exponential-right-censoring.md","source":"finite non-negative lifetime"},
+    {"id":"DOC-MSG-TABLE-EVENT","page":"exponential-right-censoring.md","source":"`1` for an exact event; `0` for independent right censoring"},
+    {"id":"DOC-MSG-TABLE-TIME-NAME","page":"exponential-right-censoring.md","source":"`time`"},
+    {"id":"DOC-MSG-TABLE-EVENT-NAME","page":"exponential-right-censoring.md","source":"`event_observed`"},
+    {"id":"DOC-MSG-MATH-RATE","page":"exponential-right-censoring.md","source":"\\widehat{rate} = r / tau"},
     {"id":"DOC-MSG-FAILURE-TITLE","page":"exponential-right-censoring.md","source":"Failure cases and limits"},
     {"id":"DOC-MSG-FAILURE-BODY","page":"exponential-right-censoring.md","source":"An empty sample, no observed events, zero total time with an event, and numeric overflow produce typed non-estimates. There is no confidence interval, goodness-of-fit test, truncation, left or interval censoring, weights, covariates, or free location parameter in this vertical."},
-    {"id":"DOC-MSG-STREAM-TITLE","page":"exponential-right-censoring.md","source":"Streaming scope"},
-    {"id":"DOC-MSG-STREAM-BODY","page":"exponential-right-censoring.md","source":"The reducer retains fixed O(1) accumulator state: counts and a compensated total-time sum. That algorithmic scope is not a claim of a production out-of-core adapter, bounded ingestion, or a benchmarked large-data tier."}
+    {"id":"DOC-MSG-STREAM-TITLE","page":"exponential-right-censoring.md","source":"One-pass and scale scope"},
+    {"id":"DOC-MSG-STREAM-BODY","page":"exponential-right-censoring.md","source":"The CSV adapter consumes one iterator pass. Its declared chunk byte budget is a logical bound on retained payload, not a portable process-memory or RSS limit. `SCALE-CSV-EXP-01` retains a checked 10k/100k/1m by 32KiB/64KiB/128KiB matrix for this strict adapter and estimator only. It demonstrates bounded internal payload for that matrix; it does not establish throughput, generic big-data support, another adapter, cancellation, retry, or checkpointing."}
   ],
   "examples": [
-    {
-      "id": "DOC-EX-QUICKSTART",
-      "source": "examples/quickstart.py",
-      "pages": ["index.md"]
-    }
+    {"id":"DOC-EX-QUICKSTART","source":"examples/quickstart.py","pages":["index.md"]}
   ]
 }

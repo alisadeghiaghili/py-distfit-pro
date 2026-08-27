@@ -78,8 +78,9 @@ class PackageLandingContractTests(unittest.TestCase):
                 "exact and independently right-censored lifetimes",
                 "Inference is not provided",
                 "typed failures",
-                "does not ship production data adapters",
-                "does not claim production out-of-core execution",
+                "public CSV path is strict",
+                "one iterator pass",
+                "not a generic CSV reader",
             ),
             "fa": (
                 "هستهٔ قراردادی پیش‌آلفا",
@@ -87,8 +88,9 @@ class PackageLandingContractTests(unittest.TestCase):
                 "طول عمرهای دقیق و راست‌سانسورشدهٔ مستقل",
                 "استنباط ارائه نمی‌شود",
                 "شکست‌های نوع‌دار",
-                "آداپتور دادهٔ عملیاتی عرضه نمی‌کند",
-                "اجرای برون‌حافظه‌ای عملیاتی را ادعا نمی‌کند",
+                "مسیر CSV عمومی آن سخت‌گیرانه است",
+                "یک گذر از iterator",
+                "CSV عمومی",
             ),
             "de": (
                 "Pre-Alpha-Vertragskern",
@@ -96,8 +98,9 @@ class PackageLandingContractTests(unittest.TestCase):
                 "exakte und unabhängig rechtszensierte Lebensdauern",
                 "Inferenz wird nicht bereitgestellt",
                 "typisierte Fehlschläge",
-                "keine produktionsreifen Datenadapter",
-                "keine produktive Out-of-Core-Ausführung",
+                "öffentliche CSV-Pfad ist strikt",
+                "einen Iterator-Durchlauf",
+                "allgemeines CSV",
             ),
         }
         for locale, phrases in required.items():
@@ -119,15 +122,14 @@ class PackageLandingContractTests(unittest.TestCase):
         self.assertEqual(len(set(snippets.values())), 1)
         quickstart = snippets["en"]
         for required in (
-            "ExactLifetime",
-            "RightCensoredLifetime",
-            "fit_exponential",
-            "render_exponential_report",
-            "ReportLocale.FA",
+            "fit_exponential_csv",
+            "CsvLifetimeSchema",
+            "CsvLifetimeLimits",
+            "PublicSourceId",
             "assert fit.rate == 0.5",
             'assert fit.inference == "not_provided"',
             'assert fit.censoring_assumption == "independent_right_censoring"',
-            'assert \'lang="fa" dir="rtl"\' in report',
+            'path.write_text("time,event_observed\\n1,1\\n1,0\\n", encoding="utf-8")',
         ):
             with self.subTest(required=required):
                 self.assertIn(required, quickstart)

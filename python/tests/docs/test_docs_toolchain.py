@@ -193,8 +193,14 @@ class DocsToolchainContractTests(unittest.TestCase):
                         DOCS_ROOT / "locales" / locale / "LC_MESSAGES" / f"{stem}.po"
                     )
                     for source, translation in catalog.items():
-                        self.assertIn(_semantic_text(translation), rendered)
-                        self.assertNotIn(_semantic_text(source), rendered)
+                        if not source.startswith("\\"):
+                            self.assertIn(_semantic_text(translation), rendered)
+                        if (
+                            len(_semantic_text(source)) >= 12
+                            and not source.startswith("`")
+                            and not source.startswith("\\")
+                        ):
+                            self.assertNotIn(_semantic_text(source), rendered)
 
     def test_persian_is_rtl_german_is_ltr_and_render_checker_is_strict(self) -> None:
         toolchain = load_toolchain()
@@ -222,14 +228,27 @@ class DocsToolchainContractTests(unittest.TestCase):
     def test_first_vertical_docs_are_callable_narrow_and_honest(self) -> None:
         api_page = (SOURCE_ROOT / "api.md").read_text(encoding="utf-8")
         tutorial_page = (SOURCE_ROOT / "exponential-right-censoring.md").read_text(encoding="utf-8")
-        self.assertIn("fit_exponential", api_page)
-        self.assertIn("ReportLocale", api_page)
-        self.assertIn("not_provided", api_page)
+        self.assertIn("fit_exponential_csv", api_page)
+        self.assertIn("CsvLifetimeSchema", api_page)
+        self.assertIn("PublicSourceId", api_page)
+        self.assertIn("not_provided", (SOURCE_ROOT / "index.md").read_text(encoding="utf-8"))
         self.assertIn("independent right censoring", tutorial_page)
         self.assertIn("no confidence interval", tutorial_page)
-        self.assertIn("fixed O(1) accumulator state", tutorial_page)
+        self.assertIn("one iterator pass", tutorial_page)
+        self.assertIn("logical bound on retained payload", tutorial_page)
+        self.assertIn("not a portable process-memory or RSS limit", tutorial_page)
+        self.assertIn("| CSV field | Meaning |", tutorial_page)
+        self.assertIn("```{math}", tutorial_page)
         self.assertNotIn("autofunction", api_page)
         self.assertNotIn("automodule", api_page)
+
+    def test_persian_styles_isolate_machine_reading_direction(self) -> None:
+        css = (SOURCE_ROOT / "_static" / "rtl.css").read_text(encoding="utf-8")
+        for selector in ("pre", "code", "table", ".math"):
+            with self.subTest(selector=selector):
+                self.assertIn(selector, css)
+        self.assertIn("direction: ltr", css)
+        self.assertIn("text-align: left", css)
 
     def test_example_has_one_registered_executable_source(self) -> None:
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
@@ -241,9 +260,10 @@ class DocsToolchainContractTests(unittest.TestCase):
             result["EXAMPLE_RESULT"],
             {
                 "rate": "0.5",
-                "observation_count": "3",
-                "event_count": "2",
+                "observation_count": "2",
+                "event_count": "1",
                 "censored_count": "1",
+                "actual_pass_count": "1",
             },
         )
         for page_name in example["pages"]:

@@ -12,6 +12,8 @@ html[dir="rtl"] .literal-block-wrapper {
 }
 
 html[dir="rtl"] table,
-html[dir="rtl"] .math {
-  direction: rtl;
+html[dir="rtl"] .math,
+html[dir="rtl"] .math * {
+  direction: ltr;
+  text-align: left;
 }

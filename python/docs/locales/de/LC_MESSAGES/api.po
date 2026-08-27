@@ -5,14 +5,14 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "Exponential MLE API"
-msgstr "API für den exponentiellen Maximum-Likelihood-Schätzer"
+msgid "CSV exponential API"
+msgstr "CSV-API für die Exponentialverteilung"
 
-msgid "`fit_exponential(observations)` and `fit_exponential_chunks(chunks)` return a finite rate-only estimate or a typed statistical non-estimate. Observations are `ExactLifetime(time)` or `RightCensoredLifetime(time)` with finite, non-negative times. A wrong observation object is a programmer-input error, not a fitting failure."
-msgstr "`fit_exponential(observations)` und `fit_exponential_chunks(chunks)` liefern entweder eine endliche Schätzung ausschließlich für die Rate oder ein typisiertes statistisches Nicht-Schätzergebnis. Beobachtungen sind `ExactLifetime(time)` oder `RightCensoredLifetime(time)` mit endlichen, nichtnegativen Zeiten. Ein falsches Beobachtungsobjekt ist ein Eingabefehler des Programmierers und kein Anpassungsfehler."
+msgid "`fit_exponential_csv(path, *, schema, source_id, limits)` is the public source entry point. `CsvLifetimeSchema(\"time\", \"event_observed\")` selects the only accepted header; `PublicSourceId` is an opaque identifier safe for returned provenance; and `CsvLifetimeLimits` supplies positive byte budgets. The result is always an `ExponentialSourceFitResult`: a finite rate-only estimate, a typed statistical non-estimate, or a typed execution failure."
+msgstr "`fit_exponential_csv(path, *, schema, source_id, limits)` ist der öffentliche Quelleneinstieg. `CsvLifetimeSchema(\"time\", \"event_observed\")` wählt die einzig akzeptierte Kopfzeile; `PublicSourceId` ist eine undurchsichtige Kennung, die für die zurückgegebene Provenienz sicher ist; und `CsvLifetimeLimits` liefert positive Byte-Budgets. Das Ergebnis ist stets ein `ExponentialSourceFitResult`: eine endliche Schätzung nur für die Rate, ein typisiertes statistisches Nicht-Schätzergebnis oder ein typisierter Ausführungsfehler."
 
-msgid "`render_exponential_report(result, ReportLocale.EN|FA|DE)` renders safe pure HTML for one explicit locale. It has no silent locale fallback. Every successful result declares `inference=not_provided` and `censoring_assumption=independent_right_censoring`."
-msgstr "`render_exponential_report(result, ReportLocale.EN|FA|DE)` erzeugt sicheres, reines HTML für eine ausdrücklich gewählte Sprache. Es gibt keinen stillen Rückgriff auf eine andere Sprache. Jedes erfolgreiche Ergebnis weist `inference=not_provided` und `censoring_assumption=independent_right_censoring` aus."
+msgid "Times must be finite and non-negative. Event token `1` denotes an exact event; token `0` denotes independent right censoring. The CSV contract is deliberately strict rather than a permissive spreadsheet reader: wrong encoding, headers, tokens, fields, budgets, or source access produce typed failures."
+msgstr "Zeiten müssen endlich und nichtnegativ sein. Ereignis-Token `1` bezeichnet ein exaktes Ereignis; Token `0` bezeichnet unabhängige Rechtszensierung. Der CSV-Vertrag ist absichtlich strikt statt ein nachsichtiger Tabellenleser zu sein: falsche Kodierung, Kopfzeilen, Token, Felder, Budgets oder Quellzugriff erzeugen typisierte Fehler."
 
-msgid "The vertical fixes `location=0`, has no confidence interval or goodness-of-fit claim, and does not claim a production out-of-core adapter or benchmarked large-data tier."
-msgstr "Die Funktionseinheit setzt `location=0` fest, macht keine Aussage zu einem Konfidenzintervall oder zur Anpassungsgüte und behauptet weder einen produktionsreifen Out-of-Core-Adapter noch eine benchmarkgestützte Großdatenstufe."
+msgid "The vertical fixes `location=0`, has no confidence interval or goodness-of-fit claim, and supplies no weights, covariates, truncation, left/interval censoring, free location, model selection, retry, checkpointing, or cancellation."
+msgstr "Die Funktionseinheit setzt `location=0` fest, erhebt keinen Anspruch auf Konfidenzintervalle oder Anpassungsgüte und liefert keine Gewichte, Kovariaten, Trunkierung, Links-/Intervallzensierung, freie Lage, Modellauswahl, Wiederholung, Checkpointing oder Abbruch."

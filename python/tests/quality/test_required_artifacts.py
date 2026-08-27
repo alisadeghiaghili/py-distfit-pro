@@ -33,7 +33,9 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             "exact and independent right-censoring",
             "inference=not_provided",
             "fixed O(1) reducer state",
-            "no production adapter or out-of-core claim",
+            "one CSV iterator and one pass",
+            "SCALE-CSV-EXP-01",
+            "formal mutation runner remains **NOT IMPLEMENTED**",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, content)
