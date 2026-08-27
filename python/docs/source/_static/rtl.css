@@ -9,6 +9,7 @@ html[dir="rtl"] .highlight,
 html[dir="rtl"] .literal-block-wrapper {
   direction: ltr;
   text-align: left;
+  unicode-bidi: isolate;
 }
 
 html[dir="rtl"] table,
@@ -16,4 +17,5 @@ html[dir="rtl"] .math,
 html[dir="rtl"] .math * {
   direction: ltr;
   text-align: left;
+  unicode-bidi: isolate;
 }

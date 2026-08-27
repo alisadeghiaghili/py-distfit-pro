@@ -118,6 +118,12 @@ retry, SHA snapshot, and RSS claims until their specific evidence exists.
 
 ## Closeout reconciliation -- 2026-08-27
 
+**Supersession note.** The "planned entry point" wording in the original
+Decision section is historical: it was implemented and exported at package
+top level by commit `3b5f0bf`, with public-contract evidence in
+`python/tests/contract/test_public_csv_api.py`. It is not a current
+non-export claim.
+
 The narrow wrapper is now exported at the package top level together with only
 its schema, limits, opaque source identifier, and closed result type. The
 retained `SCALE-CSV-EXP-01` artifact supplies a frozen 10k/100k/1m by

@@ -249,6 +249,7 @@ class DocsToolchainContractTests(unittest.TestCase):
                 self.assertIn(selector, css)
         self.assertIn("direction: ltr", css)
         self.assertIn("text-align: left", css)
+        self.assertIn("unicode-bidi: isolate", css)
 
     def test_example_has_one_registered_executable_source(self) -> None:
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
