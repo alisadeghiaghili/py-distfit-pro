@@ -29,10 +29,10 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
-- On 2026-08-25 at `ceee4fa`, the branch-local coverage run executed 227 passing tests with
-  one opt-in browser test skipped. The deterministic checker accepted all 19
-  enumerated production files with 100% observed coverage: 1,578 statements and
-  542 branches, with no accepted exceptions. This is structural and contract
+- On 2026-08-27 at `a19d9aa`, the branch-local coverage run executed 257 passing tests with
+  one opt-in browser test skipped. The deterministic checker accepted all 22
+  enumerated production files with 100% observed coverage: 1,983 statements and
+  682 branches, with no accepted exceptions. This is structural and contract
   evidence, not a formal mutation score, calibration result or production-scale
   benchmark.
 - ADR-0017's first callable cell is implemented on the development branch: a
