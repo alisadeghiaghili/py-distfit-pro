@@ -7,6 +7,7 @@ import unittest
 from dataclasses import FrozenInstanceError, replace
 from decimal import Decimal
 from math import isclose
+from unittest.mock import PropertyMock, patch
 
 import veridist.families.exponential as exponential_module
 from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
@@ -17,6 +18,7 @@ from veridist.families.exponential import (
     ExponentialFitSuccess,
     fit_exponential,
     fit_exponential_chunks,
+    fit_exponential_reduction_state,
 )
 from veridist.statistics.exponential import (
     ExponentialReductionState,
@@ -297,3 +299,19 @@ class ExponentialReducerContracts(unittest.TestCase):
             set(exponential_module._FAILURE_FACT_VALIDATORS),
             set(ExponentialFitFailureCode),
         )
+
+    def test_exp14_reduction_finalizer_type_and_terminal_overflow(self) -> None:
+        with self.assertRaises(TypeError):
+            fit_exponential_reduction_state(object())  # type: ignore[arg-type]
+        state = ExponentialReductionState(1, 1, 1.0, 0.0)
+        overflow = _ReductionOverflow(1, 1)
+        with patch.object(
+            ExponentialReductionState,
+            "summed_time",
+            new_callable=PropertyMock,
+            side_effect=overflow,
+        ):
+            result = fit_exponential_reduction_state(state)
+        self.assertIsInstance(result, ExponentialFitFailure)
+        assert isinstance(result, ExponentialFitFailure)
+        self.assertIs(result.code, ExponentialFitFailureCode.NUMERICAL_OVERFLOW)

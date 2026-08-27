@@ -6,13 +6,14 @@ import re
 import unittest
 from io import BytesIO
 from pathlib import Path
+from unittest.mock import patch
 
 from veridist.adapters.csv_lifetimes import (
     CsvLifetimeAdapter,
     CsvLifetimeLimits,
     CsvLifetimeSchema,
 )
-from veridist.engine.errors import FailureCode
+from veridist.engine.errors import EngineContractError, FailureCode
 from veridist.engine.outcome import FailedOutcome, FailureStage, UnknownMissingRanges
 from veridist.engine.provenance import PublicSourceId, SourceMutationStatus
 from veridist.execution import (
@@ -171,6 +172,52 @@ class CsvLifetimeExecutionContracts(unittest.TestCase):
         self.assertNotEqual(left.run_id, right.run_id)
         self.assertEqual(left.estimator.settings_sha256, right.estimator.settings_sha256)
         self.assertNotEqual(left.estimator.settings_sha256, "0" * 64)
+
+    def test_csv_exec07_result_and_adapter_type_invariants_are_closed(self) -> None:
+        with self.assertRaises(TypeError):
+            ExponentialSourceFitResult(None, object())  # type: ignore[arg-type]
+        adapter, _ = _adapter(b"time,event_observed\n")
+        complete = fit_exponential_source(adapter)
+        with self.assertRaises(ValueError):
+            ExponentialSourceFitResult(None, complete.execution)
+        with self.assertRaises(TypeError):
+            fit_exponential_source(object())
+
+    def test_csv_exec08_iterator_without_close_and_non_tuple_payload_cleanup(self) -> None:
+        adapter, _ = _adapter(b"time,event_observed\n")
+        with patch.object(CsvLifetimeAdapter, "iter_chunks", return_value=iter(())):
+            self.assertTrue(fit_exponential_source(adapter).execution.outcome.complete)
+
+        adapter, source = _adapter(b"time,event_observed\n1,1\n")
+        from veridist.engine.delivery import BufferedChunk as RealBufferedChunk
+
+        def list_payload(*, envelope: object, payload: object) -> RealBufferedChunk:
+            del payload
+            return RealBufferedChunk(envelope=envelope, payload=[])  # type: ignore[arg-type]
+
+        with patch("veridist.execution.BufferedChunk", side_effect=list_payload):
+            with self.assertRaises(TypeError, msg="non-tuple payload must propagate"):
+                fit_exponential_source(adapter)
+        self.assertEqual(source.close_count, 1)
+
+    def test_csv_exec09_non_csv_engine_failures_keep_honest_stage_and_cleanup(self) -> None:
+        adapter, source = _adapter(b"time,event_observed\n1,1\n")
+        error = EngineContractError(FailureCode.MISSING_CHUNK, {})
+        with patch("veridist.execution.DeliveryValidator.accept", side_effect=error):
+            result = fit_exponential_source(adapter)
+        assert isinstance(result.execution.outcome, FailedOutcome)
+        self.assertIs(result.execution.outcome.failure.stage, FailureStage.DELIVERY)
+        self.assertIs(
+            result.execution.provenance.source.mutation_status,
+            SourceMutationStatus.NOT_CHECKED,
+        )
+        self.assertEqual(source.close_count, 1)
+
+        adapter, _ = _adapter(b"time,event_observed\n")
+        with patch("veridist.execution.PassEnforcer.begin_pass", side_effect=error):
+            preflight = fit_exponential_source(adapter)
+        assert isinstance(preflight.execution.outcome, FailedOutcome)
+        self.assertIs(preflight.execution.outcome.failure.stage, FailureStage.PREFLIGHT)
 
 
 if __name__ == "__main__":

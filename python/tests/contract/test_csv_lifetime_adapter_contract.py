@@ -22,7 +22,7 @@ from veridist.domain.lifetimes import ExactLifetime
 from veridist.engine.delivery import ChunkEnvelope
 from veridist.engine.errors import FailureCode
 from veridist.engine.pass_budget import PassBudgetError
-from veridist.engine.provenance import PublicSourceId
+from veridist.engine.provenance import PublicSourceId, SourceMutationStatus
 
 SOURCE_ID = PublicSourceId("src_0123456789abcdef0123456789abcdef")
 SCHEMA = CsvLifetimeSchema(time_column="time", event_observed_column="event_observed")
@@ -857,6 +857,28 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
             )
             self.assertEqual(source.close_count, 1)
         self.assertEqual(retained_object_graph_bytes(CsvLifetimeAdapter), 0)
+
+    def test_csv17_failure_phase_and_identity_status_are_typed(self) -> None:
+        with self.assertRaises(TypeError):
+            CsvLifetimeAdapterError(
+                FailureCode.SOURCE_OPEN_FAILED,
+                reason="open_failed",
+                phase="preflight",  # type: ignore[arg-type]
+            )
+        with self.assertRaises(TypeError):
+            CsvLifetimeAdapterError(
+                FailureCode.SOURCE_OPEN_FAILED,
+                reason="open_failed",
+                mutation_status="not_checked",  # type: ignore[arg-type]
+            )
+        error = CsvLifetimeAdapterError(
+            FailureCode.SOURCE_ROW_INVALID,
+            reason="invalid_time",
+            record_offset=2,
+        )
+        verified = error.with_mutation_status(SourceMutationStatus.VERIFIED_UNCHANGED)
+        self.assertIsNot(error, verified)
+        self.assertEqual(verified.context, error.context)
 
 
 if __name__ == "__main__":
