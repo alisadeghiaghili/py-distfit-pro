@@ -189,13 +189,16 @@ def main() -> int:
     cells: list[dict[str, object]] = []
     chunks_by_row: dict[int, int] = {}
     temporary_parent = None if args.temporary_root is None else str(args.temporary_root)
-    with tempfile.TemporaryDirectory(prefix="veridist-scale-csv-exp-", dir=temporary_parent) as temporary:
+    with tempfile.TemporaryDirectory(
+        prefix="veridist-scale-csv-exp-", dir=temporary_parent
+    ) as temporary:
         run_directory = Path(temporary)
         for row_count in rows:
             fixture = run_directory / f"scale-csv-exp-v1-{row_count}.csv"
             expected_events, expected_total = _generate(fixture, row_count)
             requests = [
-                (str(fixture), row_count, budget, expected_events, expected_total) for budget in budgets
+                (str(fixture), row_count, budget, expected_events, expected_total)
+                for budget in budgets
             ]
             if args.workers == 1:
                 row_cells = [_cell_request(request) for request in requests]

@@ -92,7 +92,10 @@ def _smoke_artifact() -> dict[str, object]:
         },
         "generator": {"formula_version": "1", "temporary_root": "redacted"},
         "cells": cells,
-        "operation_evidence": {"rows": [row], "accepted_chunks": [cells[0]["observed"]["accepted_chunk_count"]]},
+        "operation_evidence": {
+            "rows": [row],
+            "accepted_chunks": [cells[0]["observed"]["accepted_chunk_count"]],
+        },
     }
     _seal(value)
     return value
@@ -106,14 +109,27 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
         environment["PYTHONPATH"] = source + os.pathsep + environment.get("PYTHONPATH", "")
         return environment
 
-    def _check(self, artifact: dict[str, object], *, expected_sha: str | None = None, smoke: bool = True) -> subprocess.CompletedProcess[str]:
+    def _check(
+        self, artifact: dict[str, object], *, expected_sha: str | None = None, smoke: bool = True
+    ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "artifact.json"
             path.write_text(json.dumps(artifact), encoding="utf-8")
-            command = [sys.executable, str(CHECKER), "--artifact", str(path), "--expected-git-sha", expected_sha or _head(), "--repo-root", str(REPO)]
+            command = [
+                sys.executable,
+                str(CHECKER),
+                "--artifact",
+                str(path),
+                "--expected-git-sha",
+                expected_sha or _head(),
+                "--repo-root",
+                str(REPO),
+            ]
             if smoke:
                 command.append("--smoke")
-            return subprocess.run(command, check=False, capture_output=True, text=True, env=self._environment())
+            return subprocess.run(
+                command, check=False, capture_output=True, text=True, env=self._environment()
+            )
 
     def test_scale01_checker_accepts_explicitly_locked_smoke_matrix(self) -> None:
         result = self._check(_smoke_artifact())
@@ -126,7 +142,9 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
         self.assertIn("frozen expected SHA", result.stderr)
         self.assertIn("existing ancestor", result.stderr)
 
-    def test_scale03_rejects_matrix_cell_count_duplicate_and_wrong_operation_crosslink(self) -> None:
+    def test_scale03_rejects_matrix_cell_count_duplicate_and_wrong_operation_crosslink(
+        self,
+    ) -> None:
         artifact = _smoke_artifact()
         cells = artifact["cells"]
         assert isinstance(cells, list)
@@ -188,16 +206,63 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
     def test_scale08_runner_produces_checker_accepted_smoke_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "artifact.json"
-            command = [sys.executable, str(RUNNER), "--output", str(output), "--rows", "100", "--chunk-bytes", "2048,4096,8192", "--workers", "2"]
-            generated = subprocess.run(command, check=False, capture_output=True, text=True, env=self._environment())
+            command = [
+                sys.executable,
+                str(RUNNER),
+                "--output",
+                str(output),
+                "--rows",
+                "100",
+                "--chunk-bytes",
+                "2048,4096,8192",
+                "--workers",
+                "2",
+            ]
+            generated = subprocess.run(
+                command, check=False, capture_output=True, text=True, env=self._environment()
+            )
             self.assertEqual(generated.returncode, 0, generated.stderr)
-            result = subprocess.run([sys.executable, str(CHECKER), "--artifact", str(output), "--expected-git-sha", _head(), "--repo-root", str(REPO), "--smoke"], check=False, capture_output=True, text=True, env=self._environment())
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CHECKER),
+                    "--artifact",
+                    str(output),
+                    "--expected-git-sha",
+                    _head(),
+                    "--repo-root",
+                    str(REPO),
+                    "--smoke",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                env=self._environment(),
+            )
             self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_scale09_runner_smoke_is_concurrent_safe(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             outputs = [Path(temporary) / f"artifact-{index}.json" for index in range(2)]
-            processes = [subprocess.Popen([sys.executable, str(RUNNER), "--output", str(output), "--rows", "100", "--chunk-bytes", "2048,4096,8192"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self._environment()) for output in outputs]
+            processes = [
+                subprocess.Popen(
+                    [
+                        sys.executable,
+                        str(RUNNER),
+                        "--output",
+                        str(output),
+                        "--rows",
+                        "100",
+                        "--chunk-bytes",
+                        "2048,4096,8192",
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    env=self._environment(),
+                )
+                for output in outputs
+            ]
             results = [process.communicate() for process in processes]
             self.assertTrue(all(process.returncode == 0 for process in processes), results)
             self.assertTrue(all(output.exists() for output in outputs))
@@ -207,7 +272,9 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
         artifact = json.loads(retained.read_text(encoding="utf-8"))
         artifact["cells"].extend(artifact["cells"][:3])
         _seal(artifact)
-        result = self._check(artifact, expected_sha="4490c9eb08e9ed5e420a2b677d9de843fdf66a5d", smoke=False)
+        result = self._check(
+            artifact, expected_sha="4490c9eb08e9ed5e420a2b677d9de843fdf66a5d", smoke=False
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("exactly nine", result.stderr)
         self.assertIn("duplicate", result.stderr)
@@ -216,8 +283,21 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "artifact.json"
             facts = iter([_head(), "f" * 40])
-            command = [str(RUNNER), "--output", str(output), "--rows", "10", "--chunk-bytes", "2048,4096,8192"]
-            with patch.object(RUNNER_MODULE, "_clean_checkout_sha", side_effect=lambda _root: next(facts)), patch.object(sys, "argv", command):
+            command = [
+                str(RUNNER),
+                "--output",
+                str(output),
+                "--rows",
+                "10",
+                "--chunk-bytes",
+                "2048,4096,8192",
+            ]
+            with (
+                patch.object(
+                    RUNNER_MODULE, "_clean_checkout_sha", side_effect=lambda _root: next(facts)
+                ),
+                patch.object(sys, "argv", command),
+            ):
                 with self.assertRaises(SystemExit) as failure:
                     RUNNER_MODULE.main()
             self.assertIn("HEAD changed", str(failure.exception))
@@ -225,7 +305,21 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
 
     def test_scale12_retained_artifact_is_locked_and_accepted(self) -> None:
         artifact = Path(__file__).parents[2] / "evidence" / "scale-csv-exponential-v1.json"
-        result = subprocess.run([sys.executable, str(CHECKER), "--artifact", str(artifact), "--expected-git-sha", "4490c9eb08e9ed5e420a2b677d9de843fdf66a5d", "--repo-root", str(REPO)], check=False, capture_output=True, text=True)
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CHECKER),
+                "--artifact",
+                str(artifact),
+                "--expected-git-sha",
+                "4490c9eb08e9ed5e420a2b677d9de843fdf66a5d",
+                "--repo-root",
+                str(REPO),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
 
 

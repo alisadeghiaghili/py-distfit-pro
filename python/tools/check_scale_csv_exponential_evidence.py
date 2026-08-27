@@ -7,7 +7,6 @@ production fitter. Acceptance is tied to an explicit frozen Git revision.
 from __future__ import annotations
 
 import argparse
-from functools import lru_cache
 import hashlib
 import json
 import math
@@ -15,6 +14,7 @@ import re
 import subprocess
 import sys
 from decimal import Decimal, InvalidOperation
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -24,20 +24,59 @@ FULL_BUDGETS = (32_768, 65_536, 131_072)
 SHA256 = re.compile(r"[0-9a-f]{64}")
 GIT_SHA = re.compile(r"[0-9a-f]{40}")
 
-ARTIFACT_KEYS = {"schema_version", "run", "generator", "cells", "operation_evidence", "artifact_sha256"}
+ARTIFACT_KEYS = {
+    "schema_version",
+    "run",
+    "generator",
+    "cells",
+    "operation_evidence",
+    "artifact_sha256",
+}
 RUN_KEYS = {"git_sha", "git_dirty", "utc_started", "python", "platform", "measurement_workers"}
 PYTHON_KEYS = {"implementation", "version"}
 GENERATOR_KEYS = {"formula_version", "temporary_root"}
-CELL_KEYS = {"rows", "chunk_bytes", "max_inflight_bytes", "source", "observed", "fit", "memory", "elapsed_seconds"}
+CELL_KEYS = {
+    "rows",
+    "chunk_bytes",
+    "max_inflight_bytes",
+    "source",
+    "observed",
+    "fit",
+    "memory",
+    "elapsed_seconds",
+}
 SOURCE_KEYS = {"bytes", "sha256"}
-OBSERVED_KEYS = {"actual_pass_count", "max_passes", "accepted_chunk_count", "processed_row_count", "peak_inflight_bytes", "largest_retained_chunk_bytes", "backpressure_event_count"}
-FIT_KEYS = {"observation_count", "event_count", "total_time", "rate", "expected_event_count", "expected_total_time", "expected_rate", "absolute_rate_error", "relative_rate_error"}
+OBSERVED_KEYS = {
+    "actual_pass_count",
+    "max_passes",
+    "accepted_chunk_count",
+    "processed_row_count",
+    "peak_inflight_bytes",
+    "largest_retained_chunk_bytes",
+    "backpressure_event_count",
+}
+FIT_KEYS = {
+    "observation_count",
+    "event_count",
+    "total_time",
+    "rate",
+    "expected_event_count",
+    "expected_total_time",
+    "expected_rate",
+    "absolute_rate_error",
+    "relative_rate_error",
+}
 MEMORY_KEYS = {"tracemalloc_peak_bytes", "rss_peak_bytes", "rss_delta_bytes"}
 OPERATION_KEYS = {"rows", "accepted_chunks"}
 
 
 def _finite_nonnegative(value: object) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and value >= 0
+    )
 
 
 def _integer(value: object) -> bool:
@@ -57,7 +96,9 @@ def _contains_path(value: object) -> bool:
 def _digest(value: dict[str, object]) -> str:
     body = dict(value)
     body.pop("artifact_sha256", None)
-    return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        json.dumps(body, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    ).hexdigest()
 
 
 def _exact_keys(value: object, expected: set[str], label: str, errors: list[str]) -> bool:
@@ -66,12 +107,14 @@ def _exact_keys(value: object, expected: set[str], label: str, errors: list[str]
         return False
     actual = set(value)
     if actual != expected:
-        errors.append(f"{label} schema keys invalid: missing={sorted(expected - actual)}, extra={sorted(actual - expected)}")
+        missing = sorted(expected - actual)
+        extra = sorted(actual - expected)
+        errors.append(f"{label} schema keys invalid: missing={missing}, extra={extra}")
         return False
     return True
 
 
-@lru_cache(maxsize=None)
+@cache
 def _fixture_facts(rows: int, formula_version: str) -> tuple[int, Decimal, int, str]:
     """Independently reproduce the v1 bytes and Decimal sufficient statistics."""
 
@@ -84,7 +127,7 @@ def _fixture_facts(rows: int, formula_version: str) -> tuple[int, Decimal, int, 
     for index in range(rows):
         time_value = Decimal((index % 997) + 1) / Decimal(1000)
         event = 0 if index % 3 == 0 else 1
-        encoded = f"{time_value:f},{event}\n".encode("utf-8")
+        encoded = f"{time_value:f},{event}\n".encode()
         digest.update(encoded)
         byte_count += len(encoded)
         events += event
@@ -98,8 +141,18 @@ def _git_commit_is_ancestor(repo_root: Path, sha: str) -> bool | None:
     if not (repo_root / ".git").exists():
         return None
     try:
-        subprocess.run(["git", "-C", str(repo_root), "cat-file", "-e", f"{sha}^{{commit}}"], check=True, capture_output=True, text=True)
-        subprocess.run(["git", "-C", str(repo_root), "merge-base", "--is-ancestor", sha, "HEAD"], check=True, capture_output=True, text=True)
+        subprocess.run(
+            ["git", "-C", str(repo_root), "cat-file", "-e", f"{sha}^{{commit}}"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(repo_root), "merge-base", "--is-ancestor", sha, "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
     except (OSError, subprocess.CalledProcessError):
         return False
     return True
@@ -112,7 +165,9 @@ def _cell_key(cell: dict[str, Any]) -> tuple[int, int] | None:
     return rows, chunk
 
 
-def validate(value: object, *, expected_git_sha: str, smoke: bool = False, repo_root: Path | None = None) -> list[str]:
+def validate(
+    value: object, *, expected_git_sha: str, smoke: bool = False, repo_root: Path | None = None
+) -> list[str]:
     """Return all violations; malformed evidence never partly passes."""
 
     errors: list[str] = []
@@ -132,7 +187,11 @@ def validate(value: object, *, expected_git_sha: str, smoke: bool = False, repo_
         return errors
     assert isinstance(run, dict)
     actual_sha = run["git_sha"]
-    if not isinstance(actual_sha, str) or GIT_SHA.fullmatch(actual_sha) is None or actual_sha != expected_git_sha:
+    if (
+        not isinstance(actual_sha, str)
+        or GIT_SHA.fullmatch(actual_sha) is None
+        or actual_sha != expected_git_sha
+    ):
         errors.append("run git SHA does not match frozen expected SHA")
     if run["git_dirty"] is not False:
         errors.append("run is dirty")
@@ -185,7 +244,9 @@ def validate(value: object, *, expected_git_sha: str, smoke: bool = False, repo_
             continue
         assert isinstance(source, dict)
         try:
-            expected_events, expected_total, expected_bytes, expected_hash = _fixture_facts(rows, str(formula_version))
+            expected_events, expected_total, expected_bytes, expected_hash = _fixture_facts(
+                rows, str(formula_version)
+            )
         except ValueError:
             errors.append(f"cell {key} generator formula is unsupported")
             continue
@@ -199,18 +260,33 @@ def validate(value: object, *, expected_git_sha: str, smoke: bool = False, repo_
             errors.append(f"cell {key} pass count must be exactly one")
         if observed["processed_row_count"] != rows:
             errors.append(f"cell {key} observed rows mismatch")
-        for metric in ("accepted_chunk_count", "peak_inflight_bytes", "largest_retained_chunk_bytes", "backpressure_event_count"):
+        for metric in (
+            "accepted_chunk_count",
+            "peak_inflight_bytes",
+            "largest_retained_chunk_bytes",
+            "backpressure_event_count",
+        ):
             if not _integer(observed[metric]):
                 errors.append(f"cell {key} {metric} invalid")
-        if isinstance(observed["peak_inflight_bytes"], int) and observed["peak_inflight_bytes"] > chunk:
+        if (
+            isinstance(observed["peak_inflight_bytes"], int)
+            and observed["peak_inflight_bytes"] > chunk
+        ):
             errors.append(f"cell {key} inflight bound exceeded")
-        if isinstance(observed["largest_retained_chunk_bytes"], int) and observed["largest_retained_chunk_bytes"] > chunk:
+        if (
+            isinstance(observed["largest_retained_chunk_bytes"], int)
+            and observed["largest_retained_chunk_bytes"] > chunk
+        ):
             errors.append(f"cell {key} retained chunk bound exceeded")
         fit = cell["fit"]
         if not _exact_keys(fit, FIT_KEYS, f"cell {key} fit", errors):
             continue
         assert isinstance(fit, dict)
-        if fit["observation_count"] != rows or fit["event_count"] != expected_events or fit["expected_event_count"] != expected_events:
+        if (
+            fit["observation_count"] != rows
+            or fit["event_count"] != expected_events
+            or fit["expected_event_count"] != expected_events
+        ):
             errors.append(f"cell {key} fit observation/event count mismatch")
         try:
             actual_total = Decimal(str(fit["total_time"]))
@@ -251,7 +327,11 @@ def validate(value: object, *, expected_git_sha: str, smoke: bool = False, repo_
     if smoke:
         if len(row_set) != 1 or len(budget_set) != 3 or len(keys) != 3:
             errors.append("smoke matrix must have one row size and exactly three chunk budgets")
-    elif row_set != set(FULL_ROWS) or budget_set != set(FULL_BUDGETS) or set(keys) != {(r, b) for r in FULL_ROWS for b in FULL_BUDGETS}:
+    elif (
+        row_set != set(FULL_ROWS)
+        or budget_set != set(FULL_BUDGETS)
+        or set(keys) != {(r, b) for r in FULL_ROWS for b in FULL_BUDGETS}
+    ):
         errors.append("full matrix row/budget set is not exact")
     operation = value["operation_evidence"]
     if not _exact_keys(operation, OPERATION_KEYS, "operation evidence", errors):
@@ -261,13 +341,21 @@ def validate(value: object, *, expected_git_sha: str, smoke: bool = False, repo_
     if operation["rows"] != operation_rows:
         errors.append("operation evidence rows invalid")
     counts = operation["accepted_chunks"]
-    if not isinstance(counts, list) or len(counts) != len(operation_rows) or not all(_integer(item) and item > 0 for item in counts):
+    if (
+        not isinstance(counts, list)
+        or len(counts) != len(operation_rows)
+        or not all(_integer(item) and item > 0 for item in counts)
+    ):
         errors.append("operation evidence counts invalid")
     elif len(budget_set) == 3:
         smallest = min(budget_set)
         for row, count in zip(operation_rows, counts, strict=True):
             cell = cells_by_key.get((row, smallest))
-            if cell is None or not isinstance(cell.get("observed"), dict) or count != cell["observed"].get("accepted_chunk_count"):
+            if (
+                cell is None
+                or not isinstance(cell.get("observed"), dict)
+                or count != cell["observed"].get("accepted_chunk_count")
+            ):
                 errors.append("operation evidence does not cross-link smallest-budget cells")
                 break
     return errors
@@ -285,7 +373,9 @@ def main() -> int:
     except (OSError, json.JSONDecodeError) as error:
         print(f"FAIL: cannot read artifact: {error}", file=sys.stderr)
         return 1
-    errors = validate(value, expected_git_sha=args.expected_git_sha, smoke=args.smoke, repo_root=args.repo_root)
+    errors = validate(
+        value, expected_git_sha=args.expected_git_sha, smoke=args.smoke, repo_root=args.repo_root
+    )
     if errors:
         print("FAIL: scale evidence rejected", file=sys.stderr)
         for error in errors:
