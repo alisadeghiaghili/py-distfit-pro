@@ -5,7 +5,9 @@ The machine-readable artifact is
 
 ```powershell
 python python/tools/check_scale_csv_exponential_evidence.py `
-  --artifact python/evidence/scale-csv-exponential-v1.json
+  --artifact python/evidence/scale-csv-exponential-v1.json `
+  --expected-git-sha 4490c9eb08e9ed5e420a2b677d9de843fdf66a5d `
+  --repo-root .
 ```
 
 It records a clean CPython 3.14.6 / Windows 11 run at commit
@@ -13,6 +15,13 @@ It records a clean CPython 3.14.6 / Windows 11 run at commit
 Decimal arithmetic independently of the production fit and writes raw CSV only
 to a private temporary directory before measurement. The artifact stores source
 byte counts and SHA-256 values, never raw input paths.
+
+The checker freezes that commit identity, confirms that it is an existing
+ancestor of the supplied repository HEAD, rejects any extra schema fields or
+path-like keys/values, and independently regenerates each CSV byte stream,
+SHA-256, event count, Decimal total time, expected rate, and recorded rate
+errors. Operation chunk counts are cross-linked to the 32KiB cells. The retained
+run used exactly three measurement workers.
 
 | Logical rows | Chunk budgets | Passes | Internal payload result | Fit result |
 | ---: | --- | --- | --- | --- |

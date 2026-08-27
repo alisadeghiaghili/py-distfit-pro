@@ -8,6 +8,7 @@ import json
 import platform
 import subprocess
 import sys
+import tempfile
 import time
 import tracemalloc
 from concurrent.futures import ProcessPoolExecutor
@@ -20,7 +21,6 @@ from veridist.engine.provenance import PublicSourceId
 from veridist.execution import fit_exponential_csv
 from veridist.families.exponential import ExponentialFitSuccess
 
-TEMPORARY_ROOT = Path("E:/Project/veridist-tmp")
 SCHEMA = CsvLifetimeSchema("time", "event_observed")
 
 
@@ -50,6 +50,14 @@ def _generate(path: Path, rows: int) -> tuple[int, Decimal]:
 
 def _git(root: Path, *arguments: str) -> str:
     return subprocess.check_output(["git", "-C", str(root), *arguments], text=True).strip()
+
+
+def _clean_checkout_sha(root: Path) -> str:
+    """Fail closed unless this exact checkout is clean, returning its HEAD."""
+
+    if _git(root, "status", "--porcelain"):
+        raise RuntimeError("refusing evidence run from a dirty checkout")
+    return _git(root, "rev-parse", "HEAD")
 
 
 def _rss_bytes() -> int | None:
@@ -160,37 +168,46 @@ def main() -> int:
     parser.add_argument("--rows", default="10000,100000,1000000")
     parser.add_argument("--chunk-bytes", default="32768,65536,131072")
     parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument(
+        "--temporary-root",
+        type=Path,
+        help="optional parent directory for one unique private run directory",
+    )
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
-    if _git(root, "status", "--porcelain"):
-        raise SystemExit("refusing evidence run from a dirty checkout")
+    try:
+        preflight_sha = _clean_checkout_sha(root)
+    except RuntimeError as error:
+        raise SystemExit(str(error)) from error
     rows = [int(item) for item in args.rows.split(",")]
     budgets = _parse_budgets(args.chunk_bytes)
     if not rows or any(item <= 0 for item in rows) or len(set(rows)) != len(rows):
         raise SystemExit("rows must contain distinct positive integers")
     if args.workers <= 0:
         raise SystemExit("workers must be positive")
-    TEMPORARY_ROOT.mkdir(parents=True, exist_ok=True)
     started = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     cells: list[dict[str, object]] = []
     chunks_by_row: dict[int, int] = {}
-    for row_count in rows:
-        fixture = TEMPORARY_ROOT / f"scale-csv-exp-v1-{row_count}.csv"
-        expected_events, expected_total = _generate(fixture, row_count)
-        requests = [
-            (str(fixture), row_count, budget, expected_events, expected_total) for budget in budgets
-        ]
-        if args.workers == 1:
-            row_cells = [_cell_request(request) for request in requests]
-        else:
-            with ProcessPoolExecutor(max_workers=min(args.workers, len(requests))) as executor:
-                row_cells = list(executor.map(_cell_request, requests))
-        cells.extend(row_cells)
-        chunks_by_row[row_count] = int(row_cells[0]["observed"]["accepted_chunk_count"])
+    temporary_parent = None if args.temporary_root is None else str(args.temporary_root)
+    with tempfile.TemporaryDirectory(prefix="veridist-scale-csv-exp-", dir=temporary_parent) as temporary:
+        run_directory = Path(temporary)
+        for row_count in rows:
+            fixture = run_directory / f"scale-csv-exp-v1-{row_count}.csv"
+            expected_events, expected_total = _generate(fixture, row_count)
+            requests = [
+                (str(fixture), row_count, budget, expected_events, expected_total) for budget in budgets
+            ]
+            if args.workers == 1:
+                row_cells = [_cell_request(request) for request in requests]
+            else:
+                with ProcessPoolExecutor(max_workers=min(args.workers, len(requests))) as executor:
+                    row_cells = list(executor.map(_cell_request, requests))
+            cells.extend(row_cells)
+            chunks_by_row[row_count] = int(row_cells[0]["observed"]["accepted_chunk_count"])
     value: dict[str, object] = {
         "schema_version": "1",
         "run": {
-            "git_sha": _git(root, "rev-parse", "HEAD"),
+            "git_sha": preflight_sha,
             "git_dirty": False,
             "utc_started": started,
             "python": {
@@ -208,6 +225,12 @@ def main() -> int:
         },
     }
     value["artifact_sha256"] = _canonical_digest(value)
+    try:
+        end_sha = _clean_checkout_sha(root)
+    except RuntimeError as error:
+        raise SystemExit(f"refusing evidence output after checkout changed: {error}") from error
+    if end_sha != preflight_sha:
+        raise SystemExit("refusing evidence output after HEAD changed during measurement")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8"

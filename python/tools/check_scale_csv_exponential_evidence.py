@@ -1,4 +1,8 @@
-"""Fail closed on retained SCALE-CSV-EXP evidence artifacts."""
+"""Fail closed on retained SCALE-CSV-EXP evidence artifacts.
+
+The checker recomputes deterministic fixture facts without importing the
+production fitter. Acceptance is tied to an explicit frozen Git revision.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +11,7 @@ import hashlib
 import json
 import math
 import re
+import subprocess
 import sys
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -14,17 +19,24 @@ from typing import Any
 
 SCHEMA_VERSION = "1"
 FULL_ROWS = (10_000, 100_000, 1_000_000)
+FULL_BUDGETS = (32_768, 65_536, 131_072)
 SHA256 = re.compile(r"[0-9a-f]{64}")
 GIT_SHA = re.compile(r"[0-9a-f]{40}")
 
+ARTIFACT_KEYS = {"schema_version", "run", "generator", "cells", "operation_evidence", "artifact_sha256"}
+RUN_KEYS = {"git_sha", "git_dirty", "utc_started", "python", "platform", "measurement_workers"}
+PYTHON_KEYS = {"implementation", "version"}
+GENERATOR_KEYS = {"formula_version", "temporary_root"}
+CELL_KEYS = {"rows", "chunk_bytes", "max_inflight_bytes", "source", "observed", "fit", "memory", "elapsed_seconds"}
+SOURCE_KEYS = {"bytes", "sha256"}
+OBSERVED_KEYS = {"actual_pass_count", "max_passes", "accepted_chunk_count", "processed_row_count", "peak_inflight_bytes", "largest_retained_chunk_bytes", "backpressure_event_count"}
+FIT_KEYS = {"observation_count", "event_count", "total_time", "rate", "expected_event_count", "expected_total_time", "expected_rate", "absolute_rate_error", "relative_rate_error"}
+MEMORY_KEYS = {"tracemalloc_peak_bytes", "rss_peak_bytes", "rss_delta_bytes"}
+OPERATION_KEYS = {"rows", "accepted_chunks"}
+
 
 def _finite_nonnegative(value: object) -> bool:
-    return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(value)
-        and value >= 0
-    )
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
 
 
 def _integer(value: object) -> bool:
@@ -37,16 +49,58 @@ def _contains_path(value: object) -> bool:
     if isinstance(value, list):
         return any(_contains_path(item) for item in value)
     if isinstance(value, dict):
-        return any(_contains_path(item) for item in value.values())
+        return any(_contains_path(key) or _contains_path(item) for key, item in value.items())
     return False
 
 
 def _digest(value: dict[str, object]) -> str:
     body = dict(value)
     body.pop("artifact_sha256", None)
-    return hashlib.sha256(
-        json.dumps(body, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
+
+
+def _exact_keys(value: object, expected: set[str], label: str, errors: list[str]) -> bool:
+    if not isinstance(value, dict):
+        errors.append(f"{label} must be an object")
+        return False
+    actual = set(value)
+    if actual != expected:
+        errors.append(f"{label} schema keys invalid: missing={sorted(expected - actual)}, extra={sorted(actual - expected)}")
+        return False
+    return True
+
+
+def _fixture_facts(rows: int, formula_version: str) -> tuple[int, Decimal, int, str]:
+    """Independently reproduce the v1 bytes and Decimal sufficient statistics."""
+
+    if formula_version != "1":
+        raise ValueError("unsupported deterministic generator formula")
+    digest = hashlib.sha256()
+    header = b"time,event_observed\n"
+    digest.update(header)
+    byte_count, events, total = len(header), 0, Decimal(0)
+    for index in range(rows):
+        time_value = Decimal((index % 997) + 1) / Decimal(1000)
+        event = 0 if index % 3 == 0 else 1
+        encoded = f"{time_value:f},{event}\n".encode("utf-8")
+        digest.update(encoded)
+        byte_count += len(encoded)
+        events += event
+        total += time_value
+    return events, total, byte_count, digest.hexdigest()
+
+
+def _git_commit_is_ancestor(repo_root: Path, sha: str) -> bool | None:
+    """Return None only when no usable repository was supplied."""
+
+    if not (repo_root / ".git").exists():
+        return None
+    try:
+        subprocess.run(["git", "-C", str(repo_root), "cat-file", "-e", f"{sha}^{{commit}}"], check=True, capture_output=True, text=True)
+        subprocess.run(["git", "-C", str(repo_root), "merge-base", "--is-ancestor", sha, "HEAD"], check=True, capture_output=True, text=True)
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return True
 
 
 def _cell_key(cell: dict[str, Any]) -> tuple[int, int] | None:
@@ -56,23 +110,15 @@ def _cell_key(cell: dict[str, Any]) -> tuple[int, int] | None:
     return rows, chunk
 
 
-def validate(value: object, *, smoke: bool = False) -> list[str]:
-    """Return all invariant violations; malformed artifacts never partly pass."""
+def validate(value: object, *, expected_git_sha: str, smoke: bool = False, repo_root: Path | None = None) -> list[str]:
+    """Return all violations; malformed evidence never partly passes."""
 
     errors: list[str] = []
-    if not isinstance(value, dict):
-        return ["artifact must be an object"]
-    required = {
-        "schema_version",
-        "run",
-        "generator",
-        "cells",
-        "operation_evidence",
-        "artifact_sha256",
-    }
-    missing = required.difference(value)
-    if missing:
-        return [f"artifact missing required fields: {', '.join(sorted(missing))}"]
+    if GIT_SHA.fullmatch(expected_git_sha) is None:
+        return ["expected git SHA is invalid"]
+    if not _exact_keys(value, ARTIFACT_KEYS, "artifact", errors):
+        return errors
+    assert isinstance(value, dict)
     if value["schema_version"] != SCHEMA_VERSION:
         errors.append("unsupported schema version")
     if not isinstance(value["artifact_sha256"], str) or value["artifact_sha256"] != _digest(value):
@@ -80,151 +126,156 @@ def validate(value: object, *, smoke: bool = False) -> list[str]:
     if _contains_path(value):
         errors.append("path leaked into evidence artifact")
     run = value["run"]
-    if not isinstance(run, dict):
-        return [*errors, "run must be an object"]
-    if not isinstance(run.get("git_sha"), str) or GIT_SHA.fullmatch(run["git_sha"]) is None:
-        errors.append("run git SHA is invalid")
-    if run.get("git_dirty") is not False:
+    if not _exact_keys(run, RUN_KEYS, "run", errors):
+        return errors
+    assert isinstance(run, dict)
+    actual_sha = run["git_sha"]
+    if not isinstance(actual_sha, str) or GIT_SHA.fullmatch(actual_sha) is None or actual_sha != expected_git_sha:
+        errors.append("run git SHA does not match frozen expected SHA")
+    if run["git_dirty"] is not False:
         errors.append("run is dirty")
-    python = run.get("python")
-    if (
-        not isinstance(python, dict)
-        or python.get("implementation") != "CPython"
-        or not isinstance(python.get("version"), str)
-    ):
+    repository_result = _git_commit_is_ancestor(repo_root, expected_git_sha) if repo_root else None
+    if repository_result is False:
+        errors.append("expected git SHA is not an existing ancestor of repository HEAD")
+    if not _exact_keys(run["python"], PYTHON_KEYS, "run python", errors):
+        return errors
+    python = run["python"]
+    assert isinstance(python, dict)
+    if python["implementation"] != "CPython" or not isinstance(python["version"], str):
         errors.append("run Python metadata is invalid")
-    if not isinstance(run.get("utc_started"), str) or not run["utc_started"].endswith("Z"):
+    if not isinstance(run["utc_started"], str) or not run["utc_started"].endswith("Z"):
         errors.append("run UTC timestamp is invalid")
+    if not _integer(run["measurement_workers"]) or run["measurement_workers"] <= 0:
+        errors.append("measurement workers must be positive")
+    if not smoke and run["measurement_workers"] != 3:
+        errors.append("retained artifact measurement workers must equal 3")
     generator = value["generator"]
-    if (
-        not isinstance(generator, dict)
-        or generator.get("formula_version") != "1"
-        or generator.get("temporary_root") != "redacted"
-    ):
+    if not _exact_keys(generator, GENERATOR_KEYS, "generator", errors):
+        return errors
+    assert isinstance(generator, dict)
+    formula_version = generator["formula_version"]
+    if formula_version != "1" or generator["temporary_root"] != "redacted":
         errors.append("generator contract is invalid")
     cells = value["cells"]
-    if not isinstance(cells, list) or not cells:
-        return [*errors, "cells must be a non-empty list"]
+    if not isinstance(cells, list):
+        return [*errors, "cells must be a list"]
+    if not smoke and len(cells) != 9:
+        errors.append("full matrix must contain exactly nine cells")
+    if smoke and len(cells) != 3:
+        errors.append("smoke matrix must contain exactly three cells")
     keys: list[tuple[int, int]] = []
+    cells_by_key: dict[tuple[int, int], dict[str, Any]] = {}
     for index, cell in enumerate(cells):
-        if not isinstance(cell, dict):
-            errors.append(f"cell {index} must be an object")
+        if not _exact_keys(cell, CELL_KEYS, f"cell {index}", errors):
             continue
+        assert isinstance(cell, dict)
         key = _cell_key(cell)
         if key is None:
             errors.append(f"cell {index} has invalid rows/chunk")
             continue
         keys.append(key)
+        cells_by_key[key] = cell
         rows, chunk = key
-        if cell.get("max_inflight_bytes") != chunk:
+        if cell["max_inflight_bytes"] != chunk:
             errors.append(f"cell {key} max inflight must equal configured chunk")
-        source = cell.get("source")
-        if (
-            not isinstance(source, dict)
-            or not _integer(source.get("bytes"))
-            or not isinstance(source.get("sha256"), str)
-            or SHA256.fullmatch(source["sha256"]) is None
-        ):
-            errors.append(f"cell {key} source hash facts invalid")
-        observed = cell.get("observed")
-        if not isinstance(observed, dict):
-            errors.append(f"cell {key} observed facts invalid")
+        source = cell["source"]
+        if not _exact_keys(source, SOURCE_KEYS, f"cell {key} source", errors):
             continue
-        if observed.get("actual_pass_count") != 1 or observed.get("max_passes") != 1:
-            errors.append(f"cell {key} pass count must be exactly one")
-        if observed.get("processed_row_count") != rows:
-            errors.append(f"cell {key} observed rows mismatch")
-        for metric in (
-            "accepted_chunk_count",
-            "peak_inflight_bytes",
-            "largest_retained_chunk_bytes",
-            "backpressure_event_count",
-        ):
-            if not _integer(observed.get(metric)):
-                errors.append(f"cell {key} {metric} invalid")
-        if (
-            isinstance(observed.get("peak_inflight_bytes"), int)
-            and observed["peak_inflight_bytes"] > chunk
-        ):
-            errors.append(f"cell {key} inflight bound exceeded")
-        if (
-            isinstance(observed.get("largest_retained_chunk_bytes"), int)
-            and observed["largest_retained_chunk_bytes"] > chunk
-        ):
-            errors.append(f"cell {key} retained chunk bound exceeded")
-        fit = cell.get("fit")
-        if not isinstance(fit, dict):
-            errors.append(f"cell {key} fit facts invalid")
-            continue
-        if fit.get("observation_count") != rows or not _integer(fit.get("event_count")):
-            errors.append(f"cell {key} fit count mismatch")
-        if fit.get("event_count") != fit.get("expected_event_count"):
-            errors.append(f"cell {key} fit event mismatch")
+        assert isinstance(source, dict)
         try:
-            expected = Decimal(str(fit.get("expected_rate")))
-            actual = Decimal(str(fit.get("rate")))
-            expected_total = Decimal(str(fit.get("expected_total_time")))
-            total = Decimal(str(fit.get("total_time")))
-            if expected <= 0 or actual <= 0 or expected_total <= 0 or total <= 0:
-                raise InvalidOperation
-            if Decimal(fit["event_count"]) / expected_total != expected:
-                errors.append(f"cell {key} expected fit facts inconsistent")
-            if abs(actual - expected) > Decimal("1e-12") * max(Decimal(1), abs(expected)):
-                errors.append(f"cell {key} fit rate mismatch")
-        except (InvalidOperation, ValueError, TypeError, KeyError):
-            errors.append(f"cell {key} fit numeric facts invalid")
-        for metric in ("absolute_rate_error", "relative_rate_error"):
-            if not _finite_nonnegative(fit.get(metric)):
+            expected_events, expected_total, expected_bytes, expected_hash = _fixture_facts(rows, str(formula_version))
+        except ValueError:
+            errors.append(f"cell {key} generator formula is unsupported")
+            continue
+        if source["bytes"] != expected_bytes or source["sha256"] != expected_hash:
+            errors.append(f"cell {key} source bytes or SHA-256 mismatch")
+        observed = cell["observed"]
+        if not _exact_keys(observed, OBSERVED_KEYS, f"cell {key} observed", errors):
+            continue
+        assert isinstance(observed, dict)
+        if observed["actual_pass_count"] != 1 or observed["max_passes"] != 1:
+            errors.append(f"cell {key} pass count must be exactly one")
+        if observed["processed_row_count"] != rows:
+            errors.append(f"cell {key} observed rows mismatch")
+        for metric in ("accepted_chunk_count", "peak_inflight_bytes", "largest_retained_chunk_bytes", "backpressure_event_count"):
+            if not _integer(observed[metric]):
                 errors.append(f"cell {key} {metric} invalid")
-        memory = cell.get("memory")
-        if not isinstance(memory, dict) or not _integer(memory.get("tracemalloc_peak_bytes")):
+        if isinstance(observed["peak_inflight_bytes"], int) and observed["peak_inflight_bytes"] > chunk:
+            errors.append(f"cell {key} inflight bound exceeded")
+        if isinstance(observed["largest_retained_chunk_bytes"], int) and observed["largest_retained_chunk_bytes"] > chunk:
+            errors.append(f"cell {key} retained chunk bound exceeded")
+        fit = cell["fit"]
+        if not _exact_keys(fit, FIT_KEYS, f"cell {key} fit", errors):
+            continue
+        assert isinstance(fit, dict)
+        if fit["observation_count"] != rows or fit["event_count"] != expected_events or fit["expected_event_count"] != expected_events:
+            errors.append(f"cell {key} fit observation/event count mismatch")
+        try:
+            actual_total = Decimal(str(fit["total_time"]))
+            stored_expected_total = Decimal(str(fit["expected_total_time"]))
+            actual_rate = Decimal(str(fit["rate"]))
+            stored_expected_rate = Decimal(str(fit["expected_rate"]))
+            stored_absolute = Decimal(str(fit["absolute_rate_error"]))
+            stored_relative = Decimal(str(fit["relative_rate_error"]))
+            recomputed_rate = Decimal(expected_events) / expected_total
+            recomputed_absolute = abs(actual_rate - recomputed_rate)
+            recomputed_relative = recomputed_absolute / abs(recomputed_rate)
+            if actual_total != expected_total or stored_expected_total != expected_total:
+                errors.append(f"cell {key} total time mismatch")
+            if stored_expected_rate != recomputed_rate:
+                errors.append(f"cell {key} expected rate mismatch")
+            # The runner records errors as JSON floats; reproduce that deliberate
+            # serialization boundary before requiring exact equality.
+            serialized_absolute = Decimal(str(float(recomputed_absolute)))
+            serialized_relative = Decimal(str(float(recomputed_relative)))
+            if stored_absolute != serialized_absolute or stored_relative != serialized_relative:
+                errors.append(f"cell {key} rate errors mismatch")
+        except (InvalidOperation, ValueError, TypeError):
+            errors.append(f"cell {key} fit numeric facts invalid")
+        memory = cell["memory"]
+        if not _exact_keys(memory, MEMORY_KEYS, f"cell {key} memory", errors):
+            continue
+        assert isinstance(memory, dict)
+        if not _integer(memory["tracemalloc_peak_bytes"]):
             errors.append(f"cell {key} memory facts invalid")
-        elif memory.get("rss_peak_bytes") is not None and not _integer(
-            memory.get("rss_peak_bytes")
-        ):
-            errors.append(f"cell {key} RSS peak invalid")
-        if (
-            memory is not None
-            and isinstance(memory, dict)
-            and memory.get("rss_delta_bytes") is not None
-            and not _integer(memory.get("rss_delta_bytes"))
-        ):
-            errors.append(f"cell {key} RSS delta invalid")
-        if not _finite_nonnegative(cell.get("elapsed_seconds")):
+        for metric in ("rss_peak_bytes", "rss_delta_bytes"):
+            if memory[metric] is not None and not _integer(memory[metric]):
+                errors.append(f"cell {key} {metric} invalid")
+        if not _finite_nonnegative(cell["elapsed_seconds"]):
             errors.append(f"cell {key} elapsed time invalid")
     if len(keys) != len(set(keys)):
         errors.append("duplicate matrix cells")
-    row_set = {key[0] for key in keys}
+    row_set, budget_set = {key[0] for key in keys}, {key[1] for key in keys}
     if smoke:
-        if len(keys) != 3 or len(row_set) != 1 or len({key[1] for key in keys}) < 3:
-            errors.append("smoke matrix must have one row size and three chunk budgets")
-    else:
-        budgets = {key[1] for key in keys}
-        expected_keys = {(rows, budget) for rows in FULL_ROWS for budget in budgets}
-        if row_set != set(FULL_ROWS) or len(budgets) < 3 or set(keys) != expected_keys:
-            errors.append("missing matrix cells")
+        if len(row_set) != 1 or len(budget_set) != 3 or len(keys) != 3:
+            errors.append("smoke matrix must have one row size and exactly three chunk budgets")
+    elif row_set != set(FULL_ROWS) or budget_set != set(FULL_BUDGETS) or set(keys) != {(r, b) for r in FULL_ROWS for b in FULL_BUDGETS}:
+        errors.append("full matrix row/budget set is not exact")
     operation = value["operation_evidence"]
-    expected_operation_rows = sorted(row_set) if smoke else list(FULL_ROWS)
-    if not isinstance(operation, dict) or operation.get("rows") != expected_operation_rows:
+    if not _exact_keys(operation, OPERATION_KEYS, "operation evidence", errors):
+        return errors
+    assert isinstance(operation, dict)
+    operation_rows = list(FULL_ROWS) if not smoke else sorted(row_set)
+    if operation["rows"] != operation_rows:
         errors.append("operation evidence rows invalid")
-    else:
-        counts = operation.get("accepted_chunks")
-        if (
-            not isinstance(counts, list)
-            or len(counts) != len(expected_operation_rows)
-            or not all(_integer(item) and item > 0 for item in counts)
-        ):
-            errors.append("operation evidence counts invalid")
-        elif not smoke:
-            densities = [count / row for count, row in zip(counts, FULL_ROWS, strict=True)]
-            if max(densities) / min(densities) > 2.0:
-                errors.append("operation evidence is not structurally near-linear")
+    counts = operation["accepted_chunks"]
+    if not isinstance(counts, list) or len(counts) != len(operation_rows) or not all(_integer(item) and item > 0 for item in counts):
+        errors.append("operation evidence counts invalid")
+    elif len(budget_set) == 3:
+        smallest = min(budget_set)
+        for row, count in zip(operation_rows, counts, strict=True):
+            cell = cells_by_key.get((row, smallest))
+            if cell is None or not isinstance(cell.get("observed"), dict) or count != cell["observed"].get("accepted_chunk_count"):
+                errors.append("operation evidence does not cross-link smallest-budget cells")
+                break
     return errors
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--artifact", type=Path, required=True)
+    parser.add_argument("--expected-git-sha", required=True)
+    parser.add_argument("--repo-root", type=Path)
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args()
     try:
@@ -232,7 +283,7 @@ def main() -> int:
     except (OSError, json.JSONDecodeError) as error:
         print(f"FAIL: cannot read artifact: {error}", file=sys.stderr)
         return 1
-    errors = validate(value, smoke=args.smoke)
+    errors = validate(value, expected_git_sha=args.expected_git_sha, smoke=args.smoke, repo_root=args.repo_root)
     if errors:
         print("FAIL: scale evidence rejected", file=sys.stderr)
         for error in errors:
