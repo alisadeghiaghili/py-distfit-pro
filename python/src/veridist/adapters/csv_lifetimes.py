@@ -391,11 +391,19 @@ class CsvLifetimeAdapter:
                 records, record_bytes + retained_object_graph_bytes(observation), start, sequence
             )
             if records and candidate_bytes > self.limits.chunk_bytes:
-                yield self._chunk(tuple(records), start, sequence)
-                start = record_offset
-                sequence += 1
-                records = [observation]
-                record_bytes = retained_object_graph_bytes(observation)
+                # The conservative tally can deliberately over-estimate.  An
+                # exact check at this impending boundary retains exact-fit
+                # semantics while still avoiding a graph walk per record.
+                candidate = self._chunk(tuple([*records, observation]), start, sequence)
+                if candidate.retained_payload_bytes <= self.limits.chunk_bytes:
+                    records.append(observation)
+                    record_bytes += retained_object_graph_bytes(observation)
+                else:
+                    yield self._chunk(tuple(records), start, sequence)
+                    start = record_offset
+                    sequence += 1
+                    records = [observation]
+                    record_bytes = retained_object_graph_bytes(observation)
             else:
                 records.append(observation)
                 record_bytes += retained_object_graph_bytes(observation)
