@@ -167,7 +167,11 @@ def validate(value: object, *, smoke: bool = False) -> list[str]:
         errors.append("operation evidence rows invalid")
     else:
         counts = operation.get("accepted_chunks")
-        if not isinstance(counts, list) or len(counts) != 3 or not all(_integer(item) and item > 0 for item in counts):
+        if (
+            not isinstance(counts, list)
+            or len(counts) != len(expected_operation_rows)
+            or not all(_integer(item) and item > 0 for item in counts)
+        ):
             errors.append("operation evidence counts invalid")
     return errors
 
