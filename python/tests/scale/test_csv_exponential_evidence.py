@@ -110,7 +110,12 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
         return environment
 
     def _check(
-        self, artifact: dict[str, object], *, expected_sha: str | None = None, smoke: bool = True
+        self,
+        artifact: dict[str, object],
+        *,
+        expected_sha: str | None = None,
+        smoke: bool = True,
+        bind_repository: bool = True,
     ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "artifact.json"
@@ -122,9 +127,9 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
                 str(path),
                 "--expected-git-sha",
                 expected_sha or _head(),
-                "--repo-root",
-                str(REPO),
             ]
+            if bind_repository:
+                command.extend(["--repo-root", str(REPO)])
             if smoke:
                 command.append("--smoke")
             return subprocess.run(
@@ -321,6 +326,50 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_scale13_rejects_large_rate_with_truthful_large_error_facts(self) -> None:
+        artifact = _smoke_artifact()
+        fit = artifact["cells"][0]["fit"]
+        expected_rate = Decimal(str(fit["expected_rate"]))
+        actual_rate = Decimal("999")
+        absolute = abs(actual_rate - expected_rate)
+        fit["rate"] = 999
+        fit["absolute_rate_error"] = float(absolute)
+        fit["relative_rate_error"] = float(absolute / abs(expected_rate))
+        _seal(artifact)
+        result = self._check(artifact)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("rate error exceeds frozen tolerance", result.stderr)
+
+    def test_scale14_cli_rejects_unbound_zero_sha_smoke_artifact(self) -> None:
+        artifact = _smoke_artifact()
+        artifact["run"]["git_sha"] = "0" * 40
+        _seal(artifact)
+        result = self._check(
+            artifact,
+            expected_sha="0" * 40,
+            bind_repository=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--repo-root", result.stderr)
+
+    def test_scale15_rejects_zero_accepted_chunks_in_a_64kib_full_cell(self) -> None:
+        retained = Path(__file__).parents[2] / "evidence" / "scale-csv-exponential-v1.json"
+        artifact = json.loads(retained.read_text(encoding="utf-8"))
+        target = next(
+            cell
+            for cell in artifact["cells"]
+            if cell["rows"] == 10_000 and cell["chunk_bytes"] == 65_536
+        )
+        target["observed"]["accepted_chunk_count"] = 0
+        _seal(artifact)
+        result = self._check(
+            artifact,
+            expected_sha="4490c9eb08e9ed5e420a2b677d9de843fdf66a5d",
+            smoke=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("accepted_chunk_count must be positive", result.stderr)
 
 
 if __name__ == "__main__":

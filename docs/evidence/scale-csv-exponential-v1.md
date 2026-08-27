@@ -21,7 +21,11 @@ ancestor of the supplied repository HEAD, rejects any extra schema fields or
 path-like keys/values, and independently regenerates each CSV byte stream,
 SHA-256, event count, Decimal total time, expected rate, and recorded rate
 errors. Operation chunk counts are cross-linked to the 32KiB cells. The retained
-run used exactly three measurement workers.
+run used exactly three measurement workers. Repository binding is mandatory for
+both retained and smoke artifacts. Formula v1 permits at most ten IEEE-754
+binary64 epsilons of relative fit-rate error (with the corresponding
+rate-scaled absolute cap), solely for the frozen binary64 serialization and
+accumulation boundary.
 
 | Logical rows | Chunk budgets | Passes | Internal payload result | Fit result |
 | ---: | --- | --- | --- | --- |

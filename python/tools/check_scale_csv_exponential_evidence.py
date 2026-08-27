@@ -68,6 +68,10 @@ FIT_KEYS = {
 }
 MEMORY_KEYS = {"tracemalloc_peak_bytes", "rss_peak_bytes", "rss_delta_bytes"}
 OPERATION_KEYS = {"rows", "accepted_chunks"}
+# Formula v1 emits the fitted rate as a JSON binary64 value. Ten IEEE-754
+# double-precision epsilons is the frozen allowance for that conversion and
+# the reducer's binary64 accumulation; it is not a performance tolerance.
+FORMULA_V1_RATE_RELATIVE_TOLERANCE = Decimal("2.220446049250313e-15")
 
 
 def _finite_nonnegative(value: object) -> bool:
@@ -135,11 +139,11 @@ def _fixture_facts(rows: int, formula_version: str) -> tuple[int, Decimal, int, 
     return events, total, byte_count, digest.hexdigest()
 
 
-def _git_commit_is_ancestor(repo_root: Path, sha: str) -> bool | None:
-    """Return None only when no usable repository was supplied."""
+def _git_commit_is_ancestor(repo_root: Path, sha: str) -> bool:
+    """Return whether ``sha`` is an existing ancestor of the bound repository."""
 
     if not (repo_root / ".git").exists():
-        return None
+        return False
     try:
         subprocess.run(
             ["git", "-C", str(repo_root), "cat-file", "-e", f"{sha}^{{commit}}"],
@@ -195,8 +199,9 @@ def validate(
         errors.append("run git SHA does not match frozen expected SHA")
     if run["git_dirty"] is not False:
         errors.append("run is dirty")
-    repository_result = _git_commit_is_ancestor(repo_root, expected_git_sha) if repo_root else None
-    if repository_result is False:
+    if repo_root is None:
+        errors.append("repository binding is required")
+    elif not _git_commit_is_ancestor(repo_root, expected_git_sha):
         errors.append("expected git SHA is not an existing ancestor of repository HEAD")
     if not _exact_keys(run["python"], PYTHON_KEYS, "run python", errors):
         return errors
@@ -268,6 +273,8 @@ def validate(
         ):
             if not _integer(observed[metric]):
                 errors.append(f"cell {key} {metric} invalid")
+        if observed["accepted_chunk_count"] == 0:
+            errors.append(f"cell {key} accepted_chunk_count must be positive")
         if (
             isinstance(observed["peak_inflight_bytes"], int)
             and observed["peak_inflight_bytes"] > chunk
@@ -308,6 +315,14 @@ def validate(
             serialized_relative = Decimal(str(float(recomputed_relative)))
             if stored_absolute != serialized_absolute or stored_relative != serialized_relative:
                 errors.append(f"cell {key} rate errors mismatch")
+            maximum_absolute = FORMULA_V1_RATE_RELATIVE_TOLERANCE * max(
+                Decimal(1), abs(recomputed_rate)
+            )
+            if (
+                recomputed_absolute > maximum_absolute
+                or recomputed_relative > FORMULA_V1_RATE_RELATIVE_TOLERANCE
+            ):
+                errors.append(f"cell {key} rate error exceeds frozen tolerance")
         except (InvalidOperation, ValueError, TypeError):
             errors.append(f"cell {key} fit numeric facts invalid")
         memory = cell["memory"]
@@ -365,7 +380,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--artifact", type=Path, required=True)
     parser.add_argument("--expected-git-sha", required=True)
-    parser.add_argument("--repo-root", type=Path)
+    parser.add_argument("--repo-root", type=Path, required=True)
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args()
     try:
