@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ProcessPoolExecutor
 import hashlib
 import json
 import platform
@@ -138,11 +139,25 @@ def _cell(
     }
 
 
+def _cell_request(request: tuple[str, int, int, int, Decimal]) -> dict[str, object]:
+    """Pickle-safe worker boundary; paths stay process-local and unrecorded."""
+
+    path, rows, budget, events, total = request
+    return _cell(
+        Path(path),
+        rows=rows,
+        chunk_bytes=budget,
+        expected_events=events,
+        expected_total=total,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--rows", default="10000,100000,1000000")
     parser.add_argument("--chunk-bytes", default="32768,65536,131072")
+    parser.add_argument("--workers", type=int, default=1)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     if _git(root, "status", "--porcelain"):
@@ -151,6 +166,8 @@ def main() -> int:
     budgets = _parse_budgets(args.chunk_bytes)
     if not rows or any(item <= 0 for item in rows) or len(set(rows)) != len(rows):
         raise SystemExit("rows must contain distinct positive integers")
+    if args.workers <= 0:
+        raise SystemExit("workers must be positive")
     TEMPORARY_ROOT.mkdir(parents=True, exist_ok=True)
     started = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     cells: list[dict[str, object]] = []
@@ -158,16 +175,14 @@ def main() -> int:
     for row_count in rows:
         fixture = TEMPORARY_ROOT / f"scale-csv-exp-v1-{row_count}.csv"
         expected_events, expected_total = _generate(fixture, row_count)
-        row_cells = [
-            _cell(
-                fixture,
-                rows=row_count,
-                chunk_bytes=budget,
-                expected_events=expected_events,
-                expected_total=expected_total,
-            )
-            for budget in budgets
+        requests = [
+            (str(fixture), row_count, budget, expected_events, expected_total) for budget in budgets
         ]
+        if args.workers == 1:
+            row_cells = [_cell_request(request) for request in requests]
+        else:
+            with ProcessPoolExecutor(max_workers=min(args.workers, len(requests))) as executor:
+                row_cells = list(executor.map(_cell_request, requests))
         cells.extend(row_cells)
         chunks_by_row[row_count] = int(row_cells[0]["observed"]["accepted_chunk_count"])
     value: dict[str, object] = {
@@ -178,6 +193,7 @@ def main() -> int:
             "utc_started": started,
             "python": {"implementation": platform.python_implementation(), "version": platform.python_version()},
             "platform": platform.platform(),
+            "measurement_workers": args.workers,
         },
         "generator": {"formula_version": "1", "temporary_root": "redacted"},
         "cells": cells,
