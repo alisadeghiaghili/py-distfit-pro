@@ -17,6 +17,9 @@ event token `1`, and right-censoring token `0`. It executes one iterator pass
 with a declared logical retained-payload chunk budget and returns a closed,
 typed execution result. This is not a generic CSV reader or a portable RSS,
 throughput, cancellation, retry, checkpoint, or broad out-of-core claim.
+Retained evidence establishes bounded internal payload only for the measured
+10k/100k/1m by 32KiB/64KiB/128KiB matrix; it does not establish a general
+big-data or high-throughput capability.
 
 ## Install an evaluation build
 

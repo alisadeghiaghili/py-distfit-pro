@@ -137,6 +137,17 @@ class PackageLandingContractTests(unittest.TestCase):
         namespace: dict[str, object] = {}
         exec(compile(quickstart, "package-landing-quickstart", "exec"), namespace)
 
+    def test_scale_evidence_claim_is_equivalent_and_limited_in_every_locale(self) -> None:
+        expected = {
+            "en": "measured 10k/100k/1m by 32KiB/64KiB/128KiB matrix",
+            "fa": "ماتریس اندازه‌گیری‌شدهٔ 10k/100k/1m ردیف و بودجه‌های 32KiB/64KiB/128KiB",
+            "de": "gemessene Matrix aus 10k/100k/1m Zeilen und 32KiB/64KiB/128KiB",
+        }
+        for locale, phrase in expected.items():
+            with self.subTest(locale=locale):
+                content = " ".join(README_PATHS[locale].read_text(encoding="utf-8").split())
+                self.assertIn(phrase, content)
+
     def test_all_landing_pages_are_clean_nfc_without_retired_claims_or_bidi_controls(self) -> None:
         retired_claims = (
             "does not provide a distribution-fitting API",

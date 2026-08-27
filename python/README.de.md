@@ -20,6 +20,9 @@ einen Iterator-Durchlauf mit einem deklarierten logischen Budget für behaltene
 Payloads aus und gibt ein geschlossenes, typisiertes Ausführungsergebnis zurück.
 Dies ist keine Behauptung über allgemeines CSV, portable RSS-Grenzen,
 Durchsatz, Abbruch, Retry, Checkpoints oder breite Out-of-Core-Unterstützung.
+Die hinterlegte Evidenz belegt begrenzte interne Payload nur für die gemessene
+Matrix aus 10k/100k/1m Zeilen und 32KiB/64KiB/128KiB; daraus folgt keine
+allgemeine Big-Data- oder Hochdurchsatzfähigkeit.
 
 ## Evaluierungsstand installieren
 
