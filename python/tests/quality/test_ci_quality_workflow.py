@@ -74,6 +74,10 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         )
         self.assertIn("python -m build --sdist --wheel", self.workflow)
         self.assertIn("python -m twine check dist/*", self.workflow)
+        self.assertIn("Verify built distributions remain legacy-isolated", self.workflow)
+        self.assertIn("python tools/check_legacy_isolation.py", self.workflow)
+        self.assertIn("--artifact", self.workflow)
+        self.assertIn("artifacts=(dist/*.whl dist/*.tar.gz)", self.workflow)
         self.assertIn('python -m venv "$RUNNER_TEMP/veridist-wheel"', self.workflow)
         self.assertIn(
             '"$RUNNER_TEMP/veridist-wheel/bin/python" -m pip install dist/*.whl',

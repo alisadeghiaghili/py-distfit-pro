@@ -77,6 +77,15 @@ jobs:
           python -m pip install "build>=1.2,<2" "twine>=6,<7"
           python -m build --sdist --wheel
           python -m twine check dist/*
+      - name: Verify built distributions remain legacy-isolated
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifacts=(dist/*.whl dist/*.tar.gz)
+          test "${#artifacts[@]}" -eq 2
+          for artifact in "${artifacts[@]}"; do test -f "$artifact"; done
+          python tools/check_legacy_isolation.py \
+            --artifact "${artifacts[0]}" --artifact "${artifacts[1]}"
       - name: Install and inspect the wheel outside the checkout
         run: |
           python -m venv "$RUNNER_TEMP/veridist-wheel"
