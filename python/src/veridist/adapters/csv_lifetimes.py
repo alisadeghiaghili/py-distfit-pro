@@ -437,7 +437,19 @@ class CsvLifetimeAdapter:
         # The final measured byte-size is retained by both chunk and envelope
         # as one shared integer object.  Its upper bound is the declared limit.
         byte_size_field_bytes = sys.getsizeof(self.limits.chunk_bytes)
-        return fixed + tuple_slot_bytes * count + observation_bytes + byte_size_field_bytes
+        # Object ownership is exact at emission, while this pre-emission tally
+        # intentionally avoids an O(k) graph walk.  Different chunk-id values
+        # can have small interpreter-specific graph overhead, so reserve a
+        # fixed conservative guard.  Without it an otherwise valid chunk can
+        # cross the public byte cap only after emission.
+        conservative_guard_bytes = 256
+        return (
+            fixed
+            + tuple_slot_bytes * count
+            + observation_bytes
+            + byte_size_field_bytes
+            + conservative_guard_bytes
+        )
 
     def _parse_row(self, row: list[str], record_offset: int) -> LifetimeObservation:
         if not row:
