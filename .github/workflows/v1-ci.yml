@@ -86,11 +86,22 @@ jobs:
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/veridist-wheel/bin/python" -c "import importlib.metadata as metadata; import importlib.resources as resources; import veridist; assert metadata.version('veridist') == veridist.__version__ == '0.0.0.dev0'; assert resources.files('veridist').joinpath('py.typed').is_file()"
           "$RUNNER_TEMP/veridist-wheel/bin/python" - <<'PY'
-          from veridist.domain import ExactLifetime, RightCensoredLifetime
-          from veridist.families import ExponentialFitSuccess, fit_exponential
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
+          from veridist.families import ExponentialFitSuccess
           from veridist.reporting import ReportLocale, render_exponential_report
 
-          fit = fit_exponential([ExactLifetime(1.0), RightCensoredLifetime(1.0)])
+          with TemporaryDirectory() as directory:
+              source = Path(directory) / "lifetimes.csv"
+              source.write_text("time,event_observed\\n1,1\\n1,0\\n", encoding="utf-8")
+              result = fit_exponential_csv(
+                  source,
+                  schema=CsvLifetimeSchema("time", "event_observed"),
+                  source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
+                  limits=CsvLifetimeLimits(4096, 4096),
+              )
+          fit = result.fit
           assert isinstance(fit, ExponentialFitSuccess)
           assert fit.rate == 0.5
           assert fit.inference == 'not_provided'

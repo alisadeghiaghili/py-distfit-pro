@@ -84,11 +84,13 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn("importlib.metadata", self.workflow)
         self.assertIn("py.typed", self.workflow)
         for smoke_contract in (
-            "ExactLifetime",
-            "RightCensoredLifetime",
-            "fit_exponential",
+            "CsvLifetimeLimits",
+            "CsvLifetimeSchema",
+            "PublicSourceId",
+            "fit_exponential_csv",
             "render_exponential_report",
             "ReportLocale.FA",
+            "time,event_observed",
             "assert fit.rate == 0.5",
             "assert fit.inference == 'not_provided'",
             "assert fit.censoring_assumption == 'independent_right_censoring'",
