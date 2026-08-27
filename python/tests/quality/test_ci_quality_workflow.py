@@ -145,6 +145,7 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn('python -m pip install -e ".[test,browser]"', self.workflow)
         self.assertIn("python -m playwright install --with-deps chromium", self.workflow)
         self.assertIn('VERIDIST_BROWSER_TESTS: "1"', self.workflow)
+        self.assertIn("tests.browser.test_sphinx_rtl_pages", self.workflow)
         self.assertIn("find artifacts/browser-rtl", self.workflow)
         self.assertIn("-type f -name '*.png' -size +0c", self.workflow)
         self.assertIn('test "${#screenshots[@]}" -eq 2', self.workflow)
@@ -169,6 +170,12 @@ class VeridistWorkflowContractTests(unittest.TestCase):
                 self.assertIn(property_name, browser_test)
         self.assertIn('"unicodeBidi": "isolate"', browser_test)
         self.assertIn("self.assertGreater(screenshot.stat().st_size, 0)", browser_test)
+        sphinx_browser_test = (
+            REPOSITORY_ROOT / "python" / "tests" / "browser" / "test_sphinx_rtl_pages.py"
+        ).read_text(encoding="utf-8")
+        for required in ("sphinx", "exponential-right-censoring.html", "unicodeBidi", "table", "math"):
+            with self.subTest(required=required):
+                self.assertIn(required, sphinx_browser_test)
 
     def test_aggregate_gate_fails_if_any_required_job_does_not_succeed(self) -> None:
         self.assertIn("  veridist-gate:", self.workflow)

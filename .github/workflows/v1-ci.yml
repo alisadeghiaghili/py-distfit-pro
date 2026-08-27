@@ -183,11 +183,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[test,browser]"
           python -m playwright install --with-deps chromium
-      - name: Capture Persian report browser evidence
+      - name: Verify report and built Sphinx locale pages in Chromium
         env:
           VERIDIST_BROWSER_TESTS: "1"
           VERIDIST_BROWSER_ARTIFACT_DIR: artifacts/browser-rtl
-        run: python -m unittest tests.browser.test_exponential_report_rtl -v
+        run: >
+          python -m unittest tests.browser.test_exponential_report_rtl
+          tests.browser.test_sphinx_rtl_pages -v
       - name: Verify exact screenshot evidence set
         shell: bash
         run: |
