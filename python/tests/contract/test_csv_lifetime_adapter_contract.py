@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 import unittest
@@ -879,6 +880,40 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
         verified = error.with_mutation_status(SourceMutationStatus.VERIFIED_UNCHANGED)
         self.assertIsNot(error, verified)
         self.assertEqual(verified.context, error.context)
+
+    def test_csv18_chunk_builder_accounting_operations_scale_linearly(self) -> None:
+        def operation_count(rows: int) -> int:
+            payload = b"time,event_observed\n" + b"1,1\n" * rows
+            adapter, _ = self.adapter(
+                payload,
+                chunk_bytes=10_000_000,
+                max_inflight_bytes=10_000_000,
+            )
+            with patch(
+                "veridist.adapters.csv_lifetimes.retained_object_graph_bytes",
+                wraps=retained_object_graph_bytes,
+            ) as accounting:
+                chunks = tuple(adapter.iter_chunks())
+            self.assertEqual(len(chunks), 1)
+            return accounting.call_count
+
+        small = operation_count(128)
+        large = operation_count(256)
+        self.assertLessEqual(large, 2 * small + 4)
+
+    def test_csv19_filesystem_initial_identity_is_bound_to_open_handle(self) -> None:
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "lifetimes.csv"
+            path.write_bytes(b"time,event_observed\n1,1\n")
+            adapter = CsvLifetimeAdapter(
+                path,
+                SCHEMA,
+                SOURCE_ID,
+                CsvLifetimeLimits(2048, 2048),
+            )
+            with patch("veridist.adapters.csv_lifetimes.os.fstat", wraps=os.fstat) as fstat:
+                self.assertEqual(len(tuple(adapter.iter_chunks())), 1)
+            fstat.assert_called_once()
 
 
 if __name__ == "__main__":

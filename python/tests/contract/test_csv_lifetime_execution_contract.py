@@ -133,8 +133,16 @@ class CsvLifetimeExecutionContracts(unittest.TestCase):
                 self.assertEqual((result.fit.observation_count, result.fit.event_count), (3, 2))
                 self.assertAlmostEqual(result.fit.rate, 2.0 / 6.0)
                 self.assertEqual(source.close_count, 1)
+                observation = result.execution.provenance.execution
+                self.assertEqual(observation.passes.actual_pass_count, 1)
+                self.assertEqual(observation.passes.max_passes, 1)
+                self.assertGreater(observation.buffer.peak_inflight_bytes, 0)
+                self.assertEqual(
+                    observation.buffer.peak_inflight_bytes,
+                    observation.buffer.largest_retained_chunk_bytes,
+                )
                 self.assertLessEqual(
-                    result.execution.provenance.execution.buffer.peak_inflight_bytes,
+                    observation.buffer.peak_inflight_bytes,
                     budget,
                 )
 
