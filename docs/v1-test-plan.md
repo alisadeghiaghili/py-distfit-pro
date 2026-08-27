@@ -126,11 +126,14 @@ approved component is statistically correct, portable, or ready to ship.
 The narrow `I18N-RTL-EXP-01` contract has an opt-in Persian **HTML report** browser
 gate covering success and failure facts, computed document/report direction,
 right alignment and LTR/isolate handling of mixed Latin API identifiers. It
-requires exactly two nonempty screenshots. Local Edge 151 evidence passes; the
-pinned Playwright 1.62.0 matched-Chromium CI run remains unverified. PDF is not
-covered by this gate and must not be inferred from HTML evidence. The broader
-`I18N-RTL-01` gate for documentation HTML/PDF, tables, code blocks, formulae
-and mixed LTR identifiers remains incomplete.
+requires exactly two nonempty screenshots. `I18N-RTL-DOC-01` builds the Farsi
+and German tutorial pages and independently requires the exact `code.literal`,
+`.highlight pre`, `table.docutils` and `.math` selectors: Farsi root/body are
+RTL/right, German is LTR, and each Farsi machine-readable exemplar is
+LTR/`unicode-bidi:isolate`. The rendered page must contain no network MathJax
+runtime. Both HTML gates pass locally with Edge; the pinned Playwright 1.62.0
+matched-Chromium CI run remains unverified. PDF is not covered by either gate
+and must not be inferred from HTML evidence.
 
 ## CI tiers and checker contract
 
@@ -158,8 +161,9 @@ rationale, owner and expiry.
 The documentation job is configured to build EN, FA and DE with warnings fatal,
 check links, execute canonical examples/parity tests, validate direction and
 retain rendered HTML. The complete local gettext/three-locale HTML/linkcheck
-run passes. Local Edge browser evidence passes for Persian report HTML; remote
-matched-Chromium CI and any PDF rendering evidence remain unverified. Eight
+run passes. Local Edge browser evidence passes for Persian report HTML and the
+Farsi/German built Sphinx tutorial contract; remote matched-Chromium CI and any
+PDF rendering evidence remain unverified. Eight
 targeted manual mutant probes were killed, but they are not a formal mutation
 runner or score. The formal mutation runner is not implemented. The narrow
 `SCALE-CSV-EXP-01` retained-artifact checker is implemented; broader adapter,

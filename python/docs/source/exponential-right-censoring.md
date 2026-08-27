@@ -17,10 +17,20 @@ order. Each data row is one finite non-negative time and token `1` (event) or
 of relying on a local path in returned facts. The adapter never guesses columns,
 headers, encodings, delimiters, missing values, or censoring conventions.
 
+The schema declaration below is executable Python. It names the only accepted
+header pair and intentionally keeps machine-readable identifiers left to right.
+
+```python
+schema = CsvLifetimeSchema("time", "event_observed")
+```
+
 | CSV field | Meaning |
 | --- | --- |
 | `time` | finite non-negative lifetime |
 | `event_observed` | `1` for an exact event; `0` for independent right censoring |
+
+The displayed equation fixes the model parameterization used throughout this
+vertical.
 
 ```{math}
 \widehat{rate} = r / tau

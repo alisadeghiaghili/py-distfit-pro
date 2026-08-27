@@ -237,6 +237,8 @@ class DocsToolchainContractTests(unittest.TestCase):
         self.assertIn("one iterator pass", tutorial_page)
         self.assertIn("logical bound on retained payload", tutorial_page)
         self.assertIn("not a portable process-memory or RSS limit", tutorial_page)
+        self.assertIn('```python', tutorial_page)
+        self.assertIn('CsvLifetimeSchema("time", "event_observed")', tutorial_page)
         self.assertIn("| CSV field | Meaning |", tutorial_page)
         self.assertIn("```{math}", tutorial_page)
         self.assertNotIn("autofunction", api_page)
@@ -250,6 +252,13 @@ class DocsToolchainContractTests(unittest.TestCase):
         self.assertIn("direction: ltr", css)
         self.assertIn("text-align: left", css)
         self.assertIn("unicode-bidi: isolate", css)
+
+    def test_math_markup_is_static_and_does_not_fetch_a_network_runtime(self) -> None:
+        configuration = runpy.run_path(str(SOURCE_ROOT / "conf.py"))
+        self.assertEqual(configuration["mathjax_path"], "mathjax-static.js")
+        asset = SOURCE_ROOT / "_static" / "mathjax-static.js"
+        self.assertTrue(asset.is_file())
+        self.assertNotIn("http", asset.read_text(encoding="utf-8").lower())
 
     def test_example_has_one_registered_executable_source(self) -> None:
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))

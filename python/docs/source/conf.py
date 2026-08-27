@@ -28,6 +28,9 @@ templates_path = []
 html_theme = "alabaster"
 html_static_path = ["_static"]
 html_css_files = ["rtl.css"]
+# Math markup stays in the static Sphinx HTML node.  A local no-op asset avoids
+# an external MathJax fetch during offline documentation viewing and browser QC.
+mathjax_path = "mathjax-static.js"
 
 
 def setup(app):

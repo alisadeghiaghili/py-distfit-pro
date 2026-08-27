@@ -20,6 +20,9 @@ msgstr "Strikte CSV-Eingabe"
 msgid "The public adapter accepts UTF-8 CSV with exactly `time,event_observed` in that order. Each data row is one finite non-negative time and token `1` (event) or `0` (right censored). A caller supplies a non-secret `PublicSourceId` instead of relying on a local path in returned facts. The adapter never guesses columns, headers, encodings, delimiters, missing values, or censoring conventions."
 msgstr "Der öffentliche Adapter akzeptiert UTF-8-CSV mit exakt `time,event_observed` in dieser Reihenfolge. Jede Datenzeile enthält eine endliche nichtnegative Zeit und Token `1` (Ereignis) oder `0` (rechtszensiert). Ein Aufrufer liefert eine nicht geheime `PublicSourceId`, statt sich bei zurückgegebenen Fakten auf einen lokalen Pfad zu stützen. Der Adapter errät niemals Spalten, Kopfzeilen, Kodierungen, Trennzeichen, fehlende Werte oder Zensierungskonventionen."
 
+msgid "The schema declaration below is executable Python. It names the only accepted header pair and intentionally keeps machine-readable identifiers left to right."
+msgstr "Die folgende Schema-Deklaration ist ausführbares Python. Sie benennt das einzige akzeptierte Kopfzeilenpaar und hält maschinenlesbare Bezeichner absichtlich von links nach rechts."
+
 msgid "CSV field"
 msgstr "CSV-Feld"
 
@@ -38,8 +41,11 @@ msgstr "`time` (Zeit)"
 msgid "`event_observed`"
 msgstr "`event_observed` (beobachtetes Ereignis)"
 
+msgid "The displayed equation fixes the model parameterization used throughout this vertical."
+msgstr "Die dargestellte Gleichung legt die in dieser Funktionseinheit verwendete Modellparametrisierung fest."
+
 msgid "\\widehat{rate} = r / tau"
-msgstr "\\widehat{rate} = r / tau\\quad\\text{(Rate)}"
+msgstr "\\widehat{rate} = r / tau{}"
 
 msgid "Failure cases and limits"
 msgstr "Fehlerfälle und Grenzen"

@@ -58,8 +58,13 @@ as a statement about uninspected current files.
   nonempty Persian HTML screenshots; computed RTL/right alignment and
   LTR/isolate facts pass for success and failure reports. Exact Playwright
   1.62.0 bundled-Chromium execution remains required and unverified in remote CI.
-  The broader documentation/PDF/table/code/formula RTL gate is incomplete;
-  network-font and pixel-baseline rendering are not claimed.
+  `I18N-RTL-DOC-01` additionally passes locally with Edge against Sphinx-built
+  Persian and German tutorial pages: the Farsi root/body are `fa`/RTL/right,
+  German is `de`/LTR, and independently selected inline code, highlighted
+  Python block, table and static math nodes are LTR with `unicode-bidi:isolate`.
+  The page uses a local static math asset rather than a network MathJax fetch.
+  Pinned Playwright-Chromium remote execution, PDF, network-font and
+  pixel-baseline rendering remain unverified and are not claimed.
 - Eight scratch-only manual patches were each killed by one targeted unittest:
   `fit_exponential` materialized `tuple(observations)` / `test_exp14_memory_growth_is_bounded_for_unique_generated_observations`;
   `merge` used the raw two totals / `test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions`;
@@ -87,8 +92,8 @@ as a statement about uninspected current files.
   `fit_exponential_csv`, `CsvLifetimeSchema`, `CsvLifetimeLimits`,
   `PublicSourceId`, and `ExponentialSourceFitResult`. It is deliberately not
   a broad distribution-fitting API or an alpha release claim. The version stays
-  `0.0.0.dev0`: the executable mutation runner, complete documentation RTL
-  render evidence, and release/publishing exits are still incomplete.
+  `0.0.0.dev0`: the executable mutation runner, PDF/release documentation
+  evidence, and release/publishing exits are still incomplete.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free
   semantic/hash checker, AST/dynamic-import isolation checks and built-artifact
   payload inspection in the configured package job. LM-002 records the
@@ -115,7 +120,7 @@ as a statement about uninspected current files.
 | Inference | Refit Monte-Carlo GoF and published calibration scope; no analytic p-value without a family/estimator source |
 | Uncertainty | Bootstrap failure accounting and coverage evidence only for declared regular scenarios |
 | Censoring | Explicit likelihood semantics and reference tests; unsupported family combinations fail loudly |
-| Localization | Keep implemented EN/FA/DE parity, examples and local `-W`/linkcheck; require remote pinned-Chromium HTML RTL evidence and separately specify PDF before claiming it |
+| Localization | Keep implemented EN/FA/DE parity, examples, local `-W`/linkcheck and `I18N-RTL-DOC-01` Sphinx HTML evidence; require remote pinned-Chromium evidence and separately specify PDF before claiming it |
 | Migration | Keep ADR-0016 ledger hashes current; require independent specs/RED tests per candidate and retain `distfit_pro` import/package isolation |
 | Quality | Global >=95% line and branch; numerical `domain`/`statistics`/`families`/`engine` paths >=98% line and branch; every production file >=90% of both absent ADR; executable mutation >=80% for that scope |
 | Competitive evidence | Every public `supported`/`not_supported` claim cell source-locked at 100% coverage; source-lock registry/checker currently NOT IMPLEMENTED |

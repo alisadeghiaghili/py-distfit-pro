@@ -173,9 +173,19 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         sphinx_browser_test = (
             REPOSITORY_ROOT / "python" / "tests" / "browser" / "test_sphinx_rtl_pages.py"
         ).read_text(encoding="utf-8")
-        for required in ("sphinx", "exponential-right-censoring.html", "unicodeBidi", "table", "math"):
+        for required in (
+            "sphinx",
+            "exponential-right-censoring.html",
+            "unicodeBidi",
+            "code.literal",
+            ".highlight pre",
+            "table.docutils",
+            ".math",
+            'wait_until="load"',
+        ):
             with self.subTest(required=required):
                 self.assertIn(required, sphinx_browser_test)
+        self.assertNotIn(" || ", sphinx_browser_test)
 
     def test_aggregate_gate_fails_if_any_required_job_does_not_succeed(self) -> None:
         self.assertIn("  veridist-gate:", self.workflow)
