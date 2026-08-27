@@ -33,7 +33,7 @@
   "expected_denominators": {
     "src/veridist/__init__.py": {"statements": 2, "branches": 0},
     "src/veridist/adapters/__init__.py": {"statements": 0, "branches": 0},
-    "src/veridist/adapters/csv_lifetimes.py": {"statements": 299, "branches": 118},
+    "src/veridist/adapters/csv_lifetimes.py": {"statements": 304, "branches": 120},
     "src/veridist/domain/__init__.py": {"statements": 2, "branches": 0},
     "src/veridist/domain/lifetimes.py": {"statements": 28, "branches": 6},
     "src/veridist/engine/__init__.py": {"statements": 10, "branches": 0},
