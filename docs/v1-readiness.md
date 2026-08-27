@@ -71,8 +71,18 @@ as a statement about uninspected current files.
   and Persian `dir="rtl"` became `dir="ltr"` / `test_i18n_exp02_farsi_report_has_rtl_root_and_ltr_isolates`.
   This is diagnostic evidence only. The formal mutation runner and score are
   **NOT IMPLEMENTED**.
-- Retained DS pass/byte trace artifacts, actual source adapters, persistent
-  checkpoint backend and production orchestrator are **NOT IMPLEMENTED**.
+- `SCALE-CSV-EXP-01` retains an actual strict CSV adapter and one-pass
+  exponential-orchestrator trace at `python/evidence/scale-csv-exponential-v1.json`.
+  Its fail-closed checker accepts exactly nine cells: 10k/100k/1m rows by
+  32KiB/64KiB/128KiB logical chunk budgets. Every recorded cell has 1/1 pass,
+  complete rows, and internal retained/inflight payload no larger than the
+  configured budget; input paths are redacted and independent Decimal facts
+  agree with the fit. CPython 3.14.6/Windows 11 tracemalloc and elapsed values
+  are descriptive. RSS is unknown on that stdlib environment, so no process
+  memory ceiling or general throughput claim is made. Parquet/Arrow/dataframe/
+  database adapters, persistent checkpoint backend, cancellation/retry
+  orchestration, broad streaming equivalence and production-scale RSS bounds
+  remain **NOT IMPLEMENTED**.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free
   semantic/hash checker, AST/dynamic-import isolation checks and built-artifact
   payload inspection in the configured package job. LM-002 records the
@@ -92,10 +102,10 @@ as a statement about uninspected current files.
 | Area | Required v1 evidence |
 | --- | --- |
 | Core | Keep the current immutable exponential result/capability facts; extend the [capability matrix](capability-matrix.md) only with cited conformance evidence |
-| First vertical | Current exponential point-estimation cell is callable; complete production adapter/pass-byte/scale evidence before calling the reliability + big-data vertical complete |
+| First vertical | The strict CSV/exponential cell has retained pass/byte evidence; add portable process-memory and the remaining reliability/scale evidence before calling a broad reliability + big-data vertical complete |
 | Families | Any family beyond the first reliability vertical passes support/CDF/PPF/log-density/reference tests with cited specifications |
 | Estimation | MLE applicability, convergence/restart diagnostics, and failures that remain visible |
-| Scale | Promote the implemented DS-01--DS-12 contract fixtures into actual adapters and an orchestrator; retain measured pass/byte traces and production-scale memory evidence |
+| Scale | Keep the retained strict CSV/exponential matrix; add RSS/process-memory evidence and promote other advertised adapters/orchestrators only with their own measured traces |
 | Inference | Refit Monte-Carlo GoF and published calibration scope; no analytic p-value without a family/estimator source |
 | Uncertainty | Bootstrap failure accounting and coverage evidence only for declared regular scenarios |
 | Censoring | Explicit likelihood semantics and reference tests; unsupported family combinations fail loudly |

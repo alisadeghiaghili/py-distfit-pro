@@ -75,7 +75,16 @@ The executable contract matrix is a prerequisite, not evidence that a
 DataSource adapter or scale tier exists. Before either is advertised, the same
 matrix must run against the actual adapter/orchestrator and retain fixture
 version, observed pass/byte traces and the typed-result/provenance record needed
-to audit each assertion. That retained scale artifact is not implemented.
+to audit each assertion. `SCALE-CSV-EXP-01` now supplies this limited evidence
+for the strict CSV lifetime adapter plus one-pass exponential orchestrator:
+`python/evidence/scale-csv-exponential-v1.json` is validated by
+`python/tools/check_scale_csv_exponential_evidence.py`. It covers the fixed
+10k/100k/1m-row by three-budget matrix, not the other adapter families or all
+DS scenarios. The checker requires exact cells, a clean source SHA, one pass,
+complete rows, configured/observed retained-payload bounds, redacted artifacts,
+independent Decimal fit agreement and structural chunk-count evidence. Its
+tracemalloc/RSS and elapsed-time fields are descriptive, not portable ceilings
+or timing assertions.
 
 ## Statistical evidence
 
@@ -152,7 +161,7 @@ retain rendered HTML. The complete local gettext/three-locale HTML/linkcheck
 run passes. Local Edge browser evidence passes for Persian report HTML; remote
 matched-Chromium CI and any PDF rendering evidence remain unverified. Eight
 targeted manual mutant probes were killed, but they are not a formal mutation
-runner or score. The formal runner and the scale checker that retains pass/byte
-traces are also not implemented. Calibration, scale,
-docs/i18n/example and rendered-RTL artifacts remain required continuous gates,
-not skipped placeholders or late-release work.
+runner or score. The formal mutation runner is not implemented. The narrow
+`SCALE-CSV-EXP-01` retained-artifact checker is implemented; broader adapter,
+RSS, calibration, docs/i18n/example and rendered-RTL artifacts remain required
+continuous gates, not skipped placeholders or late-release work.

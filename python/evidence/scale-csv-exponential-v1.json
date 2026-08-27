@@ -1,0 +1,348 @@
+{
+  "artifact_sha256": "8ced69cc216f2c1e17913396d7527ae86c61f8f8caeb7b15ff284040a4ccb8de",
+  "cells": [
+    {
+      "chunk_bytes": 32768,
+      "elapsed_seconds": 26.001345999997284,
+      "fit": {
+        "absolute_rate_error": 7.3420534037e-17,
+        "event_count": 6666,
+        "expected_event_count": 6666,
+        "expected_rate": "1.339766194117369226579465963",
+        "expected_total_time": "4975.495",
+        "observation_count": 10000,
+        "rate": 1.3397661941173693,
+        "relative_rate_error": 5.480100510027352e-17,
+        "total_time": 4975.495
+      },
+      "max_inflight_bytes": 32768,
+      "memory": {
+        "rss_delta_bytes": null,
+        "rss_peak_bytes": null,
+        "tracemalloc_peak_bytes": 1474539
+      },
+      "observed": {
+        "accepted_chunk_count": 23,
+        "actual_pass_count": 1,
+        "backpressure_event_count": 0,
+        "largest_retained_chunk_bytes": 32750,
+        "max_passes": 1,
+        "peak_inflight_bytes": 32750,
+        "processed_row_count": 10000
+      },
+      "rows": 10000,
+      "source": {
+        "bytes": 78937,
+        "sha256": "48f3e92c0c242f9d029d4278ebea80e45a3bae137aa5000309d98a4a85bc9a7f"
+      }
+    },
+    {
+      "chunk_bytes": 65536,
+      "elapsed_seconds": 25.78739889999997,
+      "fit": {
+        "absolute_rate_error": 7.3420534037e-17,
+        "event_count": 6666,
+        "expected_event_count": 6666,
+        "expected_rate": "1.339766194117369226579465963",
+        "expected_total_time": "4975.495",
+        "observation_count": 10000,
+        "rate": 1.3397661941173693,
+        "relative_rate_error": 5.480100510027352e-17,
+        "total_time": 4975.495
+      },
+      "max_inflight_bytes": 65536,
+      "memory": {
+        "rss_delta_bytes": null,
+        "rss_peak_bytes": null,
+        "tracemalloc_peak_bytes": 3016155
+      },
+      "observed": {
+        "accepted_chunk_count": 12,
+        "actual_pass_count": 1,
+        "backpressure_event_count": 0,
+        "largest_retained_chunk_bytes": 65510,
+        "max_passes": 1,
+        "peak_inflight_bytes": 65510,
+        "processed_row_count": 10000
+      },
+      "rows": 10000,
+      "source": {
+        "bytes": 78937,
+        "sha256": "48f3e92c0c242f9d029d4278ebea80e45a3bae137aa5000309d98a4a85bc9a7f"
+      }
+    },
+    {
+      "chunk_bytes": 131072,
+      "elapsed_seconds": 26.105016000001342,
+      "fit": {
+        "absolute_rate_error": 7.3420534037e-17,
+        "event_count": 6666,
+        "expected_event_count": 6666,
+        "expected_rate": "1.339766194117369226579465963",
+        "expected_total_time": "4975.495",
+        "observation_count": 10000,
+        "rate": 1.3397661941173693,
+        "relative_rate_error": 5.480100510027352e-17,
+        "total_time": 4975.495
+      },
+      "max_inflight_bytes": 131072,
+      "memory": {
+        "rss_delta_bytes": null,
+        "rss_peak_bytes": null,
+        "tracemalloc_peak_bytes": 4135563
+      },
+      "observed": {
+        "accepted_chunk_count": 6,
+        "actual_pass_count": 1,
+        "backpressure_event_count": 0,
+        "largest_retained_chunk_bytes": 131058,
+        "max_passes": 1,
+        "peak_inflight_bytes": 131058,
+        "processed_row_count": 10000
+      },
+      "rows": 10000,
+      "source": {
+        "bytes": 78937,
+        "sha256": "48f3e92c0c242f9d029d4278ebea80e45a3bae137aa5000309d98a4a85bc9a7f"
+      }
+    },
+    {
+      "chunk_bytes": 32768,
+      "elapsed_seconds": 165.5025003000046,
+      "fit": {
+        "absolute_rate_error": 3.797836951e-18,
+        "event_count": 66666,
+        "expected_event_count": 66666,
+        "expected_rate": "1.338797018603105303797836951",
+        "expected_total_time": "49795.450",
+        "observation_count": 100000,
+        "rate": 1.3387970186031053,
+        "relative_rate_error": 2.83675336755877e-18,
+        "total_time": 49795.45
+      },
+      "max_inflight_bytes": 32768,
+      "memory": {
+        "rss_delta_bytes": null,
+        "rss_peak_bytes": null,
+        "tracemalloc_peak_bytes": 1525053
+      },
+      "observed": {
+        "accepted_chunk_count": 224,
+        "actual_pass_count": 1,
+        "backpressure_event_count": 0,
+        "largest_retained_chunk_bytes": 32750,
+        "max_passes": 1,
+        "peak_inflight_bytes": 32750,
+        "processed_row_count": 100000
+      },
+      "rows": 100000,
+      "source": {
+        "bytes": 789187,
+        "sha256": "88bf1683bf4439a72d5bac9a69c1614708883b9aa0eaeacca10239c7ace42f3b"
+      }
+    },
+    {
+      "chunk_bytes": 65536,
+      "elapsed_seconds": 164.4516294999994,
+      "fit": {
+        "absolute_rate_error": 3.797836951e-18,
+        "event_count": 66666,
+        "expected_event_count": 66666,
+        "expected_rate": "1.338797018603105303797836951",
+        "expected_total_time": "49795.450",
+        "observation_count": 100000,
+        "rate": 1.3387970186031053,
+        "relative_rate_error": 2.83675336755877e-18,
+        "total_time": 49795.45
+      },
+      "max_inflight_bytes": 65536,
+      "memory": {
+        "rss_delta_bytes": null,
+        "rss_peak_bytes": null,
+        "tracemalloc_peak_bytes": 3016157
+      },
+      "observed": {
+        "accepted_chunk_count": 111,
+        "actual_pass_count": 1,
+        "backpressure_event_count": 0,
+        "largest_retained_chunk_bytes": 65510,
+        "max_passes": 1,
+        "peak_inflight_bytes": 65510,
+        "processed_row_count": 100000
+      },
+      "rows": 100000,
+      "source": {
+        "bytes": 789187,
+        "sha256": "88bf1683bf4439a72d5bac9a69c1614708883b9aa0eaeacca10239c7ace42f3b"
+      }
+    },
+    {
+      "chunk_bytes": 131072,
+      "elapsed_seconds": 168.2975968000028,
+      "fit": {
+        "absolute_rate_error": 3.797836951e-18,
+        "event_count": 66666,
+        "expected_event_count": 66666,
+        "expected_rate": "1.338797018603105303797836951",
+        "expected_total_time": "49795.450",
+        "observation_count": 100000,
+        "rate": 1.3387970186031053,
+        "relative_rate_error": 2.83675336755877e-18,
+        "total_time": 49795.45
+      },
+      "max_inflight_bytes": 131072,
+      "memory": {
+        "rss_delta_bytes": null,
+        "rss_peak_bytes": null,
+        "tracemalloc_peak_bytes": 4185597
+      },
+      "observed": {
+        "accepted_chunk_count": 56,
+        "actual_pass_count": 1,
+        "backpressure_event_count": 0,
+        "largest_retained_chunk_bytes": 131058,
+        "max_passes": 1,
+        "peak_inflight_bytes": 131058,
+        "processed_row_count": 100000
+      },
+      "rows": 100000,
+      "source": {
+        "bytes": 789187,
+        "sha256": "88bf1683bf4439a72d5bac9a69c1614708883b9aa0eaeacca10239c7ace42f3b"
+      }
+    },
+    {
+      "chunk_bytes": 32768,
+      "elapsed_seconds": 1254.6263800000015,
+      "fit": {
+        "absolute_rate_error": 1.11086218616e-16,
+        "event_count": 666666,
+        "expected_event_count": 666666,
+        "expected_rate": "1.336015911676840311086218616",
+        "expected_total_time": "498995.554",
+        "observation_count": 1000000,
+        "rate": 1.3360159116768402,
+        "relative_rate_error": 8.3147376947461e-17,
+        "total_time": 498995.554
+      },
+      "max_inflight_bytes": 32768,
+      "memory": {
+        "rss_delta_bytes": null,
+        "rss_peak_bytes": null,
+        "tracemalloc_peak_bytes": 1526999
+      },
+      "observed": {
+        "accepted_chunk_count": 2233,
+        "actual_pass_count": 1,
+        "backpressure_event_count": 0,
+        "largest_retained_chunk_bytes": 32750,
+        "max_passes": 1,
+        "peak_inflight_bytes": 32750,
+        "processed_row_count": 1000000
+      },
+      "rows": 1000000,
+      "source": {
+        "bytes": 7891696,
+        "sha256": "c7f38840c43b052035eed3ea0bc110ba3038203e42aa4a520703d029b67332bb"
+      }
+    },
+    {
+      "chunk_bytes": 65536,
+      "elapsed_seconds": 1252.7320781999952,
+      "fit": {
+        "absolute_rate_error": 1.11086218616e-16,
+        "event_count": 666666,
+        "expected_event_count": 666666,
+        "expected_rate": "1.336015911676840311086218616",
+        "expected_total_time": "498995.554",
+        "observation_count": 1000000,
+        "rate": 1.3360159116768402,
+        "relative_rate_error": 8.3147376947461e-17,
+        "total_time": 498995.554
+      },
+      "max_inflight_bytes": 65536,
+      "memory": {
+        "rss_delta_bytes": null,
+        "rss_peak_bytes": null,
+        "tracemalloc_peak_bytes": 3016159
+      },
+      "observed": {
+        "accepted_chunk_count": 1108,
+        "actual_pass_count": 1,
+        "backpressure_event_count": 0,
+        "largest_retained_chunk_bytes": 65510,
+        "max_passes": 1,
+        "peak_inflight_bytes": 65510,
+        "processed_row_count": 1000000
+      },
+      "rows": 1000000,
+      "source": {
+        "bytes": 7891696,
+        "sha256": "c7f38840c43b052035eed3ea0bc110ba3038203e42aa4a520703d029b67332bb"
+      }
+    },
+    {
+      "chunk_bytes": 131072,
+      "elapsed_seconds": 1284.7026505999966,
+      "fit": {
+        "absolute_rate_error": 1.11086218616e-16,
+        "event_count": 666666,
+        "expected_event_count": 666666,
+        "expected_rate": "1.336015911676840311086218616",
+        "expected_total_time": "498995.554",
+        "observation_count": 1000000,
+        "rate": 1.3360159116768402,
+        "relative_rate_error": 8.3147376947461e-17,
+        "total_time": 498995.554
+      },
+      "max_inflight_bytes": 131072,
+      "memory": {
+        "rss_delta_bytes": null,
+        "rss_peak_bytes": null,
+        "tracemalloc_peak_bytes": 4189536
+      },
+      "observed": {
+        "accepted_chunk_count": 552,
+        "actual_pass_count": 1,
+        "backpressure_event_count": 0,
+        "largest_retained_chunk_bytes": 131058,
+        "max_passes": 1,
+        "peak_inflight_bytes": 131058,
+        "processed_row_count": 1000000
+      },
+      "rows": 1000000,
+      "source": {
+        "bytes": 7891696,
+        "sha256": "c7f38840c43b052035eed3ea0bc110ba3038203e42aa4a520703d029b67332bb"
+      }
+    }
+  ],
+  "generator": {
+    "formula_version": "1",
+    "temporary_root": "redacted"
+  },
+  "operation_evidence": {
+    "accepted_chunks": [
+      23,
+      224,
+      2233
+    ],
+    "rows": [
+      10000,
+      100000,
+      1000000
+    ]
+  },
+  "run": {
+    "git_dirty": false,
+    "git_sha": "4490c9eb08e9ed5e420a2b677d9de843fdf66a5d",
+    "measurement_workers": 3,
+    "platform": "Windows-11-10.0.26100-SP0",
+    "python": {
+      "implementation": "CPython",
+      "version": "3.14.6"
+    },
+    "utc_started": "2026-08-27T07:55:27Z"
+  },
+  "schema_version": "1"
+}

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ProcessPoolExecutor
 import hashlib
 import json
 import platform
@@ -11,16 +10,15 @@ import subprocess
 import sys
 import time
 import tracemalloc
+from concurrent.futures import ProcessPoolExecutor
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
 
 from veridist.adapters.csv_lifetimes import CsvLifetimeLimits, CsvLifetimeSchema
 from veridist.engine.provenance import PublicSourceId
 from veridist.execution import fit_exponential_csv
 from veridist.families.exponential import ExponentialFitSuccess
-
 
 TEMPORARY_ROOT = Path("E:/Project/veridist-tmp")
 SCHEMA = CsvLifetimeSchema("time", "event_observed")
@@ -90,7 +88,9 @@ def _cell(
     result = fit_exponential_csv(
         path,
         schema=SCHEMA,
-        source_id=PublicSourceId(f"src_{hashlib.md5(str(rows).encode(), usedforsecurity=False).hexdigest()}"),
+        source_id=PublicSourceId(
+            f"src_{hashlib.md5(str(rows).encode(), usedforsecurity=False).hexdigest()}"
+        ),
         limits=CsvLifetimeLimits(chunk_bytes, chunk_bytes),
     )
     elapsed = time.perf_counter() - started
@@ -133,7 +133,9 @@ def _cell(
         "memory": {
             "tracemalloc_peak_bytes": trace_peak,
             "rss_peak_bytes": after_rss,
-            "rss_delta_bytes": None if before_rss is None or after_rss is None else max(0, after_rss - before_rss),
+            "rss_delta_bytes": None
+            if before_rss is None or after_rss is None
+            else max(0, after_rss - before_rss),
         },
         "elapsed_seconds": elapsed,
     }
@@ -191,17 +193,25 @@ def main() -> int:
             "git_sha": _git(root, "rev-parse", "HEAD"),
             "git_dirty": False,
             "utc_started": started,
-            "python": {"implementation": platform.python_implementation(), "version": platform.python_version()},
+            "python": {
+                "implementation": platform.python_implementation(),
+                "version": platform.python_version(),
+            },
             "platform": platform.platform(),
             "measurement_workers": args.workers,
         },
         "generator": {"formula_version": "1", "temporary_root": "redacted"},
         "cells": cells,
-        "operation_evidence": {"rows": rows, "accepted_chunks": [chunks_by_row[row] for row in rows]},
+        "operation_evidence": {
+            "rows": rows,
+            "accepted_chunks": [chunks_by_row[row] for row in rows],
+        },
     }
     value["artifact_sha256"] = _canonical_digest(value)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
+    args.output.write_text(
+        json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8"
+    )
     print(f"wrote retained evidence: {args.output.name}")
     return 0
 

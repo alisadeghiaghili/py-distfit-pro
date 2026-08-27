@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-
 
 TOOLS = Path(__file__).parents[2] / "tools"
 CHECKER = TOOLS / "check_scale_csv_exponential_evidence.py"
@@ -56,7 +56,11 @@ def _cell(rows: int, chunk_bytes: int) -> dict[str, object]:
 
 
 def _artifact() -> dict[str, object]:
-    cells = [_cell(rows, budget) for rows in (10_000, 100_000, 1_000_000) for budget in (1024, 2048, 4096)]
+    cells = [
+        _cell(rows, budget)
+        for rows in (10_000, 100_000, 1_000_000)
+        for budget in (1024, 2048, 4096)
+    ]
     value: dict[str, object] = {
         "schema_version": "1",
         "run": {
@@ -68,7 +72,10 @@ def _artifact() -> dict[str, object]:
         },
         "generator": {"formula_version": "1", "temporary_root": "redacted"},
         "cells": cells,
-        "operation_evidence": {"rows": [10000, 100000, 1000000], "accepted_chunks": [1, 1, 1]},
+        "operation_evidence": {
+            "rows": [10000, 100000, 1000000],
+            "accepted_chunks": [22, 220, 2200],
+        },
     }
     canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
     value["artifact_sha256"] = hashlib.sha256(canonical).hexdigest()
@@ -76,6 +83,13 @@ def _artifact() -> dict[str, object]:
 
 
 class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
+    @staticmethod
+    def _environment() -> dict[str, str]:
+        environment = dict(os.environ)
+        source = str(Path(__file__).parents[2] / "src")
+        environment["PYTHONPATH"] = source + os.pathsep + environment.get("PYTHONPATH", "")
+        return environment
+
     def _check(self, artifact: dict[str, object]) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "artifact.json"
@@ -85,6 +99,7 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
+                env=self._environment(),
             )
 
     def test_scale01_checker_accepts_complete_matrix(self) -> None:
@@ -99,11 +114,13 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
         cells.pop()
         cells[0]["observed"]["peak_inflight_bytes"] = 1025
         artifact["run"]["git_dirty"] = True
+        artifact["operation_evidence"]["accepted_chunks"] = [1, 1000, 1]
         result = self._check(artifact)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("missing matrix cells", result.stderr)
         self.assertIn("dirty", result.stderr)
         self.assertIn("inflight", result.stderr)
+        self.assertIn("near-linear", result.stderr)
 
     def test_scale03_checker_rejects_path_leak_pass_count_and_fit_mismatch(self) -> None:
         artifact = _artifact()
@@ -135,6 +152,7 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
+                env=self._environment(),
             )
             self.assertEqual(generated.returncode, 0, generated.stderr)
             accepted = subprocess.run(
@@ -142,8 +160,21 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
+                env=self._environment(),
             )
             self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+    def test_scale05_retained_full_artifact_is_checker_accepted_and_source_locked(self) -> None:
+        artifact = Path(__file__).parents[2] / "evidence" / "scale-csv-exponential-v1.json"
+        value = json.loads(artifact.read_text(encoding="utf-8"))
+        self.assertEqual(value["run"]["git_sha"], "4490c9eb08e9ed5e420a2b677d9de843fdf66a5d")
+        result = subprocess.run(
+            [sys.executable, str(CHECKER), "--artifact", str(artifact)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":

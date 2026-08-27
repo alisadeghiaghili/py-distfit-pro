@@ -12,7 +12,6 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
-
 SCHEMA_VERSION = "1"
 FULL_ROWS = (10_000, 100_000, 1_000_000)
 SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -20,7 +19,12 @@ GIT_SHA = re.compile(r"[0-9a-f]{40}")
 
 
 def _finite_nonnegative(value: object) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and value >= 0
+    )
 
 
 def _integer(value: object) -> bool:
@@ -58,7 +62,14 @@ def validate(value: object, *, smoke: bool = False) -> list[str]:
     errors: list[str] = []
     if not isinstance(value, dict):
         return ["artifact must be an object"]
-    required = {"schema_version", "run", "generator", "cells", "operation_evidence", "artifact_sha256"}
+    required = {
+        "schema_version",
+        "run",
+        "generator",
+        "cells",
+        "operation_evidence",
+        "artifact_sha256",
+    }
     missing = required.difference(value)
     if missing:
         return [f"artifact missing required fields: {', '.join(sorted(missing))}"]
@@ -76,12 +87,20 @@ def validate(value: object, *, smoke: bool = False) -> list[str]:
     if run.get("git_dirty") is not False:
         errors.append("run is dirty")
     python = run.get("python")
-    if not isinstance(python, dict) or python.get("implementation") != "CPython" or not isinstance(python.get("version"), str):
+    if (
+        not isinstance(python, dict)
+        or python.get("implementation") != "CPython"
+        or not isinstance(python.get("version"), str)
+    ):
         errors.append("run Python metadata is invalid")
     if not isinstance(run.get("utc_started"), str) or not run["utc_started"].endswith("Z"):
         errors.append("run UTC timestamp is invalid")
     generator = value["generator"]
-    if not isinstance(generator, dict) or generator.get("formula_version") != "1" or generator.get("temporary_root") != "redacted":
+    if (
+        not isinstance(generator, dict)
+        or generator.get("formula_version") != "1"
+        or generator.get("temporary_root") != "redacted"
+    ):
         errors.append("generator contract is invalid")
     cells = value["cells"]
     if not isinstance(cells, list) or not cells:
@@ -100,7 +119,12 @@ def validate(value: object, *, smoke: bool = False) -> list[str]:
         if cell.get("max_inflight_bytes") != chunk:
             errors.append(f"cell {key} max inflight must equal configured chunk")
         source = cell.get("source")
-        if not isinstance(source, dict) or not _integer(source.get("bytes")) or not isinstance(source.get("sha256"), str) or SHA256.fullmatch(source["sha256"]) is None:
+        if (
+            not isinstance(source, dict)
+            or not _integer(source.get("bytes"))
+            or not isinstance(source.get("sha256"), str)
+            or SHA256.fullmatch(source["sha256"]) is None
+        ):
             errors.append(f"cell {key} source hash facts invalid")
         observed = cell.get("observed")
         if not isinstance(observed, dict):
@@ -110,12 +134,23 @@ def validate(value: object, *, smoke: bool = False) -> list[str]:
             errors.append(f"cell {key} pass count must be exactly one")
         if observed.get("processed_row_count") != rows:
             errors.append(f"cell {key} observed rows mismatch")
-        for metric in ("accepted_chunk_count", "peak_inflight_bytes", "largest_retained_chunk_bytes", "backpressure_event_count"):
+        for metric in (
+            "accepted_chunk_count",
+            "peak_inflight_bytes",
+            "largest_retained_chunk_bytes",
+            "backpressure_event_count",
+        ):
             if not _integer(observed.get(metric)):
                 errors.append(f"cell {key} {metric} invalid")
-        if isinstance(observed.get("peak_inflight_bytes"), int) and observed["peak_inflight_bytes"] > chunk:
+        if (
+            isinstance(observed.get("peak_inflight_bytes"), int)
+            and observed["peak_inflight_bytes"] > chunk
+        ):
             errors.append(f"cell {key} inflight bound exceeded")
-        if isinstance(observed.get("largest_retained_chunk_bytes"), int) and observed["largest_retained_chunk_bytes"] > chunk:
+        if (
+            isinstance(observed.get("largest_retained_chunk_bytes"), int)
+            and observed["largest_retained_chunk_bytes"] > chunk
+        ):
             errors.append(f"cell {key} retained chunk bound exceeded")
         fit = cell.get("fit")
         if not isinstance(fit, dict):
@@ -144,9 +179,16 @@ def validate(value: object, *, smoke: bool = False) -> list[str]:
         memory = cell.get("memory")
         if not isinstance(memory, dict) or not _integer(memory.get("tracemalloc_peak_bytes")):
             errors.append(f"cell {key} memory facts invalid")
-        elif memory.get("rss_peak_bytes") is not None and not _integer(memory.get("rss_peak_bytes")):
+        elif memory.get("rss_peak_bytes") is not None and not _integer(
+            memory.get("rss_peak_bytes")
+        ):
             errors.append(f"cell {key} RSS peak invalid")
-        if memory is not None and isinstance(memory, dict) and memory.get("rss_delta_bytes") is not None and not _integer(memory.get("rss_delta_bytes")):
+        if (
+            memory is not None
+            and isinstance(memory, dict)
+            and memory.get("rss_delta_bytes") is not None
+            and not _integer(memory.get("rss_delta_bytes"))
+        ):
             errors.append(f"cell {key} RSS delta invalid")
         if not _finite_nonnegative(cell.get("elapsed_seconds")):
             errors.append(f"cell {key} elapsed time invalid")
@@ -173,6 +215,10 @@ def validate(value: object, *, smoke: bool = False) -> list[str]:
             or not all(_integer(item) and item > 0 for item in counts)
         ):
             errors.append("operation evidence counts invalid")
+        elif not smoke:
+            densities = [count / row for count, row in zip(counts, FULL_ROWS, strict=True)]
+            if max(densities) / min(densities) > 2.0:
+                errors.append("operation evidence is not structurally near-linear")
     return errors
 
 

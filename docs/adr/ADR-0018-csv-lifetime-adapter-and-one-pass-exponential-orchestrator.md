@@ -169,11 +169,14 @@ identity.  The adapter records CPython,
 Python-version, and platform labels with a measured evidence artifact.  This
 is a deterministic accounting model only within a declared interpreter build.
 Parser buffers, temporary builders, file/kernel caches, allocator overhead,
-tracemalloc, and RSS are excluded and require separate evidence.  Tests derive
+tracemalloc, and RSS are excluded from this logical accounting model. Separate
+`SCALE-CSV-EXP-01` evidence now records descriptive tracemalloc peaks; RSS is
+explicitly unknown on its Windows stdlib environment. Tests derive
 observed costs from the accounting function rather than hard-code a byte
 budget.  A guarded stream that rejects read(-1), readall, and unbounded
 iteration is separate evidence against whole-file materialization; a
-slope/peak benchmark is not claimed by this contract.
+slope/peak benchmark or portable process-memory ceiling is not claimed by this
+contract.
 
 The adapter remains family-agnostic and has no fit_exponential method.
 veridist.execution.fit_exponential_source(adapter) is the one-pass execution
