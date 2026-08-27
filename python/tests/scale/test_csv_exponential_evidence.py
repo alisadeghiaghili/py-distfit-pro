@@ -25,6 +25,7 @@ def _cell(rows: int, chunk_bytes: int) -> dict[str, object]:
         "rows": rows,
         "chunk_bytes": chunk_bytes,
         "max_inflight_bytes": chunk_bytes,
+        "source": {"bytes": 1, "sha256": "b" * 64},
         "observed": {
             "actual_pass_count": 1,
             "max_passes": 1,
