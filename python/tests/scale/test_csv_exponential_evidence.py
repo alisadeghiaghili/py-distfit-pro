@@ -130,7 +130,7 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
                     "--rows",
                     "100",
                     "--chunk-bytes",
-                    "1024,2048,4096",
+                    "2048,4096,8192",
                 ],
                 check=False,
                 capture_output=True,
