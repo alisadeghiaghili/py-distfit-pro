@@ -210,12 +210,17 @@ class MigrationLedgerTests(unittest.TestCase):
             fixture.mkdir()
             fixture_ledger = fixture / "docs" / "migration" / "legacy-salvage-ledger.json"
             fixture_schema = fixture / "docs" / "migration" / "legacy-salvage-ledger.schema.json"
+            fixture_source_locks = fixture / "docs" / "migration" / "legacy-source-locks.json"
             checker = fixture / "python" / "tools" / "check_migration_ledger.py"
             fixture_ledger.parent.mkdir(parents=True)
             checker.parent.mkdir(parents=True)
             ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
             fixture_ledger.write_text(json.dumps(ledger), encoding="utf-8")
             fixture_schema.write_text(SCHEMA_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+            fixture_source_locks.write_text(
+                (MIGRATION_ROOT / "legacy-source-locks.json").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
             checker.write_text(CHECKER_PATH.read_text(encoding="utf-8"), encoding="utf-8")
             for entry in ledger["entries"]:
                 source_path = entry["source"]["path"]

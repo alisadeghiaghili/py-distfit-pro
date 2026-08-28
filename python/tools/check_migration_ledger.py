@@ -9,13 +9,14 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 PYTHON_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = PYTHON_ROOT.parent
 MIGRATION_ROOT = REPOSITORY_ROOT / "docs" / "migration"
 SCHEMA_PATH = MIGRATION_ROOT / "legacy-salvage-ledger.schema.json"
 LEDGER_PATH = MIGRATION_ROOT / "legacy-salvage-ledger.json"
+SOURCE_LOCKS_PATH = MIGRATION_ROOT / "legacy-source-locks.json"
 ALLOWED_DISPOSITIONS = frozenset({"modify_port", "rewrite", "archive"})
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -194,6 +195,26 @@ def _read_json(path: Path) -> dict[str, Any]:
     return data
 
 
+def _read_source_locks(path: Path) -> dict[str, str]:
+    """Load a closed immutable source-revision policy independent of the ledger."""
+
+    locks = _read_json(path)
+    if set(locks) != {"schema_version", "entries"} or locks.get("schema_version") != "1.0":
+        raise LedgerError("source lock contract is invalid")
+    entries = locks.get("entries")
+    if not isinstance(entries, dict) or not entries:
+        raise LedgerError("source lock entries must be a non-empty object")
+    if any(
+        not isinstance(identifier, str)
+        or re.fullmatch(r"LM-[0-9]{3}", identifier) is None
+        or not isinstance(commit, str)
+        or HEX40.fullmatch(commit) is None
+        for identifier, commit in entries.items()
+    ):
+        raise LedgerError("source lock entries must map LM ids to 40-character commits")
+    return cast(dict[str, str], entries)
+
+
 def _git(*arguments: str) -> str:
     result = subprocess.run(
         ["git", *arguments],
@@ -240,9 +261,14 @@ def _require_strings(entry: dict[str, Any], key: str) -> list[str]:
     return value
 
 
-def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -> None:
+def validate(
+    schema_path: Path = SCHEMA_PATH,
+    ledger_path: Path = LEDGER_PATH,
+    source_locks_path: Path = SOURCE_LOCKS_PATH,
+) -> None:
     schema = _read_json(schema_path)
     ledger = _read_json(ledger_path)
+    source_locks = _read_source_locks(source_locks_path)
     _validate_schema_contract(schema)
     if ledger.get("schema_version") != "1.1":
         raise LedgerError("unsupported ledger schema_version")
@@ -284,6 +310,8 @@ def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -
         ):
             raise LedgerError("entries require unique stable LM-xxx ids")
         seen_ids.add(identifier)
+        if source_locks.get(identifier) != entry.get("source", {}).get("commit"):
+            raise LedgerError(f"{identifier}: source lock does not match ledger source.commit")
         component = entry.get("component")
         if not isinstance(component, str) or not component or component in seen_components:
             raise LedgerError("components must be unique non-empty strings")
@@ -418,15 +446,18 @@ def validate(schema_path: Path = SCHEMA_PATH, ledger_path: Path = LEDGER_PATH) -
             raise LedgerError("exponential must be a rewrite")
     if seen_dispositions != ALLOWED_DISPOSITIONS:
         raise LedgerError("ledger must demonstrate every allowed disposition")
+    if set(source_locks) != seen_ids:
+        raise LedgerError("source lock ids must exactly match ledger ids")
 
 
 def main(arguments: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--schema", type=Path, default=SCHEMA_PATH)
     parser.add_argument("--ledger", type=Path, default=LEDGER_PATH)
+    parser.add_argument("--source-locks", type=Path, default=SOURCE_LOCKS_PATH)
     parsed = parser.parse_args(arguments)
     try:
-        validate(parsed.schema, parsed.ledger)
+        validate(parsed.schema, parsed.ledger, parsed.source_locks)
     except LedgerError as error:
         print(f"migration ledger check failed: {error}", file=sys.stderr)
         return 1
