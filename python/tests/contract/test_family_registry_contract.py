@@ -69,7 +69,12 @@ class FamilyRegistryContractTests(unittest.TestCase):
         with self.assertRaises(FrozenInstanceError):
             normal.parameters[0].name = "changed"  # type: ignore[misc]
         with self.assertRaises(AttributeError):
-            normal.operations.add(Operation.LOGPDF)  # type: ignore[attr-defined]
+            normal.planned_operations.add(Operation.LOGPDF)  # type: ignore[attr-defined]
+        for field in ("_families", "_lookup", "_ordered"):
+            with self.subTest(field=field):
+                with self.assertRaises(AttributeError):
+                    setattr(FAMILY_REGISTRY, field, None)
+        self.assertIs(FAMILY_REGISTRY.resolve("normal"), normal)
 
     def test_fam_par_01_parameter_tuples_counts_and_operations_are_exact(self) -> None:
         expected = {
@@ -85,8 +90,10 @@ class FamilyRegistryContractTests(unittest.TestCase):
                 self.assertEqual(tuple(parameter.name for parameter in family.parameters), names)
                 self.assertEqual(family.free_parameter_count, free_count)
                 self.assertEqual(family.fixed_location, fixed_location)
-                self.assertEqual(family.operations, frozenset({Operation.LOGPDF}))
-                self.assertTrue(family.supports(Operation.LOGPDF))
+                self.assertEqual(family.planned_operations, frozenset({Operation.LOGPDF}))
+                self.assertEqual(family.available_operations, frozenset())
+                self.assertTrue(family.plans(Operation.LOGPDF))
+                self.assertFalse(family.supports(Operation.LOGPDF))
 
     def test_fam_par_02_finite_locations_are_valid_and_positive_parameters_are_strict(self) -> None:
         valid = {
@@ -127,6 +134,8 @@ class FamilyRegistryContractTests(unittest.TestCase):
             FAMILY_REGISTRY.resolve("normal").validate_parameters(mu=True, sigma=1.0)
         with self.assertRaises(TypeError):
             FAMILY_REGISTRY.resolve("normal").validate_parameters(mu=0.0, sigma="1")
+        with self.assertRaises(ValueError):
+            FAMILY_REGISTRY.resolve("normal").validate_parameters(mu=10**10000, sigma=1.0)
 
     def test_fam_par_02_parameter_keys_are_closed_not_mapping_length_driven(self) -> None:
         family = FAMILY_REGISTRY.resolve("normal")
@@ -142,6 +151,26 @@ class FamilyRegistryContractTests(unittest.TestCase):
             self.assertFalse(hasattr(family, "display_name"))
             self.assertFalse(hasattr(family, "description"))
 
+    def test_fam_reg_02_alias_tokens_are_closed_and_collision_safe(self) -> None:
+        for invalid_alias in ("a-b", "A", "has space", "", "punctuation!"):
+            with self.subTest(invalid_alias=invalid_alias):
+                with self.assertRaises((TypeError, ValueError)):
+                    _test_family(FamilyId.NORMAL, aliases=(invalid_alias,))
+        with self.assertRaisesRegex(ValueError, "collision"):
+            FamilyRegistry(
+                (
+                    _test_family(FamilyId.NORMAL, aliases=("a_b",)),
+                    _test_family(FamilyId.GAMMA, aliases=("ab",)),
+                )
+            )
+        with self.assertRaisesRegex(ValueError, "collision"):
+            FamilyRegistry(
+                (
+                    _test_family(FamilyId.NORMAL, aliases=("gamma",)),
+                    _test_family(FamilyId.GAMMA),
+                )
+            )
+
 
 def _test_family(identifier: FamilyId, *, aliases: tuple[str, ...] = ()) -> FamilySpec:
     return FamilySpec(
@@ -149,5 +178,6 @@ def _test_family(identifier: FamilyId, *, aliases: tuple[str, ...] = ()) -> Fami
         aliases=aliases,
         parameters=(ParameterSpec("scale", ParameterRole.POSITIVE),),
         fixed_location=None,
-        operations=frozenset({Operation.LOGPDF}),
+        planned_operations=frozenset({Operation.LOGPDF}),
+        available_operations=frozenset(),
     )

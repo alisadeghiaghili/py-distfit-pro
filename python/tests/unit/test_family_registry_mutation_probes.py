@@ -21,7 +21,8 @@ def _valid_family(**changes: object) -> FamilySpec:
         "aliases": (),
         "parameters": (ParameterSpec("scale", ParameterRole.POSITIVE),),
         "fixed_location": None,
-        "operations": frozenset({Operation.LOGPDF}),
+        "planned_operations": frozenset({Operation.LOGPDF}),
+        "available_operations": frozenset(),
     }
     values.update(changes)
     return FamilySpec(**values)  # type: ignore[arg-type]
@@ -54,8 +55,10 @@ class FamilyRegistryMutationProbeTests(unittest.TestCase):
             },
             {"fixed_location": "0"},
             {"fixed_location": 1.0},
-            {"operations": set()},
-            {"operations": frozenset({object()})},
+            {"planned_operations": set()},
+            {"planned_operations": frozenset({object()})},
+            {"available_operations": set()},
+            {"available_operations": frozenset({Operation.LOGPDF})},
         )
         for changes in invalid_cases:
             with self.subTest(changes=changes):
@@ -71,3 +74,5 @@ class FamilyRegistryMutationProbeTests(unittest.TestCase):
     def test_wrong_operation_type_is_not_silently_supported(self) -> None:
         with self.assertRaises(TypeError):
             FAMILY_REGISTRY.resolve("normal").supports("logpdf")  # type: ignore[arg-type]
+        with self.assertRaises(TypeError):
+            FAMILY_REGISTRY.resolve("normal").plans("logpdf")  # type: ignore[arg-type]
