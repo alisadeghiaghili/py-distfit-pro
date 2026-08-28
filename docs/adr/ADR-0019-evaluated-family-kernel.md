@@ -30,13 +30,11 @@ five canonical families, in this deterministic order:
 4. `lognormal`: zero-location `Lognormal(mu_log, sigma_log)`.
 5. `gumbel_right`: `Gumbel-right(location, scale)`.
 
-The registry marks `LOGPDF` as *planned*, but exposes no available evaluator:
-`plans(LOGPDF)` is true while `supports(LOGPDF)` is false.  This deliberately
-separates a future operation-level contract for exact uncensored log-density
-evaluation from what callers can execute today.  It does not provide fitting,
-CDF, PPF, SF, model selection, censored likelihood, weights, raw-data
-ingestion, reporting, or inference.  A later accepted decision, evaluator,
-and separate tests are required before `supports(LOGPDF)` may become true.
+The registry marks `LOGPDF` as planned.  Its availability is a closed
+all-family capability: it becomes true only with a separate exact-observation
+evaluator and dispatch-parity tests for all five families.  It does not provide
+fitting, CDF, PPF, SF, model selection, censored likelihood, weights, raw-data
+ingestion, reporting, or inference.
 
 Each family has an immutable canonical parameter tuple and an explicit free
 parameter count derived from that tuple, never from a mapping length.  Normal,
@@ -61,10 +59,10 @@ may depend on the registry, not vice versa.
 
 ## Scope
 
-This record authorizes only the registry and parameter-contract tranche.  It
-does not claim a numerical log-density implementation until the five evaluator
-contracts, independent reference tests, and numerical boundary evidence land.
-It does not change the existing exponential fit API.
+This record authorizes the registry and, through its scalar-log-density
+addendum, exact-observation evaluators for the five closed families.  It does
+not change the existing exponential fit API or authorize fitting, ranking, or
+likelihood reduction.
 
 The kernel is metadata-sized and says nothing about end-to-end process memory
 or throughput.  In particular, it makes no blanket O(1)-memory, out-of-core,

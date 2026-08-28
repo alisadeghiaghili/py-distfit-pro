@@ -91,9 +91,9 @@ class FamilyRegistryContractTests(unittest.TestCase):
                 self.assertEqual(family.free_parameter_count, free_count)
                 self.assertEqual(family.fixed_location, fixed_location)
                 self.assertEqual(family.planned_operations, frozenset({Operation.LOGPDF}))
-                self.assertEqual(family.available_operations, frozenset())
+                self.assertEqual(family.available_operations, frozenset({Operation.LOGPDF}))
                 self.assertTrue(family.plans(Operation.LOGPDF))
-                self.assertFalse(family.supports(Operation.LOGPDF))
+                self.assertTrue(family.supports(Operation.LOGPDF))
 
     def test_fam_par_02_finite_locations_are_valid_and_positive_parameters_are_strict(self) -> None:
         valid = {

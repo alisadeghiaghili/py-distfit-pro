@@ -122,3 +122,13 @@ class LogDensityContractTests(unittest.TestCase):
                 result = evaluate_log_density(family, observation, **parameters)
                 self.assertIsInstance(result, LogDensityFailure)
                 self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)
+
+    def test_negligible_tail_terms_can_underflow_without_invalidating_a_finite_log_density(self) -> None:
+        from veridist.statistics.log_density import LogDensitySuccess, evaluate_log_density
+
+        weibull = evaluate_log_density(FamilyId.WEIBULL_MIN, 5.0e-324, shape=2.0, scale=1.0)
+        gumbel = evaluate_log_density(FamilyId.GUMBEL_RIGHT, 1.0e308, location=0.0, scale=1.0)
+        self.assertIsInstance(weibull, LogDensitySuccess)
+        self.assertIsInstance(gumbel, LogDensitySuccess)
+        self.assertTrue(math.isfinite(weibull.log_density))
+        self.assertTrue(math.isfinite(gumbel.log_density))

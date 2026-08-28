@@ -59,7 +59,10 @@ class FamilyRegistryMutationProbeTests(unittest.TestCase):
             {"planned_operations": frozenset({object()})},
             {"available_operations": set()},
             {"available_operations": frozenset({object()})},
-            {"available_operations": frozenset({Operation.LOGPDF})},
+            {
+                "planned_operations": frozenset(),
+                "available_operations": frozenset({Operation.LOGPDF}),
+            },
         )
         for changes in invalid_cases:
             with self.subTest(changes=changes):

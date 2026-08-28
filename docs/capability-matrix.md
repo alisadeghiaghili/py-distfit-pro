@@ -7,6 +7,7 @@ remote pull-request workflow has not yet verified this branch.
 | Family | Estimator and parameterization | Accepted data semantics | Result | Inference | Scale boundary | Status/evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | Exponential, fixed `loc=0` | rate-only exponential MLE | strict UTF-8 CSV with exact `time,event_observed` header; event `1` is exact; `0` is independent right-censoring; finite times `>= 0` | finite point estimate, typed statistical non-estimate, or typed failed execution | `inference=not_provided` | one CSV iterator and one pass; retained logical payload bound per 32/64/128KiB budget; no RSS ceiling | Experimental callable cell; ADR-0017/0018, `EXP-01`--`EXP-14`, `CSV-01`--`CSV-06`, `SCALE-CSV-EXP-01` |
+| Normal, Gamma, Weibull-min, Lognormal, Gumbel-right | exact scalar log-density only; canonical two-parameter forms in ADR-0019 | one finite built-in scalar; Gamma/Weibull-min/Lognormal require strict `x>0`; no aliases | finite log-density or closed typed evaluation failure | none | scalar only; no array, fitting, censoring, ranking, or streaming claim | Experimental internal module; ADR-0019 addendum, independent 100-digit oracle and metamorphic contracts |
 
 This callable cell accepts exact and independent right-censoring observations;
 the censoring independence is a declared modeling assumption, not a property
@@ -21,6 +22,12 @@ left/interval censoring, free location, model selection, goodness-of-fit,
 confidence intervals, or another estimator. No other distribution family is a
 callable v1 statistical cell yet. EN/FA/DE reports are presentation adapters for
 the same locale-neutral result facts; they do not expand statistical support.
+
+The five scalar log-density evaluators are intentionally not package-top-level
+exports and are not a generic distribution-fitting API.  They have no fitting,
+CDF/SF/PPF, inference, reports, weights, or big-data claim.  Their registry
+availability is all-or-nothing and checked against the exact dispatch table at
+module import.
 
 Traceability for `EXP-01`--`EXP-14` is split across
 `python/tests/reference/test_exponential_mle_reference.py` and

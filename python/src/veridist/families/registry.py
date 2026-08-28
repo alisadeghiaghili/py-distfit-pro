@@ -113,8 +113,8 @@ class FamilySpec:
             raise TypeError("available_operations must be a frozenset")
         if any(type(operation) is not Operation for operation in self.available_operations):
             raise TypeError("available_operations must contain Operation values")
-        if self.available_operations:
-            raise ValueError("no family evaluator is available in the metadata-only kernel")
+        if not self.available_operations.issubset(self.planned_operations):
+            raise ValueError("available operations must be explicitly planned")
 
     @property
     def free_parameter_count(self) -> int:
@@ -219,7 +219,7 @@ class FamilyRegistry:
 
 
 _PLANNED_LOGPDF: Final = frozenset({Operation.LOGPDF})
-_NO_AVAILABLE_OPERATIONS: Final = frozenset[Operation]()
+_AVAILABLE_LOGPDF: Final = frozenset({Operation.LOGPDF})
 _FAMILY_SPECS: Final = (
     FamilySpec(
         FamilyId.NORMAL,
@@ -230,7 +230,7 @@ _FAMILY_SPECS: Final = (
         ),
         None,
         _PLANNED_LOGPDF,
-        _NO_AVAILABLE_OPERATIONS,
+        _AVAILABLE_LOGPDF,
     ),
     FamilySpec(
         FamilyId.GAMMA,
@@ -241,7 +241,7 @@ _FAMILY_SPECS: Final = (
         ),
         0.0,
         _PLANNED_LOGPDF,
-        _NO_AVAILABLE_OPERATIONS,
+        _AVAILABLE_LOGPDF,
     ),
     FamilySpec(
         FamilyId.WEIBULL_MIN,
@@ -252,7 +252,7 @@ _FAMILY_SPECS: Final = (
         ),
         0.0,
         _PLANNED_LOGPDF,
-        _NO_AVAILABLE_OPERATIONS,
+        _AVAILABLE_LOGPDF,
     ),
     FamilySpec(
         FamilyId.LOGNORMAL,
@@ -263,7 +263,7 @@ _FAMILY_SPECS: Final = (
         ),
         0.0,
         _PLANNED_LOGPDF,
-        _NO_AVAILABLE_OPERATIONS,
+        _AVAILABLE_LOGPDF,
     ),
     FamilySpec(
         FamilyId.GUMBEL_RIGHT,
@@ -274,7 +274,7 @@ _FAMILY_SPECS: Final = (
         ),
         None,
         _PLANNED_LOGPDF,
-        _NO_AVAILABLE_OPERATIONS,
+        _AVAILABLE_LOGPDF,
     ),
 )
 
