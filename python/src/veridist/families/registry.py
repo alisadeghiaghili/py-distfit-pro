@@ -6,12 +6,15 @@ single future log-density operation.  It performs no numerical evaluation.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from math import isfinite
 from types import MappingProxyType
 from typing import Final, cast
+
+_TOKEN = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
 class FamilyId(StrEnum):
@@ -55,7 +58,10 @@ class ParameterSpec:
 
         if type(value) not in (int, float):
             raise TypeError(f"{self.name} must be a built-in real number")
-        numeric = float(cast(int | float, value))
+        try:
+            numeric = float(cast(int | float, value))
+        except OverflowError as error:
+            raise ValueError(f"{self.name} must be finite") from error
         if not isfinite(numeric):
             raise ValueError(f"{self.name} must be finite")
         if self.role is ParameterRole.POSITIVE and numeric <= 0.0:
@@ -71,13 +77,15 @@ class FamilySpec:
     aliases: tuple[str, ...]
     parameters: tuple[ParameterSpec, ...]
     fixed_location: float | None
-    operations: frozenset[Operation]
+    planned_operations: frozenset[Operation]
+    available_operations: frozenset[Operation]
 
     def __post_init__(self) -> None:
         if type(self.id) is not FamilyId:
             raise TypeError("family id must be a FamilyId")
         aliases_are_invalid = type(self.aliases) is not tuple or any(
-            type(alias) is not str or not alias for alias in self.aliases
+            type(alias) is not str or _TOKEN.fullmatch(alias) is None
+            for alias in self.aliases
         )
         if aliases_are_invalid:
             raise TypeError("aliases must be a tuple of non-empty built-in strings")
@@ -97,10 +105,18 @@ class FamilySpec:
                 raise TypeError("fixed location must be a built-in real number or None")
             if float(self.fixed_location) != 0.0:
                 raise ValueError("the evaluated zero-location families fix location at zero")
-        if type(self.operations) is not frozenset or not self.operations:
-            raise TypeError("operations must be a non-empty frozenset")
-        if any(type(operation) is not Operation for operation in self.operations):
-            raise TypeError("operations must contain Operation values")
+        if type(self.planned_operations) is not frozenset or not self.planned_operations:
+            raise TypeError("planned_operations must be a non-empty frozenset")
+        if any(type(operation) is not Operation for operation in self.planned_operations):
+            raise TypeError("planned_operations must contain Operation values")
+        if type(self.available_operations) is not frozenset:
+            raise TypeError("available_operations must be a frozenset")
+        if any(type(operation) is not Operation for operation in self.available_operations):
+            raise TypeError("available_operations must contain Operation values")
+        if not self.available_operations <= self.planned_operations:
+            raise ValueError("available_operations must be planned")
+        if self.available_operations:
+            raise ValueError("no family evaluator is available in the metadata-only kernel")
 
     @property
     def free_parameter_count(self) -> int:
@@ -109,11 +125,18 @@ class FamilySpec:
         return len(self.parameters)
 
     def supports(self, operation: Operation) -> bool:
-        """Return whether this declared metadata contract supports an operation."""
+        """Return whether an operation has an evaluator available now."""
 
         if type(operation) is not Operation:
             raise TypeError("operation must be an Operation")
-        return operation in self.operations
+        return operation in self.available_operations
+
+    def plans(self, operation: Operation) -> bool:
+        """Return whether an operation is declared for a later implementation wave."""
+
+        if type(operation) is not Operation:
+            raise TypeError("operation must be an Operation")
+        return operation in self.planned_operations
 
     def validate_parameters(self, **values: object) -> Mapping[str, float]:
         """Validate the exact canonical parameter set without evaluating a density."""
@@ -131,15 +154,21 @@ class FamilySpec:
 class FamilyRegistry:
     """Closed, deterministic lookup for immutable family specifications."""
 
-    __slots__ = ("_families", "_lookup", "_ordered")
+    __slots__ = ("_families", "_lookup", "_ordered", "_sealed")
+    _families: Mapping[FamilyId, FamilySpec]
+    _lookup: Mapping[str, FamilySpec]
+    _ordered: tuple[FamilySpec, ...]
+    _sealed: bool
 
     def __init__(self, families: tuple[FamilySpec, ...]) -> None:
         if type(families) is not tuple or not families:
             raise TypeError("families must be a non-empty tuple of FamilySpec values")
         if any(type(family) is not FamilySpec for family in families):
             raise TypeError("families must contain FamilySpec values")
+        object.__setattr__(self, "_sealed", False)
         family_mapping: dict[FamilyId, FamilySpec] = {}
         lookup: dict[str, FamilySpec] = {}
+        collision_keys: dict[str, FamilySpec] = {}
         for family in families:
             if family.id in family_mapping:
                 raise ValueError("canonical family id collision")
@@ -147,10 +176,22 @@ class FamilyRegistry:
             for name in (family.id.value, *family.aliases):
                 if name in lookup:
                     raise ValueError("alias collision")
+                collision_key = name.replace("_", "")
+                if collision_key in collision_keys:
+                    raise ValueError("alias normalization collision")
                 lookup[name] = family
-        self._families = MappingProxyType(family_mapping)
-        self._lookup = MappingProxyType(lookup)
-        self._ordered = families
+                collision_keys[collision_key] = family
+        object.__setattr__(self, "_families", MappingProxyType(family_mapping))
+        object.__setattr__(self, "_lookup", MappingProxyType(lookup))
+        object.__setattr__(self, "_ordered", families)
+        object.__setattr__(self, "_sealed", True)
+
+    def __setattr__(self, name: str, value: object) -> None:
+        """Prevent normal reassignment after construction."""
+
+        if getattr(self, "_sealed", False):
+            raise AttributeError("FamilyRegistry is immutable")
+        object.__setattr__(self, name, value)
 
     @property
     def families(self) -> Mapping[FamilyId, FamilySpec]:
@@ -179,7 +220,8 @@ class FamilyRegistry:
             raise ValueError("unknown evaluated family") from error
 
 
-_LOGPDF: Final = frozenset({Operation.LOGPDF})
+_PLANNED_LOGPDF: Final = frozenset({Operation.LOGPDF})
+_NO_AVAILABLE_OPERATIONS: Final = frozenset[Operation]()
 _FAMILY_SPECS: Final = (
     FamilySpec(
         FamilyId.NORMAL,
@@ -189,7 +231,8 @@ _FAMILY_SPECS: Final = (
             ParameterSpec("sigma", ParameterRole.POSITIVE),
         ),
         None,
-        _LOGPDF,
+        _PLANNED_LOGPDF,
+        _NO_AVAILABLE_OPERATIONS,
     ),
     FamilySpec(
         FamilyId.GAMMA,
@@ -199,7 +242,8 @@ _FAMILY_SPECS: Final = (
             ParameterSpec("scale", ParameterRole.POSITIVE),
         ),
         0.0,
-        _LOGPDF,
+        _PLANNED_LOGPDF,
+        _NO_AVAILABLE_OPERATIONS,
     ),
     FamilySpec(
         FamilyId.WEIBULL_MIN,
@@ -209,7 +253,8 @@ _FAMILY_SPECS: Final = (
             ParameterSpec("scale", ParameterRole.POSITIVE),
         ),
         0.0,
-        _LOGPDF,
+        _PLANNED_LOGPDF,
+        _NO_AVAILABLE_OPERATIONS,
     ),
     FamilySpec(
         FamilyId.LOGNORMAL,
@@ -219,7 +264,8 @@ _FAMILY_SPECS: Final = (
             ParameterSpec("sigma_log", ParameterRole.POSITIVE),
         ),
         0.0,
-        _LOGPDF,
+        _PLANNED_LOGPDF,
+        _NO_AVAILABLE_OPERATIONS,
     ),
     FamilySpec(
         FamilyId.GUMBEL_RIGHT,
@@ -229,7 +275,8 @@ _FAMILY_SPECS: Final = (
             ParameterSpec("scale", ParameterRole.POSITIVE),
         ),
         None,
-        _LOGPDF,
+        _PLANNED_LOGPDF,
+        _NO_AVAILABLE_OPERATIONS,
     ),
 )
 

@@ -188,7 +188,7 @@ class MigrationLedgerTests(unittest.TestCase):
         self.assertNotEqual(wrong_type.returncode, 0)
         self.assertIn("target", wrong_type.stderr)
 
-    def test_checker_allows_an_unavailable_commit_when_immutable_blob_matches_head(self) -> None:
+    def test_checker_rejects_an_unavailable_source_commit_even_when_head_blob_matches(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_ledger = Path(temporary_directory) / "ledger.json"
             ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
@@ -201,9 +201,10 @@ class MigrationLedgerTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("source.commit", result.stderr)
 
-    def test_checker_verifies_immutable_ledger_blob_in_a_history_free_fixture(self) -> None:
+    def test_checker_rejects_a_history_free_fixture_without_the_frozen_source_commit(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             fixture = Path(temporary_directory) / "fixture"
             fixture.mkdir()
@@ -261,7 +262,8 @@ class MigrationLedgerTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(shallow.returncode, 0, shallow.stderr)
+            self.assertNotEqual(shallow.returncode, 0)
+            self.assertIn("source.commit", shallow.stderr)
             ledger = json.loads(fixture_ledger.read_text(encoding="utf-8"))
             ledger["entries"][0]["source"]["blob"] = "0" * 40
             temporary_ledger = Path(temporary_directory) / "missing-blob.json"
@@ -284,9 +286,9 @@ class MigrationLedgerTests(unittest.TestCase):
                 text=True,
             )
         self.assertNotEqual(missing_blob.returncode, 0)
-        self.assertIn("source.blob unavailable", missing_blob.stderr)
+        self.assertIn("source.commit", missing_blob.stderr)
         self.assertNotEqual(head_drift.returncode, 0)
-        self.assertIn("source.blob does not match HEAD:path", head_drift.stderr)
+        self.assertIn("source.commit", head_drift.stderr)
 
 
 if __name__ == "__main__":
