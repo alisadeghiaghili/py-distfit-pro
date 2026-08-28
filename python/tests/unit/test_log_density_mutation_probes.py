@@ -119,3 +119,9 @@ class LogDensityMutationProbeTests(unittest.TestCase):
         self.assertTrue(
             all(spec.supports(Operation.LOGPDF) for spec in FAMILY_REGISTRY.families.values())
         )
+
+    def test_exact_ratio_helpers_do_not_turn_unrepresentable_values_into_successes(self) -> None:
+        from veridist.statistics import log_density
+
+        with self.assertRaises(log_density._NumericalOverflow):
+            log_density._integer_ratio_to_float(10**10000, 1)

@@ -92,6 +92,28 @@ class LogDensityReferenceTests(unittest.TestCase):
             delta=2.0e-14,
         )
 
+    def test_stable_near_zero_weibull_and_gumbel_forms_match_oracle(self) -> None:
+        cases = (
+            (FamilyId.WEIBULL_MIN, 2.0, {"shape": 1.25, "scale": 2.0}, oracle.weibull_min),
+            (FamilyId.GUMBEL_RIGHT, 3.0, {"location": 3.0, "scale": 2.0}, oracle.gumbel_right),
+            (
+                FamilyId.GUMBEL_RIGHT,
+                math.nextafter(3.0, math.inf),
+                {"location": 3.0, "scale": 2.0},
+                oracle.gumbel_right,
+            ),
+        )
+        for family, observation, parameters, reference in cases:
+            with self.subTest(family=family, observation=observation):
+                actual = _success_value(family, observation, **parameters)
+                expected = reference(observation, **parameters)
+                self.assertAlmostEqual(actual, expected, delta=_tolerance(expected))
+
+    def test_gamma_stable_deviance_branch_matches_oracle_away_from_exact_mode(self) -> None:
+        actual = _success_value(FamilyId.GAMMA, 8.8, shape=8.0, scale=1.0)
+        expected = oracle.gamma(8.8, shape=8.0, scale=1.0)
+        self.assertAlmostEqual(actual, expected, delta=_tolerance(expected))
+
     def test_lognormal_jacobian_identity(self) -> None:
         x, mu_log, sigma_log = 7.25, 0.75, 1.5
         self.assertAlmostEqual(
@@ -113,6 +135,17 @@ class LogDensityReferenceTests(unittest.TestCase):
             -math.log(scale) - 1.0,
             delta=2.0e-14,
         )
+
+    def test_gumbel_finite_but_unrepresentable_exponential_term_is_typed_overflow(self) -> None:
+        from veridist.statistics.log_density import (
+            LogDensityErrorCode,
+            LogDensityFailure,
+            evaluate_log_density,
+        )
+
+        result = evaluate_log_density(FamilyId.GUMBEL_RIGHT, -800.0, location=0.0, scale=1.0)
+        self.assertIsInstance(result, LogDensityFailure)
+        self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)
 
 
 def _success_value(family: FamilyId, observation: float, **parameters: float) -> float:
