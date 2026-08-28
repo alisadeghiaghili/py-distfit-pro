@@ -12,10 +12,14 @@ outcomes, and redacted provenance.
 This build includes an experimental rate-only exponential MLE for exact and
 independently right-censored lifetimes. It provides a point estimate when a
 finite MLE exists and typed failures otherwise. Inference is not provided.
-Its reducer has fixed O(1) algorithmic state, but the package does not ship
-production data adapters and does not claim production out-of-core execution
-or persistent checkpoint durability. In-memory sources and checkpoint stores
-remain contract fixtures, not production storage or orchestration components.
+Its public CSV path is strict: UTF-8 CSV with exactly `time,event_observed`,
+event token `1`, and right-censoring token `0`. It executes one iterator pass
+with a declared logical retained-payload chunk budget and returns a closed,
+typed execution result. This is not a generic CSV reader or a portable RSS,
+throughput, cancellation, retry, checkpoint, or broad out-of-core claim.
+Retained evidence establishes bounded internal payload only for the measured
+10k/100k/1m by 32KiB/64KiB/128KiB matrix; it does not establish a general
+big-data or high-throughput capability.
 
 ## Install an evaluation build
 
@@ -39,18 +43,23 @@ public index.
 ## Try the experimental vertical
 
 ```python
-from veridist.domain import ExactLifetime, RightCensoredLifetime
-from veridist.families import ExponentialFitSuccess, fit_exponential
-from veridist.reporting import ReportLocale, render_exponential_report
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
+from veridist.families import ExponentialFitSuccess
 
-fit = fit_exponential([ExactLifetime(1.0), RightCensoredLifetime(1.0)])
+with TemporaryDirectory() as directory:
+    path = Path(directory) / "lifetimes.csv"
+    path.write_text("time,event_observed\n1,1\n1,0\n", encoding="utf-8")
+    fit = fit_exponential_csv(
+        path, schema=CsvLifetimeSchema("time", "event_observed"),
+        source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
+        limits=CsvLifetimeLimits(32768, 32768),
+    ).fit
 assert isinstance(fit, ExponentialFitSuccess)
 assert fit.rate == 0.5
 assert fit.inference == "not_provided"
 assert fit.censoring_assumption == "independent_right_censoring"
-
-report = render_exponential_report(fit, ReportLocale.FA)
-assert 'lang="fa" dir="rtl"' in report
 ```
 
 See the [documentation toolchain](docs/README.md) and the repository's

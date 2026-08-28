@@ -5,14 +5,14 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "Exponential MLE API"
-msgstr "رابط برنامه‌نویسی برآورد درست‌نمایی بیشینهٔ نمایی"
+msgid "CSV exponential API"
+msgstr "رابط برنامه‌نویسی نمایی CSV"
 
-msgid "`fit_exponential(observations)` and `fit_exponential_chunks(chunks)` return a finite rate-only estimate or a typed statistical non-estimate. Observations are `ExactLifetime(time)` or `RightCensoredLifetime(time)` with finite, non-negative times. A wrong observation object is a programmer-input error, not a fitting failure."
-msgstr "`fit_exponential(observations)` و `fit_exponential_chunks(chunks)` یک برآورد متناهی فقط برای نرخ، یا یک عدم‌برآورد آماری نوع‌دار برمی‌گردانند. مشاهده‌ها از نوع `ExactLifetime(time)` یا `RightCensoredLifetime(time)` با زمان‌های متناهی و نامنفی هستند. شیء مشاهدهٔ نادرست، خطای ورودی برنامه‌نویس است، نه شکست برازش."
+msgid "`fit_exponential_csv(path, *, schema, source_id, limits)` is the public source entry point. `CsvLifetimeSchema(\"time\", \"event_observed\")` selects the only accepted header; `PublicSourceId` is an opaque identifier safe for returned provenance; and `CsvLifetimeLimits` supplies positive byte budgets. The result is always an `ExponentialSourceFitResult`: a finite rate-only estimate, a typed statistical non-estimate, or a typed execution failure."
+msgstr "`fit_exponential_csv(path, *, schema, source_id, limits)` نقطهٔ ورود عمومی منبع است. `CsvLifetimeSchema(\"time\", \"event_observed\")` تنها سرستون پذیرفته‌شده را انتخاب می‌کند؛ `PublicSourceId` شناسه‌ای مبهم و امن برای منشأ بازگردانده‌شده است؛ و `CsvLifetimeLimits` بودجه‌های مثبت بر حسب بایت را می‌دهد. نتیجه همیشه یک `ExponentialSourceFitResult` است: برآورد متناهی فقط برای نرخ، عدم‌برآورد آماری نوع‌دار، یا شکست اجرایی نوع‌دار."
 
-msgid "`render_exponential_report(result, ReportLocale.EN|FA|DE)` renders safe pure HTML for one explicit locale. It has no silent locale fallback. Every successful result declares `inference=not_provided` and `censoring_assumption=independent_right_censoring`."
-msgstr "`render_exponential_report(result, ReportLocale.EN|FA|DE)` برای یک زبان صریح، HTML خالص و ایمن تولید می‌کند. هیچ جایگزینی خاموش برای زبان ندارد. هر نتیجهٔ موفق `inference=not_provided` و `censoring_assumption=independent_right_censoring` را اعلام می‌کند."
+msgid "Times must be finite and non-negative. Event token `1` denotes an exact event; token `0` denotes independent right censoring. The CSV contract is deliberately strict rather than a permissive spreadsheet reader: wrong encoding, headers, tokens, fields, budgets, or source access produce typed failures."
+msgstr "زمان‌ها باید متناهی و نامنفی باشند. توکن رخداد `1` رخداد دقیق و توکن `0` سانسور مستقل از راست را نشان می‌دهد. قرارداد CSV عامدانه سخت‌گیرانه است، نه خوانندهٔ سهل‌گیر صفحه‌گسترده: کدگذاری، سرستون، توکن، فیلد، بودجه یا دسترسی نادرست به منبع شکست‌های نوع‌دار تولید می‌کند."
 
-msgid "The vertical fixes `location=0`, has no confidence interval or goodness-of-fit claim, and does not claim a production out-of-core adapter or benchmarked large-data tier."
-msgstr "این قابلیت `location=0` را ثابت نگه می‌دارد، هیچ ادعایی دربارهٔ فاصلهٔ اطمینان یا نیکویی برازش ندارد و وجود رابط برون‌حافظه‌ای آمادهٔ تولید یا ردهٔ دادهٔ بزرگِ بنچمارک‌شده را ادعا نمی‌کند."
+msgid "The vertical fixes `location=0`, has no confidence interval or goodness-of-fit claim, and supplies no weights, covariates, truncation, left/interval censoring, free location, model selection, retry, checkpointing, or cancellation."
+msgstr "این قابلیت `location=0` را ثابت می‌کند، هیچ ادعایی دربارهٔ فاصلهٔ اطمینان یا نیکویی برازش ندارد و وزن، متغیر کمکی، برش، سانسور چپ/فاصله‌ای، مکان آزاد، انتخاب مدل، تلاش‌مجدد، checkpoint یا لغو ارائه نمی‌کند."

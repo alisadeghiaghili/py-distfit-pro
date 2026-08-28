@@ -11,26 +11,26 @@ msgstr "مستندات وریدیست"
 msgid "Evidence-first distribution fitting."
 msgstr "برازش توزیع با اولویت شواهد."
 
-msgid "First callable vertical"
-msgstr "نخستین قابلیت قابل فراخوانی"
+msgid "First CSV vertical"
+msgstr "نخستین قابلیت CSV"
 
-msgid "The first callable vertical fits a fixed-location exponential lifetime model with exact and independently right-censored observations. Its canonical parameter is a positive rate; the reported mean is derived as its reciprocal."
-msgstr "نخستین قابلیت قابل فراخوانی، یک مدل نمایی زمان‌عمر با مکان ثابت را برای مشاهده‌های دقیق و مشاهده‌های دارای سانسور مستقل از راست برازش می‌دهد. پارامتر مرجع آن نرخ مثبت است و میانگین گزارش‌شده از معکوس این نرخ به دست می‌آید."
+msgid "The first public vertical fits a fixed-location exponential lifetime model from a strict UTF-8 CSV source. Its canonical parameter is a positive rate; the reported mean is derived as its reciprocal."
+msgstr "نخستین قابلیت عمومی، مدل نمایی زمان‌عمر با مکان ثابت را از یک منبع CSV سخت‌گیرانه با UTF-8 برازش می‌دهد. پارامتر مرجع آن نرخ مثبت است و میانگین گزارش‌شده از معکوس آن به دست می‌آید."
 
 msgid "Limits"
 msgstr "محدودیت‌ها"
 
-msgid "This vertical provides a point estimate only. `inference=not_provided` means no confidence interval, goodness-of-fit result, truncation, weights, covariates, or free location parameter is supplied."
-msgstr "این قابلیت فقط برآورد نقطه‌ای ارائه می‌کند. `inference=not_provided` یعنی هیچ فاصلهٔ اطمینان، نتیجهٔ نیکویی برازش، برش، وزن، متغیر کمکی یا پارامتر مکان آزاد ارائه نمی‌شود."
+msgid "The CSV schema is exactly `time,event_observed`; event `1` is exact and `0` is independent right censoring. The adapter makes one iterator pass and retains at most its declared logical payload budget. `inference=not_provided` means no confidence interval, goodness-of-fit result, truncation, weights, covariates, or free location parameter is supplied."
+msgstr "شمای CSV دقیقاً `time,event_observed` است؛ رخداد `1` دقیق و `0` سانسور مستقل از راست است. آداپتور یک گذر از iterator دارد و حداکثر بودجهٔ منطقی اعلام‌شدهٔ payload را نگه می‌دارد. `inference=not_provided` یعنی فاصلهٔ اطمینان، نتیجهٔ نیکویی برازش، برش، وزن، متغیر کمکی یا پارامتر مکان آزاد عرضه نمی‌شود."
 
 msgid "Executable example"
 msgstr "مثال اجرایی"
 
-msgid "The example below has one canonical executable source and reports only stable machine facts. Use an explicit report locale; no report-language fallback is performed."
-msgstr "مثال زیر یک منبع اجرایی مرجع دارد و فقط واقعیت‌های ماشینی پایدار را گزارش می‌کند. زبان گزارش را صریح تعیین کنید؛ برای زبان گزارش هیچ جایگزینی خودکار انجام نمی‌شود."
+msgid "The example below has one canonical executable source and reports only stable machine facts. Use an opaque public source identifier; file paths are not part of the returned provenance."
+msgstr "مثال زیر یک منبع اجرایی مرجع دارد و فقط واقعیت‌های ماشینی پایدار را گزارش می‌کند. از شناسهٔ عمومیِ مبهمِ منبع استفاده کنید؛ مسیر فایل بخشی از منشأ بازگردانده‌شده نیست."
 
 msgid "Translations for this vertical are owner-reviewed provisional text; no external native-speaker review is claimed."
-msgstr "ترجمه‌های این قابلیت متن موقتی هستند که مالک پروژه بازبینی کرده است؛ هیچ ادعایی دربارهٔ بازبینی بیرونی به‌دست گویشور بومی وجود ندارد."
+msgstr "ترجمه‌های این قابلیت متن موقتی بازبینی‌شده توسط مالک پروژه‌اند؛ هیچ ادعایی دربارهٔ بازبینی بیرونی توسط گویشور بومی وجود ندارد."
 
 msgid "Canonical executable example"
 msgstr "مثال اجرایی مرجع"

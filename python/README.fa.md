@@ -14,10 +14,14 @@
 این نسخه یک برآوردگر آزمایشی MLE نمایی فقط برای پارامتر نرخ و برای طول عمرهای
 دقیق و راست‌سانسورشدهٔ مستقل دارد. هرگاه MLE متناهی وجود داشته باشد، برآورد
 نقطه‌ای برمی‌گرداند و در غیر این صورت شکست‌های نوع‌دار می‌دهد. استنباط ارائه
-نمی‌شود. حالت الگوریتمی کاهش‌دهنده ثابت و از مرتبهٔ O(1) است، اما بسته آداپتور
-دادهٔ عملیاتی عرضه نمی‌کند و اجرای برون‌حافظه‌ای عملیاتی را ادعا نمی‌کند.
-همچنین ادعایی دربارهٔ دوام پایدار checkpoint ندارد. منبع‌ها و مخزن‌های checkpoint حافظه‌ای فقط
-fixture قراردادی هستند، نه اجزای عملیاتی ذخیره‌سازی یا هماهنگ‌سازی.
+نمی‌شود. مسیر CSV عمومی آن سخت‌گیرانه است: CSV با UTF-8 و دقیقاً سرستون‌های
+`time,event_observed`، توکن رخداد `1` و توکن راست‌سانسوری `0`. این مسیر یک
+گذر از iterator با بودجهٔ منطقی payload نگه‌داشته‌شده اجرا و نتیجهٔ اجرایی
+بسته و نوع‌دار برمی‌گرداند. شواهد نگه‌داری‌شده فقط payload داخلی کران‌دار را
+برای ماتریس اندازه‌گیری‌شدهٔ 10k/100k/1m ردیف و بودجه‌های
+32KiB/64KiB/128KiB نشان می‌دهند؛ از آن‌ها پشتیبانی عمومی از دادهٔ بزرگ یا
+توان عملیاتی بالا نتیجه نمی‌شود. این ادعای سقف RSS قابل‌حمل، لغو، retry،
+checkpoint یا برون‌حافظه‌ای عمومی هم نیست.
 
 </div>
 
@@ -56,18 +60,23 @@ python -m pip install /path/to/veridist-0.0.0.dev0-py3-none-any.whl
 </div>
 
 ```python
-from veridist.domain import ExactLifetime, RightCensoredLifetime
-from veridist.families import ExponentialFitSuccess, fit_exponential
-from veridist.reporting import ReportLocale, render_exponential_report
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
+from veridist.families import ExponentialFitSuccess
 
-fit = fit_exponential([ExactLifetime(1.0), RightCensoredLifetime(1.0)])
+with TemporaryDirectory() as directory:
+    path = Path(directory) / "lifetimes.csv"
+    path.write_text("time,event_observed\n1,1\n1,0\n", encoding="utf-8")
+    fit = fit_exponential_csv(
+        path, schema=CsvLifetimeSchema("time", "event_observed"),
+        source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
+        limits=CsvLifetimeLimits(32768, 32768),
+    ).fit
 assert isinstance(fit, ExponentialFitSuccess)
 assert fit.rate == 0.5
 assert fit.inference == "not_provided"
 assert fit.censoring_assumption == "independent_right_censoring"
-
-report = render_exponential_report(fit, ReportLocale.FA)
-assert 'lang="fa" dir="rtl"' in report
 ```
 
 <div lang="fa" dir="rtl">

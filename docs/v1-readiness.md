@@ -29,10 +29,10 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
-- On 2026-08-25 at `ceee4fa`, the branch-local coverage run executed 227 passing tests with
-  one opt-in browser test skipped. The deterministic checker accepted all 19
-  enumerated production files with 100% observed coverage: 1,578 statements and
-  542 branches, with no accepted exceptions. This is structural and contract
+- On 2026-08-27 at `f6c5ace`, the branch-local coverage run executed 254 passing
+  tests with one opt-in browser test skipped. The deterministic checker accepted
+  all 22 enumerated production files with 100% observed coverage: 1,988
+  statements and 684 branches, with no accepted exceptions. This is structural and contract
   evidence, not a formal mutation score, calibration result or production-scale
   benchmark.
 - ADR-0017's first callable cell is implemented on the development branch: a
@@ -58,8 +58,13 @@ as a statement about uninspected current files.
   nonempty Persian HTML screenshots; computed RTL/right alignment and
   LTR/isolate facts pass for success and failure reports. Exact Playwright
   1.62.0 bundled-Chromium execution remains required and unverified in remote CI.
-  The broader documentation/PDF/table/code/formula RTL gate is incomplete;
-  network-font and pixel-baseline rendering are not claimed.
+  `I18N-RTL-DOC-01` additionally passes locally with Edge against Sphinx-built
+  Persian and German tutorial pages: the Farsi root/body are `fa`/RTL/right,
+  German is `de`/LTR, and independently selected inline code, highlighted
+  Python block, table and static math nodes are LTR with `unicode-bidi:isolate`.
+  The page uses a local static math asset rather than a network MathJax fetch.
+  Pinned Playwright-Chromium remote execution, PDF, network-font and
+  pixel-baseline rendering remain unverified and are not claimed.
 - Eight scratch-only manual patches were each killed by one targeted unittest:
   `fit_exponential` materialized `tuple(observations)` / `test_exp14_memory_growth_is_bounded_for_unique_generated_observations`;
   `merge` used the raw two totals / `test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions`;
@@ -71,8 +76,24 @@ as a statement about uninspected current files.
   and Persian `dir="rtl"` became `dir="ltr"` / `test_i18n_exp02_farsi_report_has_rtl_root_and_ltr_isolates`.
   This is diagnostic evidence only. The formal mutation runner and score are
   **NOT IMPLEMENTED**.
-- Retained DS pass/byte trace artifacts, actual source adapters, persistent
-  checkpoint backend and production orchestrator are **NOT IMPLEMENTED**.
+- `SCALE-CSV-EXP-01` retains an actual strict CSV adapter and one-pass
+  exponential-orchestrator trace at `python/evidence/scale-csv-exponential-v1.json`.
+  Its fail-closed checker accepts exactly nine cells: 10k/100k/1m rows by
+  32KiB/64KiB/128KiB logical chunk budgets. Every recorded cell has 1/1 pass,
+  complete rows, and internal retained/inflight payload no larger than the
+  configured budget; input paths are redacted and independent Decimal facts
+  agree with the fit. CPython 3.14.6/Windows 11 tracemalloc and elapsed values
+  are descriptive. RSS is unknown on that stdlib environment, so no process
+  memory ceiling or general throughput claim is made. Parquet/Arrow/dataframe/
+  database adapters, persistent checkpoint backend, cancellation/retry
+  orchestration, broad streaming equivalence and production-scale RSS bounds
+  remain **NOT IMPLEMENTED**.
+- The package top level now exposes the narrow strict CSV/exponential API:
+  `fit_exponential_csv`, `CsvLifetimeSchema`, `CsvLifetimeLimits`,
+  `PublicSourceId`, and `ExponentialSourceFitResult`. It is deliberately not
+  a broad distribution-fitting API or an alpha release claim. The version stays
+  `0.0.0.dev0`: the executable mutation runner, PDF/release documentation
+  evidence, and release/publishing exits are still incomplete.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free
   semantic/hash checker, AST/dynamic-import isolation checks and built-artifact
   payload inspection in the configured package job. LM-002 records the
@@ -92,14 +113,14 @@ as a statement about uninspected current files.
 | Area | Required v1 evidence |
 | --- | --- |
 | Core | Keep the current immutable exponential result/capability facts; extend the [capability matrix](capability-matrix.md) only with cited conformance evidence |
-| First vertical | Current exponential point-estimation cell is callable; complete production adapter/pass-byte/scale evidence before calling the reliability + big-data vertical complete |
+| First vertical | The strict CSV/exponential cell has retained pass/byte evidence; add portable process-memory and the remaining reliability/scale evidence before calling a broad reliability + big-data vertical complete |
 | Families | Any family beyond the first reliability vertical passes support/CDF/PPF/log-density/reference tests with cited specifications |
 | Estimation | MLE applicability, convergence/restart diagnostics, and failures that remain visible |
-| Scale | Promote the implemented DS-01--DS-12 contract fixtures into actual adapters and an orchestrator; retain measured pass/byte traces and production-scale memory evidence |
+| Scale | Keep the retained strict CSV/exponential matrix; add RSS/process-memory evidence and promote other advertised adapters/orchestrators only with their own measured traces |
 | Inference | Refit Monte-Carlo GoF and published calibration scope; no analytic p-value without a family/estimator source |
 | Uncertainty | Bootstrap failure accounting and coverage evidence only for declared regular scenarios |
 | Censoring | Explicit likelihood semantics and reference tests; unsupported family combinations fail loudly |
-| Localization | Keep implemented EN/FA/DE parity, examples and local `-W`/linkcheck; require remote pinned-Chromium HTML RTL evidence and separately specify PDF before claiming it |
+| Localization | Keep implemented EN/FA/DE parity, examples, local `-W`/linkcheck and `I18N-RTL-DOC-01` Sphinx HTML evidence; require remote pinned-Chromium evidence and separately specify PDF before claiming it |
 | Migration | Keep ADR-0016 ledger hashes current; require independent specs/RED tests per candidate and retain `distfit_pro` import/package isolation |
 | Quality | Global >=95% line and branch; numerical `domain`/`statistics`/`families`/`engine` paths >=98% line and branch; every production file >=90% of both absent ADR; executable mutation >=80% for that scope |
 | Competitive evidence | Every public `supported`/`not_supported` claim cell source-locked at 100% coverage; source-lock registry/checker currently NOT IMPLEMENTED |

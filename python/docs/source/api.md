@@ -1,17 +1,18 @@
 (veridist-api)=
-# Exponential MLE API
+# CSV exponential API
 
-`fit_exponential(observations)` and `fit_exponential_chunks(chunks)` return a
-finite rate-only estimate or a typed statistical non-estimate. Observations are
-`ExactLifetime(time)` or `RightCensoredLifetime(time)` with finite,
-non-negative times. A wrong observation object is a programmer-input error,
-not a fitting failure.
+`fit_exponential_csv(path, *, schema, source_id, limits)` is the public source
+entry point. `CsvLifetimeSchema("time", "event_observed")` selects the only
+accepted header; `PublicSourceId` is an opaque identifier safe for returned
+provenance; and `CsvLifetimeLimits` supplies positive byte budgets. The result
+is always an `ExponentialSourceFitResult`: a finite rate-only estimate, a typed
+statistical non-estimate, or a typed execution failure.
 
-`render_exponential_report(result, ReportLocale.EN|FA|DE)` renders safe pure
-HTML for one explicit locale. It has no silent locale fallback. Every successful
-result declares `inference=not_provided` and
-`censoring_assumption=independent_right_censoring`.
+Times must be finite and non-negative. Event token `1` denotes an exact event;
+token `0` denotes independent right censoring. The CSV contract is deliberately
+strict rather than a permissive spreadsheet reader: wrong encoding, headers,
+tokens, fields, budgets, or source access produce typed failures.
 
 The vertical fixes `location=0`, has no confidence interval or goodness-of-fit
-claim, and does not claim a production out-of-core adapter or benchmarked
-large-data tier.
+claim, and supplies no weights, covariates, truncation, left/interval censoring,
+free location, model selection, retry, checkpointing, or cancellation.

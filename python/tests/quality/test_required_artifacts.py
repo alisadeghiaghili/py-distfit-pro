@@ -18,7 +18,7 @@ class RequiredQualityArtifactTests(unittest.TestCase):
     def test_readiness_uses_the_authoritative_production_file_count(self) -> None:
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
         production_count = len(manifest["production_files"])
-        self.assertEqual(production_count, 19)
+        self.assertEqual(production_count, 22)
         readiness = " ".join(READINESS.read_text(encoding="utf-8").split())
         self.assertIn(
             f"accepted all {production_count} enumerated production files",
@@ -33,7 +33,9 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             "exact and independent right-censoring",
             "inference=not_provided",
             "fixed O(1) reducer state",
-            "no production adapter or out-of-core claim",
+            "one CSV iterator and one pass",
+            "SCALE-CSV-EXP-01",
+            "formal mutation runner remains **NOT IMPLEMENTED**",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, content)

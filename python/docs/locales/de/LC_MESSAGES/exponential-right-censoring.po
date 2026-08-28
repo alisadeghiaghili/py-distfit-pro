@@ -12,7 +12,40 @@ msgid "Model and estimate"
 msgstr "Modell und Schätzung"
 
 msgid "For exact-event count `r` and total time on test `tau`, this vertical uses `r*log(rate)-rate*tau` and returns `rate=r/tau` only when both values permit a finite estimate. It accepts exact lifetimes and independent right censoring. Independent right censoring is an assumption visible in the result; it cannot be established from the observations by this library."
-msgstr "Für die Anzahl exakter Ereignisse `r` und die gesamte Versuchszeit `tau` verwendet diese Funktionseinheit `r*log(rate)-rate*tau` und gibt `rate=r/tau` nur zurück, wenn beide Werte eine endliche Schätzung zulassen. Sie akzeptiert exakte Lebensdauern und unabhängige Rechtszensierung. Die unabhängige Rechtszensierung ist eine im Ergebnis sichtbare Annahme; diese Bibliothek kann sie nicht aus den Beobachtungen belegen."
+msgstr "Für die Anzahl exakter Ereignisse `r` und die gesamte Versuchszeit `tau` verwendet diese Funktionseinheit `r*log(rate)-rate*tau` und gibt `rate=r/tau` nur zurück, wenn beide Werte eine endliche Schätzung zulassen. Sie akzeptiert exakte Lebensdauern und unabhängige Rechtszensierung. Die unabhängige Rechtszensierung ist eine im Ergebnis sichtbare Annahme; diese Bibliothek kann sie nicht aus Beobachtungen belegen."
+
+msgid "Strict CSV input"
+msgstr "Strikte CSV-Eingabe"
+
+msgid "The public adapter accepts UTF-8 CSV with exactly `time,event_observed` in that order. Each data row is one finite non-negative time and token `1` (event) or `0` (right censored). A caller supplies a non-secret `PublicSourceId` instead of relying on a local path in returned facts. The adapter never guesses columns, headers, encodings, delimiters, missing values, or censoring conventions."
+msgstr "Der öffentliche Adapter akzeptiert UTF-8-CSV mit exakt `time,event_observed` in dieser Reihenfolge. Jede Datenzeile enthält eine endliche nichtnegative Zeit und Token `1` (Ereignis) oder `0` (rechtszensiert). Ein Aufrufer liefert eine nicht geheime `PublicSourceId`, statt sich bei zurückgegebenen Fakten auf einen lokalen Pfad zu stützen. Der Adapter errät niemals Spalten, Kopfzeilen, Kodierungen, Trennzeichen, fehlende Werte oder Zensierungskonventionen."
+
+msgid "The schema declaration below is executable Python. It names the only accepted header pair and intentionally keeps machine-readable identifiers left to right."
+msgstr "Die folgende Schema-Deklaration ist ausführbares Python. Sie benennt das einzige akzeptierte Kopfzeilenpaar und hält maschinenlesbare Bezeichner absichtlich von links nach rechts."
+
+msgid "CSV field"
+msgstr "CSV-Feld"
+
+msgid "Meaning"
+msgstr "Bedeutung"
+
+msgid "finite non-negative lifetime"
+msgstr "endliche nichtnegative Lebensdauer"
+
+msgid "`1` for an exact event; `0` for independent right censoring"
+msgstr "`1` für ein exaktes Ereignis; `0` für unabhängige Rechtszensierung"
+
+msgid "`time`"
+msgstr "`time` (Zeit)"
+
+msgid "`event_observed`"
+msgstr "`event_observed` (beobachtetes Ereignis)"
+
+msgid "The displayed equation fixes the model parameterization used throughout this vertical."
+msgstr "Die dargestellte Gleichung legt die in dieser Funktionseinheit verwendete Modellparametrisierung fest."
+
+msgid "\\widehat{rate} = r / tau"
+msgstr "\\widehat{rate} = r / tau{}"
 
 msgid "Failure cases and limits"
 msgstr "Fehlerfälle und Grenzen"
@@ -20,8 +53,8 @@ msgstr "Fehlerfälle und Grenzen"
 msgid "An empty sample, no observed events, zero total time with an event, and numeric overflow produce typed non-estimates. There is no confidence interval, goodness-of-fit test, truncation, left or interval censoring, weights, covariates, or free location parameter in this vertical."
 msgstr "Eine leere Stichprobe, keine beobachteten Ereignisse, eine Gesamtzeit von null bei einem Ereignis sowie numerischer Überlauf erzeugen typisierte Nicht-Schätzergebnisse. Diese Funktionseinheit enthält weder Konfidenzintervall noch Anpassungsgütetest, Trunkierung, Links- oder Intervallzensierung, Gewichte, Kovariaten oder einen freien Lageparameter."
 
-msgid "Streaming scope"
-msgstr "Umfang der Streaming-Verarbeitung"
+msgid "One-pass and scale scope"
+msgstr "Umfang von Einzeldurchlauf und Skalierung"
 
-msgid "The reducer retains fixed O(1) accumulator state: counts and a compensated total-time sum. That algorithmic scope is not a claim of a production out-of-core adapter, bounded ingestion, or a benchmarked large-data tier."
-msgstr "Der Reduzierer behält einen festen O(1)-Akkumulatorzustand: Zähler und eine kompensierte Summe der Gesamtzeit. Dieser algorithmische Umfang ist keine Behauptung eines produktionsreifen Out-of-Core-Adapters, einer speicherbeschränkten Aufnahme oder einer benchmarkgestützten Großdatenstufe."
+msgid "The CSV adapter consumes one iterator pass. Its declared chunk byte budget is a logical bound on retained payload, not a portable process-memory or RSS limit. `SCALE-CSV-EXP-01` retains a checked 10k/100k/1m by 32KiB/64KiB/128KiB matrix for this strict adapter and estimator only. It demonstrates bounded internal payload for that matrix; it does not establish throughput, generic big-data support, another adapter, cancellation, retry, or checkpointing."
+msgstr "Der CSV-Adapter verarbeitet einen Iterator-Durchlauf. Sein deklariertes Byte-Budget pro Chunk ist eine logische Grenze für behaltene Nutzlast, keine portable Grenze für Prozessspeicher oder RSS. `SCALE-CSV-EXP-01` bewahrt eine geprüfte Matrix 10k/100k/1m mal 32KiB/64KiB/128KiB nur für diesen strikten Adapter und Schätzer. Sie zeigt begrenzte interne Nutzlast für diese Matrix; sie belegt weder Durchsatz noch allgemeine Großdatenunterstützung, einen anderen Adapter, Abbruch, Wiederholung oder Checkpointing."

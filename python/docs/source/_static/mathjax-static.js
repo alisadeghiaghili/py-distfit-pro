@@ -1,0 +1,1 @@
+/* Static Sphinx math nodes are intentionally rendered without a remote runtime. */

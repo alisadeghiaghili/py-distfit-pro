@@ -46,6 +46,12 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn("python -m pytest --cov=veridist --cov-branch", self.workflow)
         self.assertIn("--ignore=tests/docs/test_docs_toolchain.py", self.workflow)
         self.assertIn("--cov-report=json:coverage.json", self.workflow)
+        tests_block = self.workflow.split("  tests:", maxsplit=1)[1].split(
+            "  package:", maxsplit=1
+        )[0]
+        self.assertIn(
+            "uses: actions/checkout@v4\n        with:\n          fetch-depth: 0", tests_block
+        )
         coverage_step = self.workflow.split(
             "      - name: Test with branch coverage", maxsplit=1
         )[1].split("      - name: Enforce coverage gates", maxsplit=1)[0]
@@ -74,6 +80,10 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         )
         self.assertIn("python -m build --sdist --wheel", self.workflow)
         self.assertIn("python -m twine check dist/*", self.workflow)
+        self.assertIn("Verify built distributions remain legacy-isolated", self.workflow)
+        self.assertIn("python tools/check_legacy_isolation.py", self.workflow)
+        self.assertIn("--artifact", self.workflow)
+        self.assertIn("artifacts=(dist/*.whl dist/*.tar.gz)", self.workflow)
         self.assertIn('python -m venv "$RUNNER_TEMP/veridist-wheel"', self.workflow)
         self.assertIn(
             '"$RUNNER_TEMP/veridist-wheel/bin/python" -m pip install dist/*.whl',
@@ -84,11 +94,13 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn("importlib.metadata", self.workflow)
         self.assertIn("py.typed", self.workflow)
         for smoke_contract in (
-            "ExactLifetime",
-            "RightCensoredLifetime",
-            "fit_exponential",
+            "CsvLifetimeLimits",
+            "CsvLifetimeSchema",
+            "PublicSourceId",
+            "fit_exponential_csv",
             "render_exponential_report",
             "ReportLocale.FA",
+            "time,event_observed",
             "assert fit.rate == 0.5",
             "assert fit.inference == 'not_provided'",
             "assert fit.censoring_assumption == 'independent_right_censoring'",
@@ -96,6 +108,14 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         ):
             with self.subTest(smoke_contract=smoke_contract):
                 self.assertIn(smoke_contract, self.workflow)
+        self.assertIn(
+            r'source.write_text("time,event_observed\n1,1\n1,0\n", encoding="utf-8")',
+            self.workflow,
+        )
+        self.assertNotIn(
+            r'source.write_text("time,event_observed\\n1,1\\n1,0\\n", encoding="utf-8")',
+            self.workflow,
+        )
 
     def test_docs_job_runs_the_actual_three_locale_toolchain(self) -> None:
         self.assertIn("  docs:", self.workflow)
@@ -136,9 +156,10 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn("  browser-rtl:", self.workflow)
         self.assertIn("name: veridist / browser rtl", self.workflow)
         self.assertIn("key: playwright-${{ runner.os }}-1.62.0", self.workflow)
-        self.assertIn('python -m pip install -e ".[test,browser]"', self.workflow)
+        self.assertIn('python -m pip install -e ".[test,browser,docs]"', self.workflow)
         self.assertIn("python -m playwright install --with-deps chromium", self.workflow)
         self.assertIn('VERIDIST_BROWSER_TESTS: "1"', self.workflow)
+        self.assertIn("tests.browser.test_sphinx_rtl_pages", self.workflow)
         self.assertIn("find artifacts/browser-rtl", self.workflow)
         self.assertIn("-type f -name '*.png' -size +0c", self.workflow)
         self.assertIn('test "${#screenshots[@]}" -eq 2', self.workflow)
@@ -163,6 +184,22 @@ class VeridistWorkflowContractTests(unittest.TestCase):
                 self.assertIn(property_name, browser_test)
         self.assertIn('"unicodeBidi": "isolate"', browser_test)
         self.assertIn("self.assertGreater(screenshot.stat().st_size, 0)", browser_test)
+        sphinx_browser_test = (
+            REPOSITORY_ROOT / "python" / "tests" / "browser" / "test_sphinx_rtl_pages.py"
+        ).read_text(encoding="utf-8")
+        for required in (
+            "sphinx",
+            "exponential-right-censoring.html",
+            "unicodeBidi",
+            "code.literal",
+            ".highlight pre",
+            "table.docutils",
+            ".math",
+            'wait_until="load"',
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, sphinx_browser_test)
+        self.assertNotIn(" || ", sphinx_browser_test)
 
     def test_aggregate_gate_fails_if_any_required_job_does_not_succeed(self) -> None:
         self.assertIn("  veridist-gate:", self.workflow)

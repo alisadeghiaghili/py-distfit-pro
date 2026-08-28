@@ -68,3 +68,30 @@ or an end-to-end statistical fit. The contract suite has not yet emitted a
 retained adapter pass/byte trace or production-scale memory result. Therefore
 no adapter, durability or scale tier is implemented or advertised by this
 addendum.
+
+
+## CSV exponential evidence addendum -- 2026-08-27
+
+The preceding paragraph is historical. Commit `4490c9e` provides a strict
+CSV lifetime adapter and the one-pass `fit_exponential_csv` orchestrator. Its
+retained artifact, `python/evidence/scale-csv-exponential-v1.json`, is checked
+fail-closed by `python/tools/check_scale_csv_exponential_evidence.py`.
+
+The artifact records a CPython 3.14.6 / Windows 11 run at clean commit
+`4490c9e`, over deterministic generated CSV inputs of 10,000, 100,000 and
+1,000,000 logical rows and three configured logical chunk budgets (32,768,
+65,536 and 131,072 bytes). Every matrix cell recorded one actual/allowed pass,
+complete coverage of all logical rows, and a peak retained/inflight payload no
+greater than its configured cap. The independent Decimal generator facts agree
+with the fitted event count, total time and rate within the artifact's recorded
+absolute and relative errors. It also records source bytes/SHA-256, chunk
+counts, tracemalloc peaks and descriptive elapsed time; raw input paths are
+absent. On this Windows run stdlib `resource` is unavailable, so RSS is
+explicitly unknown rather than reported as zero.
+
+This is evidence for this exact CSV/exponential matrix and CPython build only.
+It establishes a bounded *internal retained-payload* observation, not a
+portable process-memory ceiling, universal big-data throughput claim,
+backpressure stress guarantee, Parquet/Arrow/dataframe/database support,
+cancellation, retry, checkpoint durability or a general streaming-equivalence
+theorem.

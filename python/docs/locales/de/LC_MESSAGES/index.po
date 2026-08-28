@@ -11,23 +11,23 @@ msgstr "Veridist-Dokumentation"
 msgid "Evidence-first distribution fitting."
 msgstr "Evidenzorientierte Verteilungsanpassung."
 
-msgid "First callable vertical"
-msgstr "Erste aufrufbare Funktionseinheit"
+msgid "First CSV vertical"
+msgstr "Erste CSV-Funktionseinheit"
 
-msgid "The first callable vertical fits a fixed-location exponential lifetime model with exact and independently right-censored observations. Its canonical parameter is a positive rate; the reported mean is derived as its reciprocal."
-msgstr "Die erste aufrufbare Funktionseinheit passt ein Exponential-Lebensdauermodell mit festem Lageparameter an exakte und unabhängig rechtszensierte Beobachtungen an. Der kanonische Parameter ist eine positive Rate; der ausgegebene Mittelwert wird als ihr Kehrwert abgeleitet."
+msgid "The first public vertical fits a fixed-location exponential lifetime model from a strict UTF-8 CSV source. Its canonical parameter is a positive rate; the reported mean is derived as its reciprocal."
+msgstr "Die erste öffentliche Funktionseinheit passt ein Exponential-Lebensdauermodell mit festem Lageparameter aus einer strikten UTF-8-CSV-Quelle an. Ihr kanonischer Parameter ist eine positive Rate; der gemeldete Mittelwert wird als Kehrwert abgeleitet."
 
 msgid "Limits"
 msgstr "Grenzen"
 
-msgid "This vertical provides a point estimate only. `inference=not_provided` means no confidence interval, goodness-of-fit result, truncation, weights, covariates, or free location parameter is supplied."
-msgstr "Diese Funktionseinheit liefert nur eine Punktschätzung. `inference=not_provided` bedeutet, dass weder Konfidenzintervall noch Anpassungsgüte-Ergebnis, Trunkierung, Gewichte, Kovariaten oder ein freier Lageparameter bereitgestellt werden."
+msgid "The CSV schema is exactly `time,event_observed`; event `1` is exact and `0` is independent right censoring. The adapter makes one iterator pass and retains at most its declared logical payload budget. `inference=not_provided` means no confidence interval, goodness-of-fit result, truncation, weights, covariates, or free location parameter is supplied."
+msgstr "Das CSV-Schema lautet exakt `time,event_observed`; Ereignis `1` ist exakt und `0` ist unabhängige Rechtszensierung. Der Adapter durchläuft den Iterator einmal und behält höchstens sein deklariertes logisches Payload-Budget. `inference=not_provided` bedeutet, dass weder Konfidenzintervall noch Anpassungsgüte-Ergebnis, Trunkierung, Gewichte, Kovariaten oder ein freier Lageparameter bereitgestellt werden."
 
 msgid "Executable example"
 msgstr "Ausführbares Beispiel"
 
-msgid "The example below has one canonical executable source and reports only stable machine facts. Use an explicit report locale; no report-language fallback is performed."
-msgstr "Das folgende Beispiel hat genau eine kanonische ausführbare Quelle und gibt nur stabile maschinenlesbare Fakten aus. Geben Sie die Berichtssprache ausdrücklich an; es gibt keinen automatischen Rückgriff auf eine andere Sprache."
+msgid "The example below has one canonical executable source and reports only stable machine facts. Use an opaque public source identifier; file paths are not part of the returned provenance."
+msgstr "Das folgende Beispiel besitzt eine kanonische ausführbare Quelle und meldet nur stabile Maschinenfakten. Verwenden Sie eine undurchsichtige öffentliche Quellkennung; Dateipfade gehören nicht zur zurückgegebenen Provenienz."
 
 msgid "Translations for this vertical are owner-reviewed provisional text; no external native-speaker review is claimed."
 msgstr "Die Übersetzungen dieser Funktionseinheit sind vorläufige, vom Projekteigentümer geprüfte Texte; eine externe Prüfung durch Muttersprachler wird nicht behauptet."
