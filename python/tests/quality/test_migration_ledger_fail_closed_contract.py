@@ -42,7 +42,9 @@ class MigrationLedgerFailClosedContractTests(unittest.TestCase):
                 text=True,
             )
 
-    def _check_fixture_source_locks(self, source_locks_text: str) -> subprocess.CompletedProcess[str]:
+    def _check_fixture_source_locks(
+        self, source_locks_text: str
+    ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as temporary_directory:
             fixture = Path(temporary_directory) / "fixture"
             checker = fixture / "python" / "tools" / "check_migration_ledger.py"
@@ -53,10 +55,11 @@ class MigrationLedgerFailClosedContractTests(unittest.TestCase):
             (migration / "legacy-salvage-ledger.json").write_text(
                 LEDGER_PATH.read_text(encoding="utf-8"), encoding="utf-8"
             )
+            schema_path = (
+                REPOSITORY_ROOT / "docs" / "migration" / "legacy-salvage-ledger.schema.json"
+            )
             (migration / "legacy-salvage-ledger.schema.json").write_text(
-                (REPOSITORY_ROOT / "docs" / "migration" / "legacy-salvage-ledger.schema.json").read_text(
-                    encoding="utf-8"
-                ),
+                schema_path.read_text(encoding="utf-8"),
                 encoding="utf-8",
             )
             (migration / "legacy-source-locks.json").write_text(
@@ -155,7 +158,8 @@ class MigrationLedgerFailClosedContractTests(unittest.TestCase):
             with self.subTest(name=name):
                 result = self._check_fixture_source_locks(source_locks_text)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("source lock", result.stderr)
+                expected = "duplicate JSON key" if name == "duplicate" else "source lock"
+                self.assertIn(expected, result.stderr)
 
     def test_checker_rejects_missing_wrong_and_noncommit_source_revisions(self) -> None:
         for replacement in ("0" * 40, "f" * 40, self._tree_id()):

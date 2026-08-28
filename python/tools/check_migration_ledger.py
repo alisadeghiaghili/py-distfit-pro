@@ -9,7 +9,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 PYTHON_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = PYTHON_ROOT.parent
@@ -186,9 +186,17 @@ def _validate_schema_contract(schema: dict[str, Any]) -> None:
 
 
 def _read_json(path: Path) -> dict[str, Any]:
+    def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        decoded: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in decoded:
+                raise LedgerError(f"duplicate JSON key {key!r}")
+            decoded[key] = value
+        return decoded
+
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+        data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
+    except (OSError, json.JSONDecodeError, LedgerError) as error:
         raise LedgerError(f"cannot read {path.name}: {error}") from error
     if not isinstance(data, dict):
         raise LedgerError(f"{path.name} must contain a JSON object")
@@ -212,7 +220,7 @@ def _read_source_locks(path: Path) -> dict[str, str]:
         for identifier, commit in entries.items()
     ):
         raise LedgerError("source lock entries must map LM ids to 40-character commits")
-    return cast(dict[str, str], entries)
+    return entries
 
 
 def _git(*arguments: str) -> str:
@@ -264,11 +272,10 @@ def _require_strings(entry: dict[str, Any], key: str) -> list[str]:
 def validate(
     schema_path: Path = SCHEMA_PATH,
     ledger_path: Path = LEDGER_PATH,
-    source_locks_path: Path = SOURCE_LOCKS_PATH,
 ) -> None:
     schema = _read_json(schema_path)
     ledger = _read_json(ledger_path)
-    source_locks = _read_source_locks(source_locks_path)
+    source_locks = _read_source_locks(SOURCE_LOCKS_PATH)
     _validate_schema_contract(schema)
     if ledger.get("schema_version") != "1.1":
         raise LedgerError("unsupported ledger schema_version")
@@ -280,6 +287,13 @@ def validate(
     entries = ledger.get("entries")
     if not isinstance(entries, list) or not entries:
         raise LedgerError("entries must be a non-empty list")
+    ledger_ids = {
+        entry.get("id")
+        for entry in entries
+        if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+    }
+    if set(source_locks) != ledger_ids:
+        raise LedgerError("source lock ids must exactly match ledger ids")
     seen_components: set[str] = set()
     seen_ids: set[str] = set()
     seen_dispositions: set[str] = set()
@@ -310,7 +324,9 @@ def validate(
         ):
             raise LedgerError("entries require unique stable LM-xxx ids")
         seen_ids.add(identifier)
-        if source_locks.get(identifier) != entry.get("source", {}).get("commit"):
+        source_for_lock = entry.get("source")
+        source_commit = source_for_lock.get("commit") if isinstance(source_for_lock, dict) else None
+        if source_locks.get(identifier) != source_commit:
             raise LedgerError(f"{identifier}: source lock does not match ledger source.commit")
         component = entry.get("component")
         if not isinstance(component, str) or not component or component in seen_components:
@@ -446,18 +462,15 @@ def validate(
             raise LedgerError("exponential must be a rewrite")
     if seen_dispositions != ALLOWED_DISPOSITIONS:
         raise LedgerError("ledger must demonstrate every allowed disposition")
-    if set(source_locks) != seen_ids:
-        raise LedgerError("source lock ids must exactly match ledger ids")
 
 
 def main(arguments: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--schema", type=Path, default=SCHEMA_PATH)
     parser.add_argument("--ledger", type=Path, default=LEDGER_PATH)
-    parser.add_argument("--source-locks", type=Path, default=SOURCE_LOCKS_PATH)
     parsed = parser.parse_args(arguments)
     try:
-        validate(parsed.schema, parsed.ledger, parsed.source_locks)
+        validate(parsed.schema, parsed.ledger)
     except LedgerError as error:
         print(f"migration ledger check failed: {error}", file=sys.stderr)
         return 1
