@@ -12,6 +12,10 @@ from pathlib import Path
 
 from tests.quality.test_migration_ledger import CHECKER_PATH, LEDGER_PATH, REPOSITORY_ROOT
 
+SOURCE_LOCKS_PATH = REPOSITORY_ROOT / "docs" / "migration" / "legacy-source-locks.json"
+LM004_COMMIT = "6b021995b25dab81e3fdb9c18410cf974363848a"
+OTHER_VALID_LM004_COMMIT = "61e7ab62c1962b95bd012b282e11d0556959a49f"
+
 
 class MigrationLedgerFailClosedContractTests(unittest.TestCase):
     """Mutation probes for immutable commits, blobs, and structured line ranges."""
@@ -54,6 +58,29 @@ class MigrationLedgerFailClosedContractTests(unittest.TestCase):
                 {"path": source["path"], "start_line": 1047, "end_line": 1101},
             ],
         )
+
+    def test_lm004_commit_is_separately_frozen_by_the_source_lock(self) -> None:
+        locks = json.loads(SOURCE_LOCKS_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(locks["schema_version"], "1.0")
+        self.assertEqual(
+            locks["entries"],
+            {
+                "LM-001": "6b021995b25dab81e3fdb9c18410cf974363848a",
+                "LM-002": "6b021995b25dab81e3fdb9c18410cf974363848a",
+                "LM-003": "6b021995b25dab81e3fdb9c18410cf974363848a",
+                "LM-004": LM004_COMMIT,
+            },
+        )
+
+    def test_checker_rejects_a_different_valid_commit_with_the_same_lm004_blob(self) -> None:
+        ledger = self._ledger()
+        source = self._lm004(ledger)["source"]
+        assert isinstance(source, dict)
+        self.assertEqual(source["commit"], LM004_COMMIT)
+        source["commit"] = OTHER_VALID_LM004_COMMIT
+        result = self._check(ledger)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("source lock", result.stderr)
 
     def test_checker_rejects_missing_wrong_and_noncommit_source_revisions(self) -> None:
         for replacement in ("0" * 40, "f" * 40, self._tree_id()):
