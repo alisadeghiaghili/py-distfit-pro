@@ -5,8 +5,16 @@ from __future__ import annotations
 import math
 import unittest
 from types import MappingProxyType
+from unittest.mock import patch
 
-from veridist.families.registry import FAMILY_REGISTRY, FamilyId
+from veridist.families.registry import (
+    FAMILY_REGISTRY,
+    FamilyId,
+    FamilySpec,
+    Operation,
+    ParameterRole,
+    ParameterSpec,
+)
 
 
 class LogDensityMutationProbeTests(unittest.TestCase):
@@ -53,3 +61,61 @@ class LogDensityMutationProbeTests(unittest.TestCase):
                 FAMILY_REGISTRY.families,
                 MappingProxyType({**log_density._DISPATCH, "unexpected": log_density._normal}),
             )
+
+    def test_registry_dispatch_rejects_advertised_but_unavailable_logpdf(self) -> None:
+        from veridist.statistics import log_density
+
+        unavailable = FamilySpec(
+            id=FamilyId.NORMAL,
+            aliases=(),
+            parameters=(ParameterSpec("scale", ParameterRole.POSITIVE),),
+            fixed_location=None,
+            planned_operations=frozenset({Operation.LOGPDF}),
+            available_operations=frozenset(),
+        )
+        registry = MappingProxyType(
+            {family: specification for family, specification in FAMILY_REGISTRY.families.items()}
+        )
+        registry = MappingProxyType({**registry, FamilyId.NORMAL: unavailable})
+        with self.assertRaisesRegex(RuntimeError, "cannot exceed"):
+            log_density._verify_registry_dispatch(registry, log_density._DISPATCH)
+
+    def test_evaluator_domain_and_nonfinite_outputs_become_typed_failures(self) -> None:
+        from veridist.statistics import log_density
+        from veridist.statistics.log_density import (
+            LogDensityErrorCode,
+            LogDensityFailure,
+            evaluate_log_density,
+        )
+
+        def value_error(_: float, __: object) -> float:
+            raise ValueError("synthetic domain error")
+
+        def nonfinite(_: float, __: object) -> float:
+            return float("nan")
+
+        normal_parameters = {"mu": 0.0, "sigma": 1.0}
+        with patch.object(
+            log_density,
+            "_DISPATCH",
+            MappingProxyType({**log_density._DISPATCH, FamilyId.NORMAL: value_error}),
+        ):
+            domain_result = evaluate_log_density(FamilyId.NORMAL, 1.0, **normal_parameters)
+        with patch.object(
+            log_density,
+            "_DISPATCH",
+            MappingProxyType({**log_density._DISPATCH, FamilyId.NORMAL: nonfinite}),
+        ):
+            nonfinite_result = evaluate_log_density(FamilyId.NORMAL, 1.0, **normal_parameters)
+        self.assertIsInstance(domain_result, LogDensityFailure)
+        self.assertEqual(domain_result.code, LogDensityErrorCode.NONFINITE_LOG_DENSITY)
+        self.assertIsInstance(nonfinite_result, LogDensityFailure)
+        self.assertEqual(nonfinite_result.code, LogDensityErrorCode.NONFINITE_LOG_DENSITY)
+
+    def test_dispatch_binds_every_available_registry_family_without_reverse_import(self) -> None:
+        from veridist.statistics import log_density
+
+        self.assertEqual(set(log_density._DISPATCH), set(FAMILY_REGISTRY.families))
+        self.assertTrue(
+            all(spec.supports(Operation.LOGPDF) for spec in FAMILY_REGISTRY.families.values())
+        )

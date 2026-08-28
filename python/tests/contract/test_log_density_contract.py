@@ -37,6 +37,24 @@ class LogDensityContractTests(unittest.TestCase):
         with self.assertRaises(FrozenInstanceError):
             result.log_density = 0.0  # type: ignore[misc]
 
+    def test_result_constructors_reject_noncanonical_or_nonfinite_state(self) -> None:
+        from veridist.statistics.log_density import (
+            LogDensityErrorCode,
+            LogDensityFailure,
+            LogDensitySuccess,
+        )
+
+        with self.assertRaises(TypeError):
+            LogDensitySuccess("normal", 0.0)  # type: ignore[arg-type]
+        for value in (0, float("nan"), float("inf")):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    LogDensitySuccess(FamilyId.NORMAL, value)  # type: ignore[arg-type]
+        with self.assertRaises(TypeError):
+            LogDensityFailure("normal", LogDensityErrorCode.SUPPORT_VIOLATION)  # type: ignore[arg-type]
+        with self.assertRaises(TypeError):
+            LogDensityFailure(FamilyId.NORMAL, "support_violation")  # type: ignore[arg-type]
+
     def test_parameter_keys_are_exact_canonical_names(self) -> None:
         from veridist.statistics.log_density import evaluate_log_density
 
@@ -71,10 +89,28 @@ class LogDensityContractTests(unittest.TestCase):
                 self.assertIsInstance(result, LogDensityFailure)
                 self.assertEqual(result.code, LogDensityErrorCode.NONFINITE_OBSERVATION)
                 payload = result.to_json()
-                self.assertEqual(payload, '{"code":"nonfinite_observation","family":"normal","outcome":"failure"}')
+                self.assertEqual(
+                    payload,
+                    '{"code":"nonfinite_observation","family":"normal","outcome":"failure"}',
+                )
                 self.assertNotIn('"observation":', payload)
                 self.assertNotIn("nan", payload.lower())
                 self.assertNotIn("inf", payload.lower())
+
+    def test_nonrepresentable_builtin_integer_observation_is_a_safe_typed_failure(self) -> None:
+        from veridist.statistics.log_density import (
+            LogDensityErrorCode,
+            LogDensityFailure,
+            evaluate_log_density,
+        )
+
+        result = evaluate_log_density(FamilyId.NORMAL, 10**10000, mu=0.0, sigma=1.0)
+        self.assertIsInstance(result, LogDensityFailure)
+        self.assertEqual(result.code, LogDensityErrorCode.NONFINITE_OBSERVATION)
+        self.assertEqual(
+            result.to_json(),
+            '{"code":"nonfinite_observation","family":"normal","outcome":"failure"}',
+        )
 
     def test_positive_support_is_strict_and_boundary_is_typed(self) -> None:
         from veridist.statistics.log_density import (
@@ -123,7 +159,9 @@ class LogDensityContractTests(unittest.TestCase):
                 self.assertIsInstance(result, LogDensityFailure)
                 self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)
 
-    def test_negligible_tail_terms_can_underflow_without_invalidating_a_finite_log_density(self) -> None:
+    def test_negligible_tail_terms_can_underflow_without_invalidating_a_finite_log_density(
+        self,
+    ) -> None:
         from veridist.statistics.log_density import LogDensitySuccess, evaluate_log_density
 
         weibull = evaluate_log_density(FamilyId.WEIBULL_MIN, 5.0e-324, shape=2.0, scale=1.0)

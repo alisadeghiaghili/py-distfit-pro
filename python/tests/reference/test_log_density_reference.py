@@ -5,9 +5,8 @@ from __future__ import annotations
 import math
 import unittest
 
-from veridist.families.registry import FamilyId
-
 from tests.reference import log_density_oracle as oracle
+from veridist.families.registry import FamilyId
 
 
 class LogDensityReferenceTests(unittest.TestCase):

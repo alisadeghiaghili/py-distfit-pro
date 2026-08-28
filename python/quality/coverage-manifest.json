@@ -23,7 +23,8 @@
     "src/veridist/reporting/__init__.py",
     "src/veridist/reporting/exponential.py",
     "src/veridist/statistics/__init__.py",
-    "src/veridist/statistics/exponential.py"
+    "src/veridist/statistics/exponential.py",
+    "src/veridist/statistics/log_density.py"
   ],
   "critical_modules": [
     "domain",
@@ -54,7 +55,8 @@
     "src/veridist/reporting/__init__.py": {"statements": 2, "branches": 0},
     "src/veridist/reporting/exponential.py": {"statements": 54, "branches": 12},
     "src/veridist/statistics/__init__.py": {"statements": 2, "branches": 0},
-    "src/veridist/statistics/exponential.py": {"statements": 90, "branches": 44}
+    "src/veridist/statistics/exponential.py": {"statements": 90, "branches": 44},
+    "src/veridist/statistics/log_density.py": {"statements": 110, "branches": 24}
   },
   "accepted_exceptions": []
 }

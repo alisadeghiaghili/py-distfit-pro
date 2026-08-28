@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import mpmath
 
-
 mpmath.mp.dps = 100
 
 

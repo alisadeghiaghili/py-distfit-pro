@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from math import exp, isfinite, lgamma, log, pi
 from types import MappingProxyType
-from typing import Callable, Final, Mapping, TypeAlias
+from typing import Final, TypeAlias, cast
 
 from veridist.families.registry import FAMILY_REGISTRY, FamilyId, FamilySpec, Operation
 
@@ -113,7 +114,7 @@ def _validate_observation(observation: object) -> float | None:
     if type(observation) not in (int, float):
         return None
     try:
-        numeric = float(observation)
+        numeric = float(cast(int | float, observation))
     except OverflowError:
         return None
     return numeric if isfinite(numeric) else None
