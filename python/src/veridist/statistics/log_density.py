@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from decimal import Decimal, localcontext
 from enum import StrEnum
-from math import exp, expm1, isfinite, lgamma, log, log1p, pi
+from math import exp, expm1, fsum, isfinite, lgamma, log, log1p, pi, ulp
 from types import MappingProxyType
 from typing import Final, TypeAlias, cast
 
@@ -129,13 +130,18 @@ def _gamma(observation: float, parameters: Mapping[str, float]) -> float:
     shape = parameters["shape"]
     scale = parameters["scale"]
     delta = _ratio_minus_one(observation, shape, scale)
-    if shape >= 8.0 and isfinite(delta) and abs(delta) <= 0.5:
-        return (
-            -log(scale)
-            - 0.5 * log(2.0 * pi * shape)
-            - _stirling_error(shape)
-            + shape * _log1pmx(delta)
-            - log1p(delta)
+    if shape >= 8.0:
+        if not isfinite(delta) or delta <= -1.0:
+            raise _NumericalOverflow
+        deviance = _finite_intermediate(shape * _log1pmx(delta))
+        return fsum(
+            (
+                -log(scale),
+                -0.5 * (log(2.0 * pi) + log(shape)),
+                -_stirling_error(shape),
+                deviance,
+                -log1p(delta),
+            )
         )
     log_observation = _finite_intermediate(log(observation))
     quotient = _finite_intermediate(observation / scale)
@@ -160,6 +166,8 @@ def _weibull_min(observation: float, parameters: Mapping[str, float]) -> float:
 def _lognormal(observation: float, parameters: Mapping[str, float]) -> float:
     log_observation = log(observation)
     centered = _finite_intermediate(log_observation - parameters["mu_log"])
+    if _lognormal_needs_decimal(log_observation, parameters["mu_log"], parameters["sigma_log"]):
+        return _lognormal_decimal(observation, parameters["mu_log"], parameters["sigma_log"])
     z = _finite_intermediate(centered / parameters["sigma_log"])
     quadratic = _finite_intermediate(z * z)
     return -log_observation - log(parameters["sigma_log"]) - _LOG_SQRT_TWO_PI - 0.5 * quadratic
@@ -179,6 +187,41 @@ def _finite_intermediate(value: float) -> float:
     if not isfinite(value):
         raise _NumericalOverflow
     return value
+
+
+def _lognormal_needs_decimal(log_observation: float, mean: float, sigma: float) -> bool:
+    """Detect when binary64 log subtraction can dominate a tiny sigma contract."""
+
+    uncertainty = 4.0 * max(ulp(log_observation), ulp(mean))
+    return abs(log_observation - mean) <= 32.0 * uncertainty or uncertainty > sigma * 1.0e-12
+
+
+def _lognormal_decimal(observation: float, mean: float, sigma: float) -> float:
+    """Recompute a cancellation-sensitive lognormal value in bounded local precision."""
+
+    with localcontext() as context:
+        context.prec = _decimal_precision(observation, mean, sigma)
+        decimal_observation = Decimal.from_float(observation)
+        decimal_mean = Decimal.from_float(mean)
+        decimal_sigma = Decimal.from_float(sigma)
+        log_observation = decimal_observation.ln()
+        centered = log_observation - decimal_mean
+        z = centered / decimal_sigma
+        candidate = (
+            -log_observation
+            - decimal_sigma.ln()
+            - Decimal.from_float(_LOG_SQRT_TWO_PI)
+            - Decimal("0.5") * z * z
+        )
+        return _finite_intermediate(float(candidate))
+
+
+def _decimal_precision(observation: float, mean: float, sigma: float) -> int:
+    """Choose a bounded local Decimal precision from the exact binary64 scale."""
+
+    values = (observation, mean, sigma)
+    magnitude = max(abs(log(value, 10.0)) for value in values if value != 0.0)
+    return min(450, max(100, 80 + int(magnitude)))
 
 
 _LOG_MAX_FLOAT: Final = log(float.fromhex("0x1.fffffffffffffp+1023"))
