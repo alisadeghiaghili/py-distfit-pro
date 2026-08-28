@@ -93,9 +93,9 @@ class LogDensityReferenceTests(unittest.TestCase):
 
         result = evaluate_log_density(
             FamilyId.LOGNORMAL,
-            float.fromhex("0x0.0000000000001p-1022"),
-            mu_log=0.0,
-            sigma_log=1.0e-16,
+            3.0,
+            mu_log=math.log(3.0),
+            sigma_log=float.fromhex("0x0.0000000000001p-1022"),
         )
         self.assertIsInstance(result, LogDensityFailure)
         self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)

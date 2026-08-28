@@ -43,7 +43,11 @@ class GammaEnvelopeTests(unittest.TestCase):
                             scale=scale,
                         )
                         self.assertIsInstance(result, LogDensitySuccess)
-                        self.assertAlmostEqual(result.log_density, expected, delta=_tolerance(expected))
+                        self.assertAlmostEqual(
+                            result.log_density,
+                            expected,
+                            delta=_tolerance(expected),
+                        )
                         checked += 1
         self.assertGreaterEqual(checked, 90)
 

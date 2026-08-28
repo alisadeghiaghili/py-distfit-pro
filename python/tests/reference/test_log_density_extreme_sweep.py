@@ -18,7 +18,7 @@ _Vector: TypeAlias = tuple[FamilyId, float, dict[str, float], _Oracle]
 class LogDensityExtremeSweepTests(unittest.TestCase):
     """Probe cancellation, adjacency, and tails; this is not a mutation score."""
 
-    def test_fixed_seed_finite_oracle_sweep_has_no_false_success_or_uncaught_error(self) -> None:
+    def test_fixed_seed_ordinary_sweep_has_no_false_success_or_uncaught_error(self) -> None:
         from veridist.statistics.log_density import LogDensitySuccess, evaluate_log_density
 
         random_source = random.Random(904_120)
@@ -31,7 +31,7 @@ class LogDensityExtremeSweepTests(unittest.TestCase):
                 self.assertAlmostEqual(
                     result.log_density,
                     expected,
-                    delta=_extreme_tolerance(expected),
+                    delta=_ordinary_tolerance(expected),
                 )
 
 
@@ -82,7 +82,5 @@ def _finite_vectors(random_source: random.Random) -> tuple[_Vector, ...]:
     return tuple(vectors)
 
 
-def _extreme_tolerance(expected: float) -> float:
-    """Separate extreme-oracle bound; ordinary vectors retain their tighter bound."""
-
-    return max(32.0 * math.ulp(expected), abs(expected) * 8.0e-13, 8.0e-13)
+def _ordinary_tolerance(expected: float) -> float:
+    return max(8.0 * math.ulp(expected), abs(expected) * 2.0e-14, 2.0e-14)
