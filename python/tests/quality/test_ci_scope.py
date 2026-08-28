@@ -30,6 +30,7 @@ class CiScopeClassifierTests(unittest.TestCase):
             "python/src/veridist/engine/errors.py",
             "python/tests/quality/test_ci_scope.py",
             "docs/adr/ADR-0015-retry-checkpoint-transactional-guarantees.md",
+            "docs/evidence/scale-csv-exponential-v1.md",
             "docs/capability-matrix.md",
             "docs/v1-readiness.md",
             "docs/decisions-2026-08-20.md",

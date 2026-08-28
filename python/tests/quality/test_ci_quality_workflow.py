@@ -46,6 +46,12 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn("python -m pytest --cov=veridist --cov-branch", self.workflow)
         self.assertIn("--ignore=tests/docs/test_docs_toolchain.py", self.workflow)
         self.assertIn("--cov-report=json:coverage.json", self.workflow)
+        tests_block = self.workflow.split("  tests:", maxsplit=1)[1].split(
+            "  package:", maxsplit=1
+        )[0]
+        self.assertIn(
+            "uses: actions/checkout@v4\n        with:\n          fetch-depth: 0", tests_block
+        )
         coverage_step = self.workflow.split(
             "      - name: Test with branch coverage", maxsplit=1
         )[1].split("      - name: Enforce coverage gates", maxsplit=1)[0]
@@ -102,6 +108,14 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         ):
             with self.subTest(smoke_contract=smoke_contract):
                 self.assertIn(smoke_contract, self.workflow)
+        self.assertIn(
+            r'source.write_text("time,event_observed\n1,1\n1,0\n", encoding="utf-8")',
+            self.workflow,
+        )
+        self.assertNotIn(
+            r'source.write_text("time,event_observed\\n1,1\\n1,0\\n", encoding="utf-8")',
+            self.workflow,
+        )
 
     def test_docs_job_runs_the_actual_three_locale_toolchain(self) -> None:
         self.assertIn("  docs:", self.workflow)
@@ -142,7 +156,7 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn("  browser-rtl:", self.workflow)
         self.assertIn("name: veridist / browser rtl", self.workflow)
         self.assertIn("key: playwright-${{ runner.os }}-1.62.0", self.workflow)
-        self.assertIn('python -m pip install -e ".[test,browser]"', self.workflow)
+        self.assertIn('python -m pip install -e ".[test,browser,docs]"', self.workflow)
         self.assertIn("python -m playwright install --with-deps chromium", self.workflow)
         self.assertIn('VERIDIST_BROWSER_TESTS: "1"', self.workflow)
         self.assertIn("tests.browser.test_sphinx_rtl_pages", self.workflow)
