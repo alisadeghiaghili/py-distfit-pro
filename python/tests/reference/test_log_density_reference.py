@@ -66,6 +66,40 @@ class LogDensityReferenceTests(unittest.TestCase):
                 expected = oracle.gamma(observation, shape=shape, scale=1.0)
                 self.assertAlmostEqual(actual, expected, delta=_tolerance(expected))
 
+    def test_gamma_large_shape_mode_is_a_finite_ordinary_tolerance_result(self) -> None:
+        actual = _success_value(FamilyId.GAMMA, 1.0e308, shape=1.0e308, scale=1.0)
+        expected = oracle.gamma(1.0e308, shape=1.0e308, scale=1.0)
+        self.assertAlmostEqual(actual, expected, delta=_tolerance(expected))
+
+    def test_lognormal_log_cancellation_uses_exact_binary_inputs_before_tiny_sigma(self) -> None:
+        mu_log = math.log(3.0)
+        for sigma_log in (1.0e-16, 1.0e-18):
+            with self.subTest(sigma_log=sigma_log):
+                actual = _success_value(
+                    FamilyId.LOGNORMAL,
+                    3.0,
+                    mu_log=mu_log,
+                    sigma_log=sigma_log,
+                )
+                expected = oracle.lognormal(3.0, mu_log=mu_log, sigma_log=sigma_log)
+                self.assertAlmostEqual(actual, expected, delta=_tolerance(expected))
+
+    def test_lognormal_subnormal_with_tiny_sigma_is_typed_overflow(self) -> None:
+        from veridist.statistics.log_density import (
+            LogDensityErrorCode,
+            LogDensityFailure,
+            evaluate_log_density,
+        )
+
+        result = evaluate_log_density(
+            FamilyId.LOGNORMAL,
+            float.fromhex("0x0.0000000000001p-1022"),
+            mu_log=0.0,
+            sigma_log=1.0e-16,
+        )
+        self.assertIsInstance(result, LogDensityFailure)
+        self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)
+
     def test_weibull_adjacent_ratio_with_huge_shape_is_never_a_false_finite_success(self) -> None:
         from veridist.statistics.log_density import (
             LogDensityErrorCode,
