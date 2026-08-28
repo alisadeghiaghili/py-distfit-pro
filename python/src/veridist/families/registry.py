@@ -101,8 +101,6 @@ class FamilySpec:
             raise TypeError("operations must be a non-empty frozenset")
         if any(type(operation) is not Operation for operation in self.operations):
             raise TypeError("operations must contain Operation values")
-        if self.operations != frozenset({Operation.LOGPDF}):
-            raise ValueError("the evaluated-family kernel supports only LOGPDF")
 
     @property
     def free_parameter_count(self) -> int:

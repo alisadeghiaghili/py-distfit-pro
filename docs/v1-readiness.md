@@ -29,6 +29,12 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
+- The family-registry tranche adds one metadata-only production file. The
+  CI-shaped local run collected 282 items (280 passed and two opt-in browser
+  tests skipped); the deterministic checker accepted all 23 enumerated
+  production files with 2,113 statements and 736 branches at 100% observed
+  coverage, with no accepted exceptions. The registry itself is not a
+  numerical evaluator, fit, inference, or large-data capability claim.
 - On 2026-08-27 at `f6c5ace`, the branch-local coverage run executed 254 passing
   tests with one opt-in browser test skipped. The deterministic checker accepted
   all 22 enumerated production files with 100% observed coverage: 1,988

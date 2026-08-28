@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import unittest
 from dataclasses import FrozenInstanceError
 from math import inf, nan
 from types import MappingProxyType
-import unittest
 
 from veridist.families.registry import (
     FAMILY_REGISTRY,
@@ -13,8 +13,8 @@ from veridist.families.registry import (
     FamilyRegistry,
     FamilySpec,
     Operation,
-    ParameterSpec,
     ParameterRole,
+    ParameterSpec,
     list_families,
 )
 
@@ -43,9 +43,7 @@ class FamilyRegistryContractTests(unittest.TestCase):
     def test_fam_reg_02_declared_aliases_resolve_without_normalization(self) -> None:
         self.assertIs(FAMILY_REGISTRY.resolve("normal"), FAMILY_REGISTRY.resolve("gaussian"))
         self.assertIs(FAMILY_REGISTRY.resolve("weibull_min"), FAMILY_REGISTRY.resolve("weibull"))
-        self.assertIs(
-            FAMILY_REGISTRY.resolve("gumbel_right"), FAMILY_REGISTRY.resolve("gumbel")
-        )
+        self.assertIs(FAMILY_REGISTRY.resolve("gumbel_right"), FAMILY_REGISTRY.resolve("gumbel"))
         for unregistered_name in ("Normal", "weibull-min", "gumbel right", "gamma_dist"):
             with self.subTest(unregistered_name=unregistered_name):
                 with self.assertRaises(ValueError):
@@ -110,14 +108,18 @@ class FamilyRegistryContractTests(unittest.TestCase):
             for parameter in family.parameters:
                 if parameter.role is ParameterRole.POSITIVE:
                     for value in (True, nan, inf, -inf, 0.0, -1.0):
-                        with self.subTest(identifier=identifier, parameter=parameter.name, value=value):
+                        with self.subTest(
+                            identifier=identifier, parameter=parameter.name, value=value
+                        ):
                             invalid = {**valid_parameters, parameter.name: value}
                             with self.assertRaises((TypeError, ValueError)):
                                 family.validate_parameters(**invalid)
             for parameter in family.parameters:
                 if parameter.role is ParameterRole.FINITE:
                     for value in (nan, inf, -inf):
-                        with self.subTest(identifier=identifier, parameter=parameter.name, value=value):
+                        with self.subTest(
+                            identifier=identifier, parameter=parameter.name, value=value
+                        ):
                             invalid = {**valid_parameters, parameter.name: value}
                             with self.assertRaises(ValueError):
                                 family.validate_parameters(**invalid)
