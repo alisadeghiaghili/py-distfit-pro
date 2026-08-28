@@ -54,23 +54,28 @@ as a statement about uninspected current files.
 - A branch-local PEP 517 sdist/wheel build and Twine check pass. A clean wheel
   environment outside the checkout passes dependency/import/version/`py.typed`
   checks and calls the 0.5-rate exponential fit plus a Persian RTL report.
-- Base CI lane isolation and Linux Python 3.11--3.14 jobs were previously
-  configured and pushed. The current exponential/docs/browser branch changes
-  are not pushed yet; all remote results for them remain **UNVERIFIED**.
+- PR #31 (`csv-exponential-source`) was merged to `main` at
+  `1b01385a5d707cfff1dc59c22a6e2e2c5f8eaf14`; its reviewed head was
+  `b57041701f3c6d25e99f968fcb07a810dc97e14b`. The remote Linux Python
+  3.11--3.14 CI lanes, package build/clean-wheel checks, and browser gates for
+  that merged vertical are verified. This verifies only the narrow CSV/
+  exponential vertical, not a broad distribution-fitting release.
 - Local Sphinx gettext, EN/FA/DE HTML and English linkcheck complete with
   warnings fatal. Exact real POT/catalog parity, translated rendered semantics,
-  locale direction and canonical examples pass. Remote CI remains unverified.
+  locale direction and canonical examples pass. The corresponding PR #31
+  remote CI evidence is verified; subsequent family-kernel changes still need
+  their own remote CI evidence before merge.
 - The narrow `I18N-RTL-EXP-01` opt-in browser contract passes locally with Edge 151 and exactly two
   nonempty Persian HTML screenshots; computed RTL/right alignment and
   LTR/isolate facts pass for success and failure reports. Exact Playwright
-  1.62.0 bundled-Chromium execution remains required and unverified in remote CI.
+  1.62.0 bundled-Chromium execution is verified for the merged PR #31 vertical.
   `I18N-RTL-DOC-01` additionally passes locally with Edge against Sphinx-built
   Persian and German tutorial pages: the Farsi root/body are `fa`/RTL/right,
   German is `de`/LTR, and independently selected inline code, highlighted
   Python block, table and static math nodes are LTR with `unicode-bidi:isolate`.
   The page uses a local static math asset rather than a network MathJax fetch.
-  Pinned Playwright-Chromium remote execution, PDF, network-font and
-  pixel-baseline rendering remain unverified and are not claimed.
+  PDF, network-font, and pixel-baseline rendering remain unverified and are
+  not claimed.
 - Eight scratch-only manual patches were each killed by one targeted unittest:
   `fit_exponential` materialized `tuple(observations)` / `test_exp14_memory_growth_is_bounded_for_unique_generated_observations`;
   `merge` used the raw two totals / `test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions`;
@@ -101,10 +106,10 @@ as a statement about uninspected current files.
   `0.0.0.dev0`: the executable mutation runner, PDF/release documentation
   evidence, and release/publishing exits are still incomplete.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free
-  fail-closed semantic checker that requires an extant frozen source commit,
-  exact `commit:path` blob, SHA-256, and ordered in-bounds source ranges,
-  plus AST/dynamic-import isolation checks and built-artifact payload inspection
-  in the configured package job. LM-002 records the
+  fail-closed semantic checker and a separate immutable source-lock policy that
+  require the exact frozen source commit, `commit:path` blob, SHA-256, and
+  ordered in-bounds source ranges, plus AST/dynamic-import isolation checks and
+  built-artifact payload inspection in the configured package job. LM-002 records the
   independent exponential rewrite and reviewed statistical evidence but remains
   `review_pending`; no legacy runtime code, compatibility surface or numerical
   oracle is used. LM-003 remains pending and does not claim legacy phrase reuse.
