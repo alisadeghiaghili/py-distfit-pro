@@ -58,6 +58,32 @@ class LogDensityReferenceTests(unittest.TestCase):
             delta=2.0e-14,
         )
 
+    def test_gamma_mode_cancellation_uses_the_exact_binary64_inputs(self) -> None:
+        cases = ((1.0e12, 1.0e12), (1.0e16, 1.0e16))
+        for observation, shape in cases:
+            with self.subTest(observation=observation):
+                actual = _success_value(FamilyId.GAMMA, observation, shape=shape, scale=1.0)
+                expected = oracle.gamma(observation, shape=shape, scale=1.0)
+                self.assertAlmostEqual(actual, expected, delta=_tolerance(expected))
+
+    def test_weibull_adjacent_ratio_with_huge_shape_is_never_a_false_finite_success(self) -> None:
+        from veridist.statistics.log_density import (
+            LogDensityErrorCode,
+            LogDensityFailure,
+            evaluate_log_density,
+        )
+
+        scale = 1.0e300
+        observation = math.nextafter(scale, math.inf)
+        result = evaluate_log_density(
+            FamilyId.WEIBULL_MIN,
+            observation,
+            shape=1.0e308,
+            scale=scale,
+        )
+        self.assertIsInstance(result, LogDensityFailure)
+        self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)
+
     def test_weibull_shape_one_is_exponential(self) -> None:
         x, scale = 3.75, 1.5
         self.assertAlmostEqual(
