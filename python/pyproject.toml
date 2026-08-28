@@ -24,6 +24,7 @@ Issues = "https://github.com/alisadeghiaghili/py-distfit-pro/issues"
 [project.optional-dependencies]
 test = [
     "coverage[toml]>=7.6",
+    "mpmath==1.3.0",
     "pytest>=8.3",
     "pytest-cov>=6,<8",
 ]

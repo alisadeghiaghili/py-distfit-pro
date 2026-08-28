@@ -1,0 +1,43 @@
+"""Adversarial probes that document the scalar evaluator's mutation targets."""
+
+from __future__ import annotations
+
+import math
+import unittest
+
+from veridist.families.registry import FamilyId
+
+
+class LogDensityMutationProbeTests(unittest.TestCase):
+    """Kill formula, dispatch, support, and non-finite leakage mutations."""
+
+    def test_formula_sign_and_required_term_probes_are_distinguishing(self) -> None:
+        from veridist.statistics.log_density import LogDensitySuccess, evaluate_log_density
+
+        cases = (
+            (FamilyId.NORMAL, 4.0, {"mu": 0.0, "sigma": 1.0}, -8.918938533204672),
+            (FamilyId.GAMMA, 3.0, {"shape": 2.5, "scale": 1.25}, -1.5288875874983836),
+            (FamilyId.WEIBULL_MIN, 5.0, {"shape": 2.0, "scale": 3.0}, -1.2436050468256866),
+            (FamilyId.LOGNORMAL, 4.0, {"mu_log": 0.25, "sigma_log": 0.75}, -3.2192632781188485),
+            (FamilyId.GUMBEL_RIGHT, -3.0, {"location": 1.0, "scale": 2.0}, -5.082232665525421),
+        )
+        for family, observation, parameters, expected in cases:
+            with self.subTest(family=family):
+                result = evaluate_log_density(family, observation, **parameters)
+                self.assertIsInstance(result, LogDensitySuccess)
+                self.assertAlmostEqual(result.log_density, expected, delta=2.0e-13)
+                self.assertTrue(math.isfinite(result.log_density))
+
+    def test_dispatch_is_closed_and_does_not_leak_nonfinite_successes(self) -> None:
+        from veridist.statistics.log_density import LogDensityFailure, evaluate_log_density
+
+        for family, parameters in (
+            (FamilyId.NORMAL, {"mu": 0.0, "sigma": 1.0}),
+            (FamilyId.GAMMA, {"shape": 2.0, "scale": 1.0}),
+            (FamilyId.WEIBULL_MIN, {"shape": 2.0, "scale": 1.0}),
+            (FamilyId.LOGNORMAL, {"mu_log": 0.0, "sigma_log": 1.0}),
+            (FamilyId.GUMBEL_RIGHT, {"location": 0.0, "scale": 1.0}),
+        ):
+            with self.subTest(family=family):
+                result = evaluate_log_density(family, float("inf"), **parameters)
+                self.assertIsInstance(result, LogDensityFailure)
