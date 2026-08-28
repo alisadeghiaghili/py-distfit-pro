@@ -35,12 +35,24 @@ as a statement about uninspected current files.
   collected 286 items (the two opt-in browser tests remain skipped). Its fresh
   `python/coverage.json` SHA-256 is
   `405c413e9fe6bf34f49c079260565fcb7a8bbdfa648ff487b86b4c61b3e3f4ae`.
-  The deterministic checker accepted all 23 enumerated production files with
+  The deterministic checker accepted all 24 enumerated production files with
   2,145 statements and 748 branches at 100% observed coverage, with no
-  accepted exceptions. The registry is metadata-only: `LOGPDF` is planned but
-  unavailable, so it is not a numerical evaluator, fit, inference, or
-  large-data capability claim. This is structural and contract evidence, not a
-  formal mutation score, calibration result, or production-scale benchmark.
+  accepted exceptions. The registry advertises a closed scalar `LOGPDF`
+  operation for all five canonical families; it is not fitting, inference, or
+  a large-data capability claim. This is structural and contract evidence, not
+  a formal mutation score, calibration result, or production-scale benchmark.
+- On 2026-08-28, the repaired scalar-log-density tranche at
+  `a43aad482f3ff91e77e4826c25e03d5c8c43c07c` passed the CI-shaped local
+  command with 320 collected tests (two opt-in browser tests skipped). Its
+  fresh `python/coverage.json` SHA-256 is
+  `08764b95db8ef04e8931a69a5c9c832d188b8e706f1d52459e6b46b4153f6247`.
+  The checker accepted all 24 enumerated production files at 2,304 statements
+  and 788 branches with 100% observed line and branch coverage and no accepted
+  exceptions. The five-family scalar evaluator has independent exact-binary
+  `mpmath==1.3.0` references, high-precision Gamma mode-cancellation and
+  Weibull adjacent-ratio regressions, plus a fixed-seed extreme sweep. This
+  evidence is limited to scalar log-density correctness; it is not fitting,
+  inference, censoring, array, or large-data evidence.
 - ADR-0017's first callable cell is implemented on the development branch: a
   fixed-location, rate-only exponential MLE for exact and independently
   right-censored lifetimes. It returns a finite point estimate or a typed

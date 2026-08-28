@@ -124,11 +124,13 @@ documented `TypeError`/`ValueError` boundary errors.
 The only success is a finite binary64 log-density.  Positive-support Gamma,
 Weibull-min, and Lognormal require **strictly** `x > 0`: `x == 0` is a typed
 `SUPPORT_VIOLATION`, rather than a limiting value.  A non-finite or bool
-observation is `NONFINITE_OBSERVATION`.  A mathematically valid calculation
-whose representable intermediate overflows is `NUMERICAL_OVERFLOW`; a
-representable intermediate rounded to zero where its reciprocal/log is needed
-is `NUMERICAL_UNDERFLOW`; any other non-finite candidate is
-`NONFINITE_LOG_DENSITY`.  The evaluator never returns NaN or either infinity.
+observation is `NONFINITE_OBSERVATION`. A mathematically valid calculation
+whose required representable intermediate, scaled difference, product, or
+exponential term overflows is `NUMERICAL_OVERFLOW`. Negligible
+exponential-tail underflow is acceptable when the log-density remains finite.
+`NONFINITE_LOG_DENSITY` is reserved for a postcondition breach after a
+calculation otherwise completed. The evaluator never returns NaN or either
+infinity.
 It does not use a broad catch-all, and failures never retain or serialize the
 observation, parameter values, paths, or localized text.
 
@@ -142,11 +144,42 @@ raw input values.
 The canonical formulas are evaluated in log space using the standard library:
 
 - Normal: `-0.5 log(2 pi) - log(sigma) - 0.5 z^2`, `z=(x-mu)/sigma`.
-- Gamma: `(shape-1) log(x) - x/scale - lgamma(shape) - shape log(scale)`.
-- Weibull-min: `log(shape)-log(scale)+(shape-1)log(x/scale)-(x/scale)^shape`.
+- Gamma: for `shape < 8` the canonical
+  `(shape-1) log(x) - x/scale - lgamma(shape) - shape log(scale)` form; for
+  `shape >= 8` and `abs(delta) <= 0.5`, the cancellation-safe deviance form
+  `-log(scale)-0.5log(2pi shape)-stirlerr(shape)+shape*log1pmx(delta)-log1p(delta)`,
+  where `delta=x/(shape*scale)-1` is formed from exact binary64 ratios.
+- Weibull-min: `log(shape)-log(scale)+(shape-1)log(x/scale)-(x/scale)^shape`,
+  with an exact-binary adjacent-ratio `log1p(delta)` path and `expm1` near
+  zero; a required exponential above the binary64 bound is typed overflow.
 - Lognormal: `-log(x)-log(sigma_log)-0.5log(2pi)-0.5z^2`,
   `z=(log(x)-mu_log)/sigma_log`.
-- Gumbel-right: `-log(scale)-z-exp(-z)`, `z=(x-location)/scale`.
+- Gumbel-right: `-log(scale)-z-exp(-z)`, `z=(x-location)/scale`, evaluated
+  with exact-binary scaled differences and the `expm1` near-zero identity.
+
+The stable Gamma form follows the positive-real Stirling expansion and its
+first-neglected-term remainder discipline in NIST DLMF §5.11, with terms
+through `1/(156 shape^13)`. At the selected `shape >= 8` threshold, the next
+term is below the ordinary scalar acceptance envelope. The implementation is a
+clean-room derivation: R's separately inspected `stirlerr.c` and `bd0.c` are
+algorithm references only and contribute no copied code. The test oracle pins
+`mpmath==1.3.0`, reconstructs every input from `float.as_integer_ratio()`, and
+uses `max(100, 200 + max(abs(floor(log10(abs(input))))))` decimal digits;
+the 1e308 tests therefore use at least 508 digits. Ordinary reference vectors
+retain `max(8 ULP, 2e-14 relative, 2e-14 absolute)`. The deterministic extreme
+sweep uses its separately declared `max(32 ULP, 8e-13 relative, 8e-13
+absolute)` acceptance bound; it is not a blanket relaxation.
+
+The original scalar-log-density golden vectors were corrected after the
+exact-binary, high-precision regression exposed a false Gamma mode result and
+a false Weibull finite success. The committed RED test is retained as evidence
+of the correction, rather than silently rewriting the prior values.
+
+Mathematical and algorithm-reference sources:
+
+- [NIST DLMF §5.11](https://dlmf.nist.gov/5.11)
+- [R `stirlerr.c` reference](https://github.com/wch/r-source/blob/trunk/src/nmath/stirlerr.c)
+- [R `bd0.c` reference](https://github.com/wch/r-source/blob/trunk/src/nmath/bd0.c)
 
 The metadata registry keeps `LOGPDF` planned.  It advertises it as available
 only as a closed all-family capability.  `statistics.log_density` validates at
