@@ -113,8 +113,6 @@ class FamilySpec:
             raise TypeError("available_operations must be a frozenset")
         if any(type(operation) is not Operation for operation in self.available_operations):
             raise TypeError("available_operations must contain Operation values")
-        if not self.available_operations <= self.planned_operations:
-            raise ValueError("available_operations must be planned")
         if self.available_operations:
             raise ValueError("no family evaluator is available in the metadata-only kernel")
 
@@ -165,7 +163,7 @@ class FamilyRegistry:
             raise TypeError("families must be a non-empty tuple of FamilySpec values")
         if any(type(family) is not FamilySpec for family in families):
             raise TypeError("families must contain FamilySpec values")
-        object.__setattr__(self, "_sealed", False)
+        self._sealed = False
         family_mapping: dict[FamilyId, FamilySpec] = {}
         lookup: dict[str, FamilySpec] = {}
         collision_keys: dict[str, FamilySpec] = {}
@@ -181,10 +179,10 @@ class FamilyRegistry:
                     raise ValueError("alias normalization collision")
                 lookup[name] = family
                 collision_keys[collision_key] = family
-        object.__setattr__(self, "_families", MappingProxyType(family_mapping))
-        object.__setattr__(self, "_lookup", MappingProxyType(lookup))
-        object.__setattr__(self, "_ordered", families)
-        object.__setattr__(self, "_sealed", True)
+        self._families = MappingProxyType(family_mapping)
+        self._lookup = MappingProxyType(lookup)
+        self._ordered = families
+        self._sealed = True
 
     def __setattr__(self, name: str, value: object) -> None:
         """Prevent normal reassignment after construction."""

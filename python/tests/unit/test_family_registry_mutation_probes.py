@@ -58,6 +58,7 @@ class FamilyRegistryMutationProbeTests(unittest.TestCase):
             {"planned_operations": set()},
             {"planned_operations": frozenset({object()})},
             {"available_operations": set()},
+            {"available_operations": frozenset({object()})},
             {"available_operations": frozenset({Operation.LOGPDF})},
         )
         for changes in invalid_cases:
