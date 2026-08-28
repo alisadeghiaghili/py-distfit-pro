@@ -220,7 +220,7 @@ def _decimal_precision(observation: float, mean: float, sigma: float) -> int:
     """Choose a bounded local Decimal precision from the exact binary64 scale."""
 
     values = (observation, mean, sigma)
-    magnitude = max(abs(log(value, 10.0)) for value in values if value != 0.0)
+    magnitude = max(abs(log(abs(value), 10.0)) for value in values if value != 0.0)
     return min(450, max(100, 80 + int(magnitude)))
 
 
