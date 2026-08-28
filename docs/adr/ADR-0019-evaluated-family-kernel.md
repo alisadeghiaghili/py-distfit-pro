@@ -30,11 +30,13 @@ five canonical families, in this deterministic order:
 4. `lognormal`: zero-location `Lognormal(mu_log, sigma_log)`.
 5. `gumbel_right`: `Gumbel-right(location, scale)`.
 
-The registry declares only the supported operation `LOGPDF`.  It is an
-operation-level contract for exact uncensored log-density evaluation; it does
-not provide fitting, CDF, PPF, SF, model selection, censored likelihood,
-weights, raw-data ingestion, reporting, or inference.  A later accepted
-decision and separate tests are required for each such capability.
+The registry marks `LOGPDF` as *planned*, but exposes no available evaluator:
+`plans(LOGPDF)` is true while `supports(LOGPDF)` is false.  This deliberately
+separates a future operation-level contract for exact uncensored log-density
+evaluation from what callers can execute today.  It does not provide fitting,
+CDF, PPF, SF, model selection, censored likelihood, weights, raw-data
+ingestion, reporting, or inference.  A later accepted decision, evaluator,
+and separate tests are required before `supports(LOGPDF)` may become true.
 
 Each family has an immutable canonical parameter tuple and an explicit free
 parameter count derived from that tuple, never from a mapping length.  Normal,
@@ -48,8 +50,9 @@ contract violations are programmer misuse and raise only `TypeError` or
 `ValueError`; typed evaluation failures belong to the later evaluator tranche.
 
 Canonical IDs and explicitly declared aliases resolve deterministically.
-Alias collisions fail registry construction; normalization is not an
-undocumented separator-stripping convenience feature.  The registry, family
+Tokens are lowercase snake-case only. Alias collisions, including their
+separator-free collision key, fail registry construction; resolution itself
+performs no normalization.  The registry, family
 specifications, operation sets, aliases, and parameter specifications are
 immutable.  The kernel has no fitted object, localized string, I/O, reporting,
 raw-data retention, NumPy, SciPy, global warning policy, or legacy import.
@@ -80,7 +83,8 @@ tests, not legacy output.
 ## Test implications
 
 - `FAM-REG-01`: canonical IDs and listing order are exact and deterministic.
-- `FAM-REG-02`: aliases resolve only when explicitly declared; collisions fail.
+- `FAM-REG-02`: aliases resolve only when explicitly declared; invalid tokens
+  and direct or separator-free collisions fail.
 - `FAM-REG-03`: mappings, specs, and operation sets cannot be mutated.
 - `FAM-PAR-01`: canonical tuples and free counts are fixed for every family.
 - `FAM-PAR-02`: positive finite shape/scale contracts reject bool, NaN,

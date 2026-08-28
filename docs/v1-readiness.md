@@ -29,18 +29,18 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
-- The family-registry tranche adds one metadata-only production file. The
-  CI-shaped local run collected 282 items (280 passed and two opt-in browser
-  tests skipped); the deterministic checker accepted all 23 enumerated
-  production files with 2,113 statements and 736 branches at 100% observed
-  coverage, with no accepted exceptions. The registry itself is not a
-  numerical evaluator, fit, inference, or large-data capability claim.
-- On 2026-08-27 at `f6c5ace`, the branch-local coverage run executed 254 passing
-  tests with one opt-in browser test skipped. The deterministic checker accepted
-  all 22 enumerated production files with 100% observed coverage: 1,988
-  statements and 684 branches, with no accepted exceptions. This is structural and contract
-  evidence, not a formal mutation score, calibration result or production-scale
-  benchmark.
+- On 2026-08-28 at `bfb496d1811dcc4f68f9059b250b45bacd1f1282`, the
+  CI-shaped local command
+  `python -m pytest --cov=veridist --cov-branch --ignore=tests/docs/test_docs_toolchain.py --cov-report=json:coverage.json`
+  collected 286 items (the two opt-in browser tests remain skipped). Its fresh
+  `python/coverage.json` SHA-256 is
+  `405c413e9fe6bf34f49c079260565fcb7a8bbdfa648ff487b86b4c61b3e3f4ae`.
+  The deterministic checker accepted all 23 enumerated production files with
+  2,145 statements and 748 branches at 100% observed coverage, with no
+  accepted exceptions. The registry is metadata-only: `LOGPDF` is planned but
+  unavailable, so it is not a numerical evaluator, fit, inference, or
+  large-data capability claim. This is structural and contract evidence, not a
+  formal mutation score, calibration result, or production-scale benchmark.
 - ADR-0017's first callable cell is implemented on the development branch: a
   fixed-location, rate-only exponential MLE for exact and independently
   right-censored lifetimes. It returns a finite point estimate or a typed
@@ -101,8 +101,10 @@ as a statement about uninspected current files.
   `0.0.0.dev0`: the executable mutation runner, PDF/release documentation
   evidence, and release/publishing exits are still incomplete.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free
-  semantic/hash checker, AST/dynamic-import isolation checks and built-artifact
-  payload inspection in the configured package job. LM-002 records the
+  fail-closed semantic checker that requires an extant frozen source commit,
+  exact `commit:path` blob, SHA-256, and ordered in-bounds source ranges,
+  plus AST/dynamic-import isolation checks and built-artifact payload inspection
+  in the configured package job. LM-002 records the
   independent exponential rewrite and reviewed statistical evidence but remains
   `review_pending`; no legacy runtime code, compatibility surface or numerical
   oracle is used. LM-003 remains pending and does not claim legacy phrase reuse.
@@ -110,8 +112,8 @@ as a statement about uninspected current files.
   feature count, name/trademark availability, and SQL-export novelty remains
   unverified unless a current command or primary source is attached.
 - Statistical calibration, bootstrap coverage, production-adapter streaming
-  equivalence, production-scale memory bounds, PyPI publication and source-lock
-  checking remain unverified. Reference agreement is scoped only to the current
+  equivalence, production-scale memory bounds, and PyPI publication remain
+  unverified. Reference agreement is scoped only to the current
   exponential point-estimation cell.
 
 ## Remaining v1 work and release evidence
