@@ -113,8 +113,6 @@ class FamilySpec:
             raise TypeError("available_operations must be a frozenset")
         if any(type(operation) is not Operation for operation in self.available_operations):
             raise TypeError("available_operations must contain Operation values")
-        if not self.available_operations.issubset(self.planned_operations):
-            raise ValueError("available operations must be explicitly planned")
 
     @property
     def free_parameter_count(self) -> int:
