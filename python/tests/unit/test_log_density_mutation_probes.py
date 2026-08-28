@@ -16,10 +16,10 @@ class LogDensityMutationProbeTests(unittest.TestCase):
 
         cases = (
             (FamilyId.NORMAL, 4.0, {"mu": 0.0, "sigma": 1.0}, -8.918938533204672),
-            (FamilyId.GAMMA, 3.0, {"shape": 2.5, "scale": 1.25}, -1.5288875874983836),
-            (FamilyId.WEIBULL_MIN, 5.0, {"shape": 2.0, "scale": 3.0}, -1.2436050468256866),
-            (FamilyId.LOGNORMAL, 4.0, {"mu_log": 0.25, "sigma_log": 0.75}, -3.2192632781188485),
-            (FamilyId.GUMBEL_RIGHT, -3.0, {"location": 1.0, "scale": 2.0}, -5.082232665525421),
+            (FamilyId.GAMMA, 3.0, {"shape": 2.5, "scale": 1.25}, -1.594623315756279),
+            (FamilyId.WEIBULL_MIN, 5.0, {"shape": 2.0, "scale": 3.0}, -2.6724172621199513),
+            (FamilyId.LOGNORMAL, 4.0, {"mu_log": 0.25, "sigma_log": 0.75}, -3.165252933084214),
+            (FamilyId.GUMBEL_RIGHT, -3.0, {"location": 1.0, "scale": 2.0}, -6.082203279490596),
         )
         for family, observation, parameters, expected in cases:
             with self.subTest(family=family):

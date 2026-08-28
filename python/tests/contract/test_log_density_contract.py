@@ -72,7 +72,7 @@ class LogDensityContractTests(unittest.TestCase):
                 self.assertEqual(result.code, LogDensityErrorCode.NONFINITE_OBSERVATION)
                 payload = result.to_json()
                 self.assertEqual(payload, '{"code":"nonfinite_observation","family":"normal","outcome":"failure"}')
-                self.assertNotIn("observation", payload)
+                self.assertNotIn('"observation":', payload)
                 self.assertNotIn("nan", payload.lower())
                 self.assertNotIn("inf", payload.lower())
 
@@ -102,3 +102,23 @@ class LogDensityContractTests(unittest.TestCase):
             evaluate_log_density(FamilyId.GAMMA, 1.0, shape=0.0, scale=1.0)
         with self.assertRaises(TypeError):
             evaluate_log_density(FamilyId.GAMMA, 1.0, shape=True, scale=1.0)
+
+    def test_required_nonrepresentable_intermediates_are_typed_overflow_failures(self) -> None:
+        from veridist.statistics.log_density import (
+            LogDensityErrorCode,
+            LogDensityFailure,
+            evaluate_log_density,
+        )
+
+        cases = (
+            (FamilyId.NORMAL, 1.0e308, {"mu": -1.0e308, "sigma": 1.0}),
+            (FamilyId.GAMMA, 1.0e308, {"shape": 2.0, "scale": 1.0e-308}),
+            (FamilyId.WEIBULL_MIN, 1.0e308, {"shape": 2.0, "scale": 1.0e-308}),
+            (FamilyId.LOGNORMAL, 1.0e308, {"mu_log": -1.0e308, "sigma_log": 1.0e-308}),
+            (FamilyId.GUMBEL_RIGHT, -1.0e308, {"location": 1.0e308, "scale": 1.0}),
+        )
+        for family, observation, parameters in cases:
+            with self.subTest(family=family):
+                result = evaluate_log_density(family, observation, **parameters)
+                self.assertIsInstance(result, LogDensityFailure)
+                self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)
