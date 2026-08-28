@@ -42,6 +42,34 @@ class MigrationLedgerFailClosedContractTests(unittest.TestCase):
                 text=True,
             )
 
+    def _check_fixture_source_locks(self, source_locks_text: str) -> subprocess.CompletedProcess[str]:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            fixture = Path(temporary_directory) / "fixture"
+            checker = fixture / "python" / "tools" / "check_migration_ledger.py"
+            migration = fixture / "docs" / "migration"
+            checker.parent.mkdir(parents=True)
+            migration.mkdir(parents=True)
+            checker.write_text(CHECKER_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+            (migration / "legacy-salvage-ledger.json").write_text(
+                LEDGER_PATH.read_text(encoding="utf-8"), encoding="utf-8"
+            )
+            (migration / "legacy-salvage-ledger.schema.json").write_text(
+                (REPOSITORY_ROOT / "docs" / "migration" / "legacy-salvage-ledger.schema.json").read_text(
+                    encoding="utf-8"
+                ),
+                encoding="utf-8",
+            )
+            (migration / "legacy-source-locks.json").write_text(
+                source_locks_text, encoding="utf-8"
+            )
+            return subprocess.run(
+                [sys.executable, str(checker)],
+                cwd=fixture,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
     def test_lm004_declares_structured_path_bound_line_ranges(self) -> None:
         ledger = self._ledger()
         source = self._lm004(ledger)["source"]
@@ -81,6 +109,53 @@ class MigrationLedgerFailClosedContractTests(unittest.TestCase):
         result = self._check(ledger)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("source lock", result.stderr)
+
+    def test_cli_cannot_substitute_a_matching_custom_source_lock(self) -> None:
+        ledger = self._ledger()
+        source = self._lm004(ledger)["source"]
+        assert isinstance(source, dict)
+        source["commit"] = OTHER_VALID_LM004_COMMIT
+        locks = json.loads(SOURCE_LOCKS_PATH.read_text(encoding="utf-8"))
+        locks["entries"]["LM-004"] = OTHER_VALID_LM004_COMMIT
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            ledger_path = directory / "ledger.json"
+            locks_path = directory / "fake-locks.json"
+            ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
+            locks_path.write_text(json.dumps(locks), encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CHECKER_PATH),
+                    "--ledger",
+                    str(ledger_path),
+                    "--source-locks",
+                    str(locks_path),
+                ],
+                cwd=REPOSITORY_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--source-locks", result.stderr)
+
+    def test_source_locks_reject_duplicate_missing_extra_and_invalid_ids(self) -> None:
+        canonical = SOURCE_LOCKS_PATH.read_text(encoding="utf-8")
+        duplicate = canonical.replace(
+            f'"LM-004": "{LM004_COMMIT}"',
+            f'"LM-004": "{LM004_COMMIT}", "LM-004": "{OTHER_VALID_LM004_COMMIT}"',
+        )
+        for name, source_locks_text in (
+            ("duplicate", duplicate),
+            ("missing", canonical.replace(f',\n    "LM-004": "{LM004_COMMIT}"', "")),
+            ("extra", canonical.replace("\n  }", f',\n    "LM-999": "{LM004_COMMIT}"\n  }}')),
+            ("invalid-id", canonical.replace("LM-004", "LX-004")),
+        ):
+            with self.subTest(name=name):
+                result = self._check_fixture_source_locks(source_locks_text)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("source lock", result.stderr)
 
     def test_checker_rejects_missing_wrong_and_noncommit_source_revisions(self) -> None:
         for replacement in ("0" * 40, "f" * 40, self._tree_id()):
