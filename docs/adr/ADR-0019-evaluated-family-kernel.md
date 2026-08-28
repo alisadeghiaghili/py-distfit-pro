@@ -109,6 +109,60 @@ wrapper packages.  The limitation is valuable: callers can see exactly what
 exists, and later fitting/model-selection work cannot silently inherit a
 parameterization or alias policy.
 
+## Addendum: scalar log-density tranche
+
+This addendum specifies the first numerical operation authorized by this ADR.
+It is intentionally a scalar, exact-observation primitive; it is not a fit,
+CDF/SF/PPF, array, censoring, ranking, or streaming-likelihood API.
+
+`veridist.statistics.log_density.evaluate_log_density` accepts exactly a
+`FamilyId`, one built-in finite scalar observation, and the exact canonical
+parameter names declared by `FamilySpec`.  A bool is not a scalar observation.
+The public dispatcher accepts no family aliases or string IDs.  Missing,
+extra, and alias parameter names are programmer misuse and raise `TypeError`;
+parameter validation continues to use the immutable registry and raises its
+documented `TypeError`/`ValueError` boundary errors.
+
+The only success is a finite binary64 log-density.  Positive-support Gamma,
+Weibull-min, and Lognormal require **strictly** `x > 0`: `x == 0` is a typed
+`SUPPORT_VIOLATION`, rather than a limiting value.  A non-finite or bool
+observation is `NONFINITE_OBSERVATION`.  A mathematically valid calculation
+whose representable intermediate overflows is `NUMERICAL_OVERFLOW`; a
+representable intermediate rounded to zero where its reciprocal/log is needed
+is `NUMERICAL_UNDERFLOW`; any other non-finite candidate is
+`NONFINITE_LOG_DENSITY`.  The evaluator never returns NaN or either infinity.
+It does not use a broad catch-all, and failures never retain or serialize the
+observation, parameter values, paths, or localized text.
+
+Successes and failures are frozen, slotted, locale-neutral data objects.
+Their JSON serialization is deterministic (sorted compact keys,
+`allow_nan=False`), and success serialization contains only family ID and its
+finite computed log-density.  Failure serialization contains only family ID
+and a closed failure code.  This makes diagnostics stable without presenting
+raw input values.
+
+The canonical formulas are evaluated in log space using the standard library:
+
+- Normal: `-0.5 log(2 pi) - log(sigma) - 0.5 z^2`, `z=(x-mu)/sigma`.
+- Gamma: `(shape-1) log(x) - x/scale - lgamma(shape) - shape log(scale)`.
+- Weibull-min: `log(shape)-log(scale)+(shape-1)log(x/scale)-(x/scale)^shape`.
+- Lognormal: `-log(x)-log(sigma_log)-0.5log(2pi)-0.5z^2`,
+  `z=(log(x)-mu_log)/sigma_log`.
+- Gumbel-right: `-log(scale)-z-exp(-z)`, `z=(x-location)/scale`.
+
+The metadata registry keeps `LOGPDF` planned.  It advertises it as available
+only as a closed all-family capability.  `statistics.log_density` validates at
+module import that its dispatch table is exactly the registry's canonical
+family set and that each advertised family supports `LOGPDF`; an absent or
+extra evaluator is a deterministic import failure.  The registry does not
+import numerical code, preserving the `statistics -> families` dependency
+direction.
+
+Independent frozen reference vectors and metamorphic identities are required:
+Normal location/scale, Gamma exponential and special-shape cases,
+Weibull exponential, Lognormal Jacobian, and Gumbel location/scale plus
+`z=0`.  They are not copied from production formulas or legacy output.
+
 ## Exit criteria and effort class
 
 This ADR may move from Proposed to Accepted only when all five registry
