@@ -1,0 +1,115 @@
+# ADR-0019: Evaluated-family kernel and parameter contracts
+
+Status: Proposed
+
+Owner: Ali Sadeghi Aghili
+
+## Context
+
+The completed exponential vertical is a deliberately narrow fitted-family
+operation.  Adding several distribution names without a closed description of
+their parameters, operations, and boundary rules would invite ambiguous
+aliases, parameter-count mistakes, mutable fitted state, and accidental
+claims about fitting or inference.  The next increment must create a small,
+locale-neutral kernel that can later host independently tested likelihood
+evaluators without becoming a fitting API.
+
+Frozen legacy source contains useful naming and scenario cues, but it also
+mixes mutable fitted objects, presentation strings, broad exception handling,
+and SciPy wrappers.  It is therefore migration evidence only, never a runtime
+dependency, numerical oracle, fallback, or specification.
+
+## Decision
+
+Create an immutable `veridist.families.registry` domain kernel with exactly
+five canonical families, in this deterministic order:
+
+1. `normal`: `Normal(mu, sigma)`.
+2. `gamma`: zero-location `Gamma(shape, scale)`.
+3. `weibull_min`: zero-location `Weibull-min(shape, scale)`.
+4. `lognormal`: zero-location `Lognormal(mu_log, sigma_log)`.
+5. `gumbel_right`: `Gumbel-right(location, scale)`.
+
+The registry declares only the supported operation `LOGPDF`.  It is an
+operation-level contract for exact uncensored log-density evaluation; it does
+not provide fitting, CDF, PPF, SF, model selection, censored likelihood,
+weights, raw-data ingestion, reporting, or inference.  A later accepted
+decision and separate tests are required for each such capability.
+
+Each family has an immutable canonical parameter tuple and an explicit free
+parameter count derived from that tuple, never from a mapping length.  Normal,
+Gumbel-right, and Lognormal respectively use `mu`/`location` and positive
+scale-like parameters as named above.  Gamma, Weibull-min, and Lognormal are
+explicitly fixed at location zero; no implicit or fitted location parameter is
+accepted.  Finite locations are valid.  Shape and scale-like parameters must
+be finite real built-in numbers greater than zero; booleans, non-numbers,
+NaN, infinities, zero, and negative values are rejected.  These parameter
+contract violations are programmer misuse and raise only `TypeError` or
+`ValueError`; typed evaluation failures belong to the later evaluator tranche.
+
+Canonical IDs and explicitly declared aliases resolve deterministically.
+Alias collisions fail registry construction; normalization is not an
+undocumented separator-stripping convenience feature.  The registry, family
+specifications, operation sets, aliases, and parameter specifications are
+immutable.  The kernel has no fitted object, localized string, I/O, reporting,
+raw-data retention, NumPy, SciPy, global warning policy, or legacy import.
+Dependency direction is `domain -> families registry`; later evaluator code
+may depend on the registry, not vice versa.
+
+## Scope
+
+This record authorizes only the registry and parameter-contract tranche.  It
+does not claim a numerical log-density implementation until the five evaluator
+contracts, independent reference tests, and numerical boundary evidence land.
+It does not change the existing exponential fit API.
+
+The kernel is metadata-sized and says nothing about end-to-end process memory
+or throughput.  In particular, it makes no blanket O(1)-memory, out-of-core,
+or high-throughput claim.  Streaming likelihood reduction remains a future,
+separately evidenced operation.
+
+## Evidence
+
+The five family names and zero-location intent are independently specified in
+this ADR and in RED contracts.  The migration ledger pins the inspected legacy
+blob and its SHA-256, records the useful scenario cues, and rejects its mutable
+state, aliases, catch-all behavior, and SciPy wrapper as production code.
+Registry behavior is demonstrated by deterministic contract and mutation-probe
+tests, not legacy output.
+
+## Test implications
+
+- `FAM-REG-01`: canonical IDs and listing order are exact and deterministic.
+- `FAM-REG-02`: aliases resolve only when explicitly declared; collisions fail.
+- `FAM-REG-03`: mappings, specs, and operation sets cannot be mutated.
+- `FAM-PAR-01`: canonical tuples and free counts are fixed for every family.
+- `FAM-PAR-02`: positive finite shape/scale contracts reject bool, NaN,
+  infinity, zero, and negatives; finite locations remain valid.
+- `FAM-ISO-01`: the registry contains no legacy import, fitted object, or
+  localized string.
+
+The tests are written before implementation.  Mutation probes must cover
+alias collision, mapping-length parameter counts, bool-as-number, nonpositive
+shape/scale, mutation, and listing order.
+
+## Dependencies
+
+ADR-0001, ADR-0003, ADR-0005, ADR-0006, ADR-0010, ADR-0011, ADR-0016,
+and the future likelihood/reproducibility decisions that will govern evaluator
+and streaming-reducer work.
+
+## Consequences
+
+The first multi-family surface is intentionally less convenient than broad
+wrapper packages.  The limitation is valuable: callers can see exactly what
+exists, and later fitting/model-selection work cannot silently inherit a
+parameterization or alias policy.
+
+## Exit criteria and effort class
+
+This ADR may move from Proposed to Accepted only when all five registry
+contracts and mutation probes are green, critical coverage meets the binding
+threshold, legacy isolation is green, and the ADR is reconciled with the
+capability matrix.  Acceptance of this registry does not accept numerical
+evaluators, fitting, censoring, or large-data claims.  Effort class: medium,
+as the first tranche of the family-evaluation-kernel milestone.
