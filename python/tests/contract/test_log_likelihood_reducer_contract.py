@@ -6,6 +6,7 @@ from fractions import Fraction
 from math import isfinite
 import unittest
 from dataclasses import FrozenInstanceError
+from hashlib import sha256
 from unittest.mock import patch
 
 from veridist.families.registry import FamilyId, FamilySpec
@@ -24,7 +25,7 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         state = LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0)
         self.assertEqual(
             tuple(LogLikelihoodState.__slots__),
-            ("family", "parameter_signature", "observation_count", "total_units"),
+            ("family", "parameter_fingerprint", "observation_count", "total_units"),
         )
         self.assertEqual((state.observation_count, state.total_units), (0, 0))
         self.assertEqual(MAX_OBSERVATION_COUNT, (1 << 64) - 1)
@@ -61,6 +62,19 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
             left.merge(other_family)
         with self.assertRaises(TypeError):
             left.merge(object())  # type: ignore[arg-type]
+
+    def test_llr02_fingerprint_is_opaque_and_normalizes_signed_zero(self) -> None:
+        from veridist.statistics.log_likelihood import LogLikelihoodState
+
+        positive = LogLikelihoodState.empty(FamilyId.GUMBEL_RIGHT, location=0.0, scale=1.0)
+        negative = LogLikelihoodState.empty(FamilyId.GUMBEL_RIGHT, location=-0.0, scale=1)
+        normal = LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0)
+        self.assertEqual(positive.parameter_fingerprint, negative.parameter_fingerprint)
+        self.assertNotEqual(positive.parameter_fingerprint, normal.parameter_fingerprint)
+        self.assertEqual(len(positive.parameter_fingerprint), sha256().digest_size * 2)
+        self.assertTrue(all(character in "0123456789abcdef" for character in positive.parameter_fingerprint))
+        self.assertNotIn("0x", repr(positive))
+        self.assertNotIn("location", repr(positive))
 
     def test_llr03_order_chunks_and_merge_tree_are_bit_identical(self) -> None:
         from veridist.statistics.log_likelihood import reduce_log_likelihood_chunks
@@ -105,8 +119,28 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         self.assertIsInstance(failed, LogLikelihoodFailure)
         assert isinstance(failed, LogLikelihoodFailure)
         self.assertIs(failed.code, LogLikelihoodErrorCode.SCALAR_EVALUATION_FAILURE)
+        self.assertIsNotNone(failed.scalar_error_code)
         self.assertEqual(failed.processed_count, 1)
         self.assertNotIn("0.0", failed.to_json())
+        self.assertNotIn("parameter", failed.to_json())
+        self.assertIn('"scalar_error_code":"support_violation"', failed.to_json())
+
+    def test_llr04_scalar_failure_preserves_closed_scalar_taxonomy(self) -> None:
+        from veridist.statistics.log_density import LogDensityErrorCode
+        from veridist.statistics.log_likelihood import LogLikelihoodFailure, reduce_log_likelihood_chunks
+
+        cases = (
+            (FamilyId.NORMAL, (float("nan"),), {"mu": 0.0, "sigma": 1.0}, LogDensityErrorCode.NONFINITE_OBSERVATION),
+            (FamilyId.GAMMA, (0.0,), {"shape": 1.0, "scale": 1.0}, LogDensityErrorCode.SUPPORT_VIOLATION),
+            (FamilyId.NORMAL, (1e308,), {"mu": -1e308, "sigma": 1.0}, LogDensityErrorCode.NUMERICAL_OVERFLOW),
+        )
+        for family, observations, parameters, expected in cases:
+            with self.subTest(expected=expected):
+                result = reduce_log_likelihood_chunks(family, (observations,), **parameters)
+                self.assertIsInstance(result, LogLikelihoodFailure)
+                assert isinstance(result, LogLikelihoodFailure)
+                self.assertIs(result.scalar_error_code, expected)
+                self.assertNotIn("0x", repr(result))
 
     def test_llr05_empty_ragged_and_lazy_inputs_are_one_pass_and_unmaterialized(self) -> None:
         from veridist.statistics.log_likelihood import LogLikelihoodSuccess, reduce_log_likelihood_chunks
@@ -140,3 +174,31 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
             )
         self.assertEqual(result.observation_count, 3)
         self.assertEqual(validated.call_count, 1)
+
+    def test_llr03_independent_state_merge_trees_are_bit_identical(self) -> None:
+        from veridist.statistics.log_likelihood import LogLikelihoodState
+
+        states = []
+        for chunk in ((1.0, -1.0), (0.5,), (-0.5,)):
+            state = LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0)
+            for value in chunk:
+                state = state.add_log_density(value)
+            states.append(state)
+        self.assertEqual(
+            states[0].merge(states[1]).merge(states[2]),
+            states[0].merge(states[1].merge(states[2])),
+        )
+
+    def test_llr05_fingerprint_and_state_checks_are_not_on_the_observation_hot_path(self) -> None:
+        from veridist.statistics import log_likelihood
+
+        with (
+            patch.object(log_likelihood, "_parameter_fingerprint", wraps=log_likelihood._parameter_fingerprint) as fingerprint,
+            patch.object(log_likelihood, "_validate_fingerprint", wraps=log_likelihood._validate_fingerprint) as checked,
+        ):
+            result = log_likelihood.reduce_log_likelihood_chunks(
+                FamilyId.NORMAL, ((0.0, 1.0, 2.0),), mu=0.0, sigma=1.0
+            )
+        self.assertEqual(result.observation_count, 3)
+        self.assertEqual(fingerprint.call_count, 1)
+        self.assertLessEqual(checked.call_count, 2)
