@@ -106,6 +106,7 @@ class LogLikelihoodState:
             self.parameter_fingerprint,
             self.observation_count + 1,
             self.total_units + units,
+            self._canonical_identity,
         )
 
     def merge(self, other: LogLikelihoodState) -> LogLikelihoodState:
@@ -124,6 +125,7 @@ class LogLikelihoodState:
             self.parameter_fingerprint,
             self.observation_count + other.observation_count,
             self.total_units + other.total_units,
+            self._canonical_identity,
         )
 
     def finalize(self) -> float:
