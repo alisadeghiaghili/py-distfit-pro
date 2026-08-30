@@ -25,7 +25,7 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         state = LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0)
         self.assertEqual(
             tuple(LogLikelihoodState.__slots__),
-            ("family", "parameter_fingerprint", "observation_count", "total_units"),
+            ("family", "parameter_fingerprint", "observation_count", "total_units", "_canonical_identity"),
         )
         self.assertEqual((state.observation_count, state.total_units), (0, 0))
         self.assertEqual(MAX_OBSERVATION_COUNT, (1 << 64) - 1)
@@ -211,7 +211,7 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         from veridist.statistics import log_likelihood
 
         with (
-            patch.object(log_likelihood, "_parameter_fingerprint", wraps=log_likelihood._parameter_fingerprint) as fingerprint,
+            patch.object(log_likelihood, "_identity_and_fingerprint", wraps=log_likelihood._identity_and_fingerprint) as fingerprint,
             patch.object(log_likelihood, "_validate_fingerprint", wraps=log_likelihood._validate_fingerprint) as checked,
         ):
             result = log_likelihood.reduce_log_likelihood_chunks(

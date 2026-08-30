@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from fractions import Fraction
 from hashlib import sha256
@@ -34,7 +34,7 @@ class LogLikelihoodErrorCode(StrEnum):
     FINAL_TOTAL_NOT_REPRESENTABLE = "final_total_not_representable"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class LogLikelihoodState:
     """A compatible exact sum in subnormal binary64 units, with no observations."""
 
@@ -42,6 +42,23 @@ class LogLikelihoodState:
     parameter_fingerprint: str
     observation_count: int
     total_units: int
+    _canonical_identity: tuple[str, str] = field(repr=False, compare=True)
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        raise TypeError("LogLikelihoodState construction is closed; use empty or restore")
+
+    @classmethod
+    def _create(
+        cls, family: FamilyId, fingerprint: str, count: int, units: int, identity: tuple[str, str]
+    ) -> LogLikelihoodState:
+        state = object.__new__(cls)
+        object.__setattr__(state, "family", family)
+        object.__setattr__(state, "parameter_fingerprint", fingerprint)
+        object.__setattr__(state, "observation_count", count)
+        object.__setattr__(state, "total_units", units)
+        object.__setattr__(state, "_canonical_identity", identity)
+        state.__post_init__()
+        return state
 
     def __post_init__(self) -> None:
         if type(self.family) is not FamilyId:
@@ -64,7 +81,16 @@ class LogLikelihoodState:
         """Create the neutral state after one canonical parameter validation."""
 
         validated = _validate_family_and_parameters(family, parameters)
-        return cls(family, _parameter_fingerprint(family, validated), 0, 0)
+        identity, fingerprint = _identity_and_fingerprint(family, validated)
+        return cls._create(family, fingerprint, 0, 0, identity)
+
+    @classmethod
+    def restore(
+        cls, family: FamilyId, /, observation_count: int, total_units: int, **parameters: object
+    ) -> LogLikelihoodState:
+        validated = _validate_family_and_parameters(family, parameters)
+        identity, fingerprint = _identity_and_fingerprint(family, validated)
+        return cls._create(family, fingerprint, observation_count, total_units, identity)
 
     def add_log_density(self, log_density: float) -> LogLikelihoodState:
         """Add one successful finite binary64 scalar evaluator output exactly."""
@@ -75,7 +101,7 @@ class LogLikelihoodState:
             raise _ObservationLimitExceeded
         numerator, denominator = log_density.as_integer_ratio()
         units = numerator * (_UNITS_DENOMINATOR // denominator)
-        return LogLikelihoodState(
+        return LogLikelihoodState._create(
             self.family,
             self.parameter_fingerprint,
             self.observation_count + 1,
@@ -89,11 +115,11 @@ class LogLikelihoodState:
             raise TypeError("other must be a LogLikelihoodState")
         if self.family is not other.family:
             raise ValueError("cannot merge states for different families")
-        if self.parameter_fingerprint != other.parameter_fingerprint:
+        if self._canonical_identity != other._canonical_identity:
             raise ValueError("cannot merge states with different canonical parameters")
         if self.observation_count > MAX_OBSERVATION_COUNT - other.observation_count:
             raise _ObservationLimitExceeded
-        return LogLikelihoodState(
+        return LogLikelihoodState._create(
             self.family,
             self.parameter_fingerprint,
             self.observation_count + other.observation_count,
@@ -230,7 +256,7 @@ def reduce_log_likelihood_chunks(
     """
 
     validated = _validate_family_and_parameters(family, parameters)
-    fingerprint = _parameter_fingerprint(family, validated)
+    identity, fingerprint = _identity_and_fingerprint(family, validated)
     accumulator = _ExactAccumulator()
     if not isinstance(chunks, Iterable):
         raise TypeError("chunks must be an iterable of observation iterables")
@@ -255,8 +281,8 @@ def reduce_log_likelihood_chunks(
                     accumulator.observation_count,
                     None,
                 )
-    state = LogLikelihoodState(
-        family, fingerprint, accumulator.observation_count, accumulator.total_units
+    state = LogLikelihoodState._create(
+        family, fingerprint, accumulator.observation_count, accumulator.total_units, identity
     )
     try:
         total = state.finalize()
@@ -278,20 +304,20 @@ def _validate_family_and_parameters(
     return FAMILY_REGISTRY.families[family].validate_parameters(**parameters)
 
 
-def _parameter_fingerprint(family: FamilyId, validated: Mapping[str, float]) -> str:
+def _identity_and_fingerprint(
+    family: FamilyId, validated: Mapping[str, float]
+) -> tuple[tuple[str, str], str]:
     """Hash family plus registry-ordered, normalized canonical parameter bytes."""
 
     specification = FAMILY_REGISTRY.families[family]
-    payload = bytearray(b"veridist.log_likelihood.v1\0")
-    payload.extend(family.value.encode("ascii"))
+    encoded: list[str] = []
     for parameter in specification.parameters:
         value = validated[parameter.name]
         normalized = 0.0 if value == 0.0 else value
-        payload.extend(b"\0")
-        payload.extend(parameter.name.encode("ascii"))
-        payload.extend(b"=")
-        payload.extend(normalized.hex().encode("ascii"))
-    return sha256(payload).hexdigest()
+        encoded.append(normalized.hex())
+    identity = tuple(encoded)
+    payload = "veridist.log_likelihood.v1\0" + family.value + "\0" + "\0".join(identity)
+    return identity, sha256(payload.encode("ascii")).hexdigest()
 
 
 def _validate_fingerprint(fingerprint: object) -> None:
