@@ -26,7 +26,9 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             readiness,
         )
 
-    def test_readiness_separates_the_historical_registry_snapshot_from_current_evidence(self) -> None:
+    def test_readiness_separates_historical_snapshot_from_current_evidence(
+        self,
+    ) -> None:
         readiness = READINESS.read_text(encoding="utf-8")
         self.assertIn("Historical snapshot: `bfb496d` (preserved verbatim)", readiness)
         self.assertIn("accepted all 23 enumerated\n  production files", readiness)
