@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import unittest
 from fractions import Fraction
 from math import copysign, isnan
-import unittest
 from unittest.mock import patch
 
 from veridist.families.registry import FamilyId
@@ -34,6 +34,7 @@ class LogLikelihoodReducerReferenceTests(unittest.TestCase):
         self.assertEqual(copysign(1.0, state.finalize()), 1.0)
 
     def test_final_overflow_and_count_cap_have_distinct_typed_failures(self) -> None:
+        from veridist.statistics.log_density import LogDensitySuccess
         from veridist.statistics.log_likelihood import (
             MAX_OBSERVATION_COUNT,
             LogLikelihoodErrorCode,
@@ -42,7 +43,6 @@ class LogLikelihoodReducerReferenceTests(unittest.TestCase):
             _ObservationLimitExceeded,
             reduce_log_likelihood_chunks,
         )
-        from veridist.statistics.log_density import LogDensitySuccess
 
         maximum = float.fromhex("0x1.fffffffffffffp+1023")
         overflowing = LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0)
@@ -63,9 +63,7 @@ class LogLikelihoodReducerReferenceTests(unittest.TestCase):
             "veridist.statistics.log_likelihood._evaluate_validated_log_density",
             return_value=LogDensitySuccess(FamilyId.NORMAL, maximum),
         ):
-            result = reduce_log_likelihood_chunks(
-                FamilyId.NORMAL, ((0.0, 0.0),), mu=0.0, sigma=1.0
-            )
+            result = reduce_log_likelihood_chunks(FamilyId.NORMAL, ((0.0, 0.0),), mu=0.0, sigma=1.0)
         self.assertIs(result.code, LogLikelihoodErrorCode.FINAL_TOTAL_NOT_REPRESENTABLE)
 
     def test_lazy_source_is_not_read_ahead_after_closed_scalar_failure(self) -> None:
@@ -106,7 +104,9 @@ class LogLikelihoodReducerReferenceTests(unittest.TestCase):
             with self.subTest(state_fields=state_fields):
                 with self.assertRaises((TypeError, ValueError)):
                     LogLikelihoodState.restore(FamilyId.NORMAL, mu=0, sigma=1, **state_fields)
-                self.assertEqual(source, LogLikelihoodState.empty(FamilyId.NORMAL, mu=-0.0, sigma=1))
+                self.assertEqual(
+                    source, LogLikelihoodState.empty(FamilyId.NORMAL, mu=-0.0, sigma=1)
+                )
 
     def test_restore_identity_is_private_exact_and_merge_uses_it_not_sha_metadata(self) -> None:
         from veridist.statistics.log_likelihood import LogLikelihoodState

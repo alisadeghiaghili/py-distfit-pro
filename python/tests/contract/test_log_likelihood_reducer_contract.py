@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from fractions import Fraction
-from math import isfinite
 import unittest
 from dataclasses import FrozenInstanceError
+from fractions import Fraction
 from hashlib import sha256
+from math import isfinite
 from unittest.mock import patch
 
 from veridist.families.registry import FamilyId, FamilySpec
@@ -25,7 +25,13 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         state = LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0)
         self.assertEqual(
             tuple(LogLikelihoodState.__slots__),
-            ("family", "parameter_fingerprint", "observation_count", "total_units", "_canonical_identity"),
+            (
+                "family",
+                "parameter_fingerprint",
+                "observation_count",
+                "total_units",
+                "_canonical_identity",
+            ),
         )
         self.assertEqual((state.observation_count, state.total_units), (0, 0))
         self.assertEqual(MAX_OBSERVATION_COUNT, (1 << 64) - 1)
@@ -72,7 +78,9 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         self.assertEqual(positive.parameter_fingerprint, negative.parameter_fingerprint)
         self.assertNotEqual(positive.parameter_fingerprint, normal.parameter_fingerprint)
         self.assertEqual(len(positive.parameter_fingerprint), sha256().digest_size * 2)
-        self.assertTrue(all(character in "0123456789abcdef" for character in positive.parameter_fingerprint))
+        self.assertTrue(
+            all(character in "0123456789abcdef" for character in positive.parameter_fingerprint)
+        )
         self.assertNotIn("0x", repr(positive))
         self.assertNotIn("location", repr(positive))
 
@@ -98,9 +106,7 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         from veridist.statistics.log_likelihood import reduce_log_likelihood_chunks
 
         observations = (0.0, 1.0, -1.0, 0.5, -0.5)
-        direct = reduce_log_likelihood_chunks(
-            FamilyId.NORMAL, (observations,), mu=0.0, sigma=1.0
-        )
+        direct = reduce_log_likelihood_chunks(FamilyId.NORMAL, (observations,), mu=0.0, sigma=1.0)
         chunked = reduce_log_likelihood_chunks(
             FamilyId.NORMAL, (observations[:2], (), observations[2:]), mu=0.0, sigma=1.0
         )
@@ -131,9 +137,7 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
                 self.assertIsInstance(result, LogLikelihoodSuccess)
                 assert isinstance(result, LogLikelihoodSuccess)
                 self.assertTrue(isfinite(result.total_log_likelihood))
-        failed = reduce_log_likelihood_chunks(
-            FamilyId.GAMMA, ((1.0, 0.0),), shape=1.0, scale=1.0
-        )
+        failed = reduce_log_likelihood_chunks(FamilyId.GAMMA, ((1.0, 0.0),), shape=1.0, scale=1.0)
         self.assertIsInstance(failed, LogLikelihoodFailure)
         assert isinstance(failed, LogLikelihoodFailure)
         self.assertIs(failed.code, LogLikelihoodErrorCode.SCALAR_EVALUATION_FAILURE)
@@ -145,12 +149,30 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
 
     def test_llr04_scalar_failure_preserves_closed_scalar_taxonomy(self) -> None:
         from veridist.statistics.log_density import LogDensityErrorCode
-        from veridist.statistics.log_likelihood import LogLikelihoodFailure, reduce_log_likelihood_chunks
+        from veridist.statistics.log_likelihood import (
+            LogLikelihoodFailure,
+            reduce_log_likelihood_chunks,
+        )
 
         cases = (
-            (FamilyId.NORMAL, (float("nan"),), {"mu": 0.0, "sigma": 1.0}, LogDensityErrorCode.NONFINITE_OBSERVATION),
-            (FamilyId.GAMMA, (0.0,), {"shape": 1.0, "scale": 1.0}, LogDensityErrorCode.SUPPORT_VIOLATION),
-            (FamilyId.NORMAL, (1e308,), {"mu": -1e308, "sigma": 1.0}, LogDensityErrorCode.NUMERICAL_OVERFLOW),
+            (
+                FamilyId.NORMAL,
+                (float("nan"),),
+                {"mu": 0.0, "sigma": 1.0},
+                LogDensityErrorCode.NONFINITE_OBSERVATION,
+            ),
+            (
+                FamilyId.GAMMA,
+                (0.0,),
+                {"shape": 1.0, "scale": 1.0},
+                LogDensityErrorCode.SUPPORT_VIOLATION,
+            ),
+            (
+                FamilyId.NORMAL,
+                (1e308,),
+                {"mu": -1e308, "sigma": 1.0},
+                LogDensityErrorCode.NUMERICAL_OVERFLOW,
+            ),
         )
         for family, observations, parameters, expected in cases:
             with self.subTest(expected=expected):
@@ -161,7 +183,10 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
                 self.assertNotIn("0x", repr(result))
 
     def test_llr05_empty_ragged_and_lazy_inputs_are_one_pass_and_unmaterialized(self) -> None:
-        from veridist.statistics.log_likelihood import LogLikelihoodSuccess, reduce_log_likelihood_chunks
+        from veridist.statistics.log_likelihood import (
+            LogLikelihoodSuccess,
+            reduce_log_likelihood_chunks,
+        )
 
         yielded: list[int] = []
 
@@ -186,7 +211,9 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         from veridist.statistics.log_likelihood import reduce_log_likelihood_chunks
 
         original = FamilySpec.validate_parameters
-        with patch.object(FamilySpec, "validate_parameters", autospec=True, wraps=original) as validated:
+        with patch.object(
+            FamilySpec, "validate_parameters", autospec=True, wraps=original
+        ) as validated:
             result = reduce_log_likelihood_chunks(
                 FamilyId.NORMAL, ((0.0, 1.0, 2.0),), mu=0.0, sigma=1.0
             )
@@ -211,8 +238,14 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         from veridist.statistics import log_likelihood
 
         with (
-            patch.object(log_likelihood, "_identity_and_fingerprint", wraps=log_likelihood._identity_and_fingerprint) as fingerprint,
-            patch.object(log_likelihood, "_validate_fingerprint", wraps=log_likelihood._validate_fingerprint) as checked,
+            patch.object(
+                log_likelihood,
+                "_identity_and_fingerprint",
+                wraps=log_likelihood._identity_and_fingerprint,
+            ) as fingerprint,
+            patch.object(
+                log_likelihood, "_validate_fingerprint", wraps=log_likelihood._validate_fingerprint
+            ) as checked,
         ):
             result = log_likelihood.reduce_log_likelihood_chunks(
                 FamilyId.NORMAL, ((0.0, 1.0, 2.0),), mu=0.0, sigma=1.0
