@@ -29,30 +29,33 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
-- On 2026-08-28 at `bfb496d1811dcc4f68f9059b250b45bacd1f1282`, the
-  CI-shaped local command
+### Historical snapshot: `bfb496d` (preserved verbatim)
+
+- The family-registry tranche adds one metadata-only production file. The
+  CI-shaped local run collected 282 items (280 passed and two opt-in browser
+  tests skipped); the deterministic checker accepted all 23 enumerated
+  production files with 2,113 statements and 736 branches at 100% observed
+  coverage, with no accepted exceptions. The registry itself is not a
+  numerical evaluator, fit, inference, or large-data capability claim.
+
+### Current unmerged family-kernel candidate
+
+- On 2026-08-30, the CI-shaped local command
   `python -m pytest --cov=veridist --cov-branch --ignore=tests/docs/test_docs_toolchain.py --cov-report=json:coverage.json`
-  collected 286 items (the two opt-in browser tests remain skipped). Its fresh
-  `python/coverage.json` SHA-256 is
-  `405c413e9fe6bf34f49c079260565fcb7a8bbdfa648ff487b86b4c61b3e3f4ae`.
+  collected 326 items: 324 passed and the two opt-in browser tests skipped.
   The deterministic checker accepted all 24 enumerated production files with
-  2,145 statements and 748 branches at 100% observed coverage, with no
-  accepted exceptions. The registry advertises a closed scalar `LOGPDF`
-  operation for all five canonical families; it is not fitting, inference, or
-  a large-data capability claim. This is structural and contract evidence, not
-  a formal mutation score, calibration result, or production-scale benchmark.
-- On 2026-08-28, the repaired scalar-log-density tranche at
-  `a43aad482f3ff91e77e4826c25e03d5c8c43c07c` passed the CI-shaped local
-  command with 320 collected tests (two opt-in browser tests skipped). Its
-  fresh `python/coverage.json` SHA-256 is
-  `08764b95db8ef04e8931a69a5c9c832d188b8e706f1d52459e6b46b4153f6247`.
-  The checker accepted all 24 enumerated production files at 2,304 statements
-  and 788 branches with 100% observed line and branch coverage and no accepted
-  exceptions. The five-family scalar evaluator has independent exact-binary
-  `mpmath==1.3.0` references, high-precision Gamma mode-cancellation and
-  Weibull adjacent-ratio regressions, plus a fixed-seed extreme sweep. This
-  evidence is limited to scalar log-density correctness; it is not fitting,
-  inference, censoring, array, or large-data evidence.
+  2,328 statements and 792 branches at 100% observed line and branch coverage,
+  with no accepted exceptions. The generated coverage JSON is deliberately not
+  retained as a release artifact, so this ledger does not assert a mutable file
+  hash. The current candidate's five-family scalar evaluator has independent
+  exact-binary `mpmath==1.3.0` references, a Gamma large-shape/scale/delta grid
+  with more than 90 finite cases, a Lognormal magnitude/adjacent-center/sigma
+  grid, and a fixed-seed ordinary smoke sweep. All reference acceptance uses
+  `max(8 ULP, 2e-14 relative, 2e-14 absolute)`; the sweep is not a mutation
+  score or a generalized numerical guarantee. This evidence is limited to
+  scalar log-density correctness; it is not fitting, inference, censoring,
+  array, or large-data evidence. Remote CI for this unmerged candidate remains
+  unverified.
 - ADR-0017's first callable cell is implemented on the development branch: a
   fixed-location, rate-only exponential MLE for exact and independently
   right-censored lifetimes. It returns a finite point estimate or a typed

@@ -12,6 +12,7 @@ REPOSITORY_ROOT = PYTHON_ROOT.parent
 MANIFEST = PYTHON_ROOT / "quality" / "coverage-manifest.json"
 CAPABILITY_MATRIX = REPOSITORY_ROOT / "docs" / "capability-matrix.md"
 READINESS = REPOSITORY_ROOT / "docs" / "v1-readiness.md"
+EVALUATED_FAMILY_ADR = REPOSITORY_ROOT / "docs" / "adr" / "ADR-0019-evaluated-family-kernel.md"
 
 
 class RequiredQualityArtifactTests(unittest.TestCase):
@@ -24,6 +25,18 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             f"accepted all {production_count} enumerated production files",
             readiness,
         )
+
+    def test_readiness_separates_the_historical_registry_snapshot_from_current_evidence(self) -> None:
+        readiness = READINESS.read_text(encoding="utf-8")
+        self.assertIn("Historical snapshot: `bfb496d` (preserved verbatim)", readiness)
+        self.assertIn("accepted all 23 enumerated\n  production files", readiness)
+        self.assertIn("Current unmerged family-kernel candidate", readiness)
+        self.assertNotIn("coverage.json` SHA-256", readiness)
+
+    def test_evaluated_family_adr_uses_a_primary_immutable_math_source(self) -> None:
+        adr = EVALUATED_FAMILY_ADR.read_text(encoding="utf-8")
+        self.assertIn("NIST DLMF §5.11", adr)
+        self.assertNotIn("github.com/wch/r-source/blob/trunk", adr)
 
     def test_capability_matrix_declares_the_only_callable_statistical_cell(self) -> None:
         content = CAPABILITY_MATRIX.read_text(encoding="utf-8")

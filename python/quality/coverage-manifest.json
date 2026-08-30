@@ -56,7 +56,7 @@
     "src/veridist/reporting/exponential.py": {"statements": 54, "branches": 12},
     "src/veridist/statistics/__init__.py": {"statements": 2, "branches": 0},
     "src/veridist/statistics/exponential.py": {"statements": 90, "branches": 44},
-    "src/veridist/statistics/log_density.py": {"statements": 161, "branches": 42}
+    "src/veridist/statistics/log_density.py": {"statements": 185, "branches": 46}
   },
   "accepted_exceptions": []
 }
