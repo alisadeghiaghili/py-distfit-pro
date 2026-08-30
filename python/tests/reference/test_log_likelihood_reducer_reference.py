@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from fractions import Fraction
 from math import copysign, isnan
 import unittest
@@ -50,9 +49,12 @@ class LogLikelihoodReducerReferenceTests(unittest.TestCase):
         overflowing = overflowing.add_log_density(maximum).add_log_density(maximum)
         with self.assertRaises(_FinalTotalNotRepresentable):
             overflowing.finalize()
-        capped = replace(
-            LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0),
+        capped = LogLikelihoodState.restore(
+            FamilyId.NORMAL,
             observation_count=MAX_OBSERVATION_COUNT,
+            total_units=0,
+            mu=0.0,
+            sigma=1.0,
         )
         one = LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0).add_log_density(0.0)
         with self.assertRaises(_ObservationLimitExceeded):
@@ -84,3 +86,48 @@ class LogLikelihoodReducerReferenceTests(unittest.TestCase):
         self.assertEqual(yielded[0], 0.0)
         self.assertEqual(len(yielded), 2)
         self.assertTrue(isnan(yielded[1]))
+
+    def test_restore_rejects_invalid_public_state_and_does_not_mutate_source(self) -> None:
+        from veridist.statistics.log_likelihood import (
+            MAX_OBSERVATION_COUNT,
+            LogLikelihoodState,
+        )
+
+        source = LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0)
+        cases = (
+            {"observation_count": True, "total_units": 0},
+            {"observation_count": -1, "total_units": 0},
+            {"observation_count": MAX_OBSERVATION_COUNT + 1, "total_units": 0},
+            {"observation_count": 0, "total_units": 1},
+            {"observation_count": 1, "total_units": "0"},
+            {"observation_count": 1, "total_units": 1 << 2100},
+        )
+        for state_fields in cases:
+            with self.subTest(state_fields=state_fields):
+                with self.assertRaises((TypeError, ValueError)):
+                    LogLikelihoodState.restore(FamilyId.NORMAL, mu=0, sigma=1, **state_fields)
+                self.assertEqual(source, LogLikelihoodState.empty(FamilyId.NORMAL, mu=-0.0, sigma=1))
+
+    def test_restore_identity_is_private_exact_and_merge_uses_it_not_sha_metadata(self) -> None:
+        from veridist.statistics.log_likelihood import LogLikelihoodState
+
+        positive = LogLikelihoodState.restore(
+            FamilyId.GUMBEL_RIGHT, observation_count=0, total_units=0, location=0, scale=1
+        )
+        signed_zero = LogLikelihoodState.restore(
+            FamilyId.GUMBEL_RIGHT, observation_count=0, total_units=0, location=-0.0, scale=1.0
+        )
+        self.assertEqual(positive, signed_zero)
+        self.assertEqual(positive.parameter_fingerprint, signed_zero.parameter_fingerprint)
+        self.assertNotIn("_canonical_identity", repr(positive))
+        self.assertNotIn("0x", repr(positive))
+        with self.assertRaises(ValueError):
+            positive.merge(
+                LogLikelihoodState.restore(
+                    FamilyId.GUMBEL_RIGHT,
+                    observation_count=0,
+                    total_units=0,
+                    location=1,
+                    scale=1,
+                )
+            )
