@@ -7,11 +7,16 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from fractions import Fraction
+from hashlib import sha256
 from math import isfinite
 from typing import Final, TypeAlias
 
-from veridist.families.registry import FAMILY_REGISTRY, FamilyId, ParameterRole
-from veridist.statistics.log_density import LogDensityFailure, _evaluate_validated_log_density
+from veridist.families.registry import FAMILY_REGISTRY, FamilyId
+from veridist.statistics.log_density import (
+    LogDensityErrorCode,
+    LogDensityFailure,
+    _evaluate_validated_log_density,
+)
 
 MAX_OBSERVATION_COUNT: Final = (1 << 64) - 1
 """The explicit unsigned-64 observation cap for one reducer state."""
@@ -20,9 +25,6 @@ _UNITS_DENOMINATOR: Final = 1 << 1074
 _MAX_CONTRIBUTION_UNITS: Final = ((1 << 53) - 1) << 2045
 MAX_TOTAL_UNITS: Final = MAX_OBSERVATION_COUNT * _MAX_CONTRIBUTION_UNITS
 """Maximum absolute exact unit total under the declared count cap (2162 bits)."""
-
-_ParameterSignature: TypeAlias = tuple[tuple[str, str], ...]
-
 
 class LogLikelihoodErrorCode(StrEnum):
     """Closed, locale-neutral streaming log-likelihood failure codes."""
@@ -37,14 +39,14 @@ class LogLikelihoodState:
     """A compatible exact sum in subnormal binary64 units, with no observations."""
 
     family: FamilyId
-    parameter_signature: _ParameterSignature
+    parameter_fingerprint: str
     observation_count: int
     total_units: int
 
     def __post_init__(self) -> None:
         if type(self.family) is not FamilyId:
             raise TypeError("family must be a FamilyId")
-        _validate_signature(self.family, self.parameter_signature)
+        _validate_fingerprint(self.parameter_fingerprint)
         if type(self.observation_count) is not int:
             raise TypeError("observation_count must be a built-in integer")
         if not 0 <= self.observation_count <= MAX_OBSERVATION_COUNT:
@@ -62,7 +64,7 @@ class LogLikelihoodState:
         """Create the neutral state after one canonical parameter validation."""
 
         validated = _validate_family_and_parameters(family, parameters)
-        return cls(family, _signature_from_validated(validated), 0, 0)
+        return cls(family, _parameter_fingerprint(family, validated), 0, 0)
 
     def add_log_density(self, log_density: float) -> LogLikelihoodState:
         """Add one successful finite binary64 scalar evaluator output exactly."""
@@ -75,7 +77,7 @@ class LogLikelihoodState:
         units = numerator * (_UNITS_DENOMINATOR // denominator)
         return LogLikelihoodState(
             self.family,
-            self.parameter_signature,
+            self.parameter_fingerprint,
             self.observation_count + 1,
             self.total_units + units,
         )
@@ -87,13 +89,13 @@ class LogLikelihoodState:
             raise TypeError("other must be a LogLikelihoodState")
         if self.family is not other.family:
             raise ValueError("cannot merge states for different families")
-        if self.parameter_signature != other.parameter_signature:
+        if self.parameter_fingerprint != other.parameter_fingerprint:
             raise ValueError("cannot merge states with different canonical parameters")
         if self.observation_count > MAX_OBSERVATION_COUNT - other.observation_count:
             raise _ObservationLimitExceeded
         return LogLikelihoodState(
             self.family,
-            self.parameter_signature,
+            self.parameter_fingerprint,
             self.observation_count + other.observation_count,
             self.total_units + other.total_units,
         )
@@ -115,14 +117,14 @@ class LogLikelihoodSuccess:
     """A finite final total with only compatibility and count facts retained."""
 
     family: FamilyId
-    parameter_signature: _ParameterSignature
+    parameter_fingerprint: str
     observation_count: int
     total_log_likelihood: float
 
     def __post_init__(self) -> None:
         if type(self.family) is not FamilyId:
             raise TypeError("family must be a FamilyId")
-        _validate_signature(self.family, self.parameter_signature)
+        _validate_fingerprint(self.parameter_fingerprint)
         if (
             type(self.observation_count) is not int
             or not 0 <= self.observation_count <= MAX_OBSERVATION_COUNT
@@ -152,14 +154,13 @@ class LogLikelihoodFailure:
     """A closed failure with no partial total or raw observation value."""
 
     family: FamilyId
-    parameter_signature: _ParameterSignature
     code: LogLikelihoodErrorCode
     processed_count: int
+    scalar_error_code: LogDensityErrorCode | None
 
     def __post_init__(self) -> None:
         if type(self.family) is not FamilyId:
             raise TypeError("family must be a FamilyId")
-        _validate_signature(self.family, self.parameter_signature)
         if type(self.code) is not LogLikelihoodErrorCode:
             raise TypeError("code must be a LogLikelihoodErrorCode")
         if (
@@ -167,6 +168,11 @@ class LogLikelihoodFailure:
             or not 0 <= self.processed_count <= MAX_OBSERVATION_COUNT
         ):
             raise ValueError("processed_count is outside the unsigned-64 reducer bound")
+        if self.code is LogLikelihoodErrorCode.SCALAR_EVALUATION_FAILURE:
+            if type(self.scalar_error_code) is not LogDensityErrorCode:
+                raise ValueError("scalar_error_code is required for scalar evaluation failures")
+        elif self.scalar_error_code is not None:
+            raise ValueError("scalar_error_code is only valid for scalar evaluation failures")
 
     def to_json(self) -> str:
         """Serialize only closed failure facts; count is incomplete on early failure."""
@@ -177,6 +183,9 @@ class LogLikelihoodFailure:
                 "family": self.family.value,
                 "outcome": "failure",
                 "processed_count": self.processed_count,
+                "scalar_error_code": (
+                    None if self.scalar_error_code is None else self.scalar_error_code.value
+                ),
             },
             allow_nan=False,
             separators=(",", ":"),
@@ -195,6 +204,21 @@ class _FinalTotalNotRepresentable(Exception):
     """Internal finalization-boundary signal without the exact total."""
 
 
+@dataclass(slots=True)
+class _ExactAccumulator:
+    """Trusted local hot-path accumulator; public state remains immutable."""
+
+    observation_count: int = 0
+    total_units: int = 0
+
+    def add(self, log_density: float) -> None:
+        if self.observation_count == MAX_OBSERVATION_COUNT:
+            raise _ObservationLimitExceeded
+        numerator, denominator = log_density.as_integer_ratio()
+        self.observation_count += 1
+        self.total_units += numerator * (_UNITS_DENOMINATOR // denominator)
+
+
 def reduce_log_likelihood_chunks(
     family: FamilyId, chunks: Iterable[Iterable[object]], /, **parameters: object
 ) -> LogLikelihoodResult:
@@ -206,7 +230,8 @@ def reduce_log_likelihood_chunks(
     """
 
     validated = _validate_family_and_parameters(family, parameters)
-    state = LogLikelihoodState(family, _signature_from_validated(validated), 0, 0)
+    fingerprint = _parameter_fingerprint(family, validated)
+    accumulator = _ExactAccumulator()
     if not isinstance(chunks, Iterable):
         raise TypeError("chunks must be an iterable of observation iterables")
     for chunk in chunks:
@@ -218,28 +243,31 @@ def reduce_log_likelihood_chunks(
                 if type(evaluated) is LogDensityFailure:
                     return LogLikelihoodFailure(
                         family,
-                        state.parameter_signature,
                         LogLikelihoodErrorCode.SCALAR_EVALUATION_FAILURE,
-                        state.observation_count,
+                        accumulator.observation_count,
+                        evaluated.code,
                     )
-                state = state.add_log_density(evaluated.log_density)
+                accumulator.add(evaluated.log_density)
             except _ObservationLimitExceeded:
                 return LogLikelihoodFailure(
                     family,
-                    state.parameter_signature,
                     LogLikelihoodErrorCode.OBSERVATION_LIMIT_EXCEEDED,
-                    state.observation_count,
+                    accumulator.observation_count,
+                    None,
                 )
+    state = LogLikelihoodState(
+        family, fingerprint, accumulator.observation_count, accumulator.total_units
+    )
     try:
         total = state.finalize()
     except _FinalTotalNotRepresentable:
         return LogLikelihoodFailure(
             family,
-            state.parameter_signature,
             LogLikelihoodErrorCode.FINAL_TOTAL_NOT_REPRESENTABLE,
             state.observation_count,
+            None,
         )
-    return LogLikelihoodSuccess(family, state.parameter_signature, state.observation_count, total)
+    return LogLikelihoodSuccess(family, fingerprint, state.observation_count, total)
 
 
 def _validate_family_and_parameters(
@@ -250,36 +278,27 @@ def _validate_family_and_parameters(
     return FAMILY_REGISTRY.families[family].validate_parameters(**parameters)
 
 
-def _signature_from_validated(validated: Mapping[str, float]) -> _ParameterSignature:
-    return tuple((name, value.hex()) for name, value in validated.items())
+def _parameter_fingerprint(family: FamilyId, validated: Mapping[str, float]) -> str:
+    """Hash family plus registry-ordered, normalized canonical parameter bytes."""
 
-
-def _validate_signature(family: FamilyId, signature: object) -> None:
     specification = FAMILY_REGISTRY.families[family]
-    expected_names = tuple(parameter.name for parameter in specification.parameters)
-    if type(signature) is not tuple or len(signature) != len(expected_names):
-        raise TypeError("parameter_signature must match canonical parameter names")
-    names: list[str] = []
-    for item, parameter in zip(signature, specification.parameters, strict=True):
-        if type(item) is not tuple or len(item) != 2:
-            raise TypeError("parameter_signature must contain name/float-hex pairs")
-        name, value = item
-        if type(name) is not str or type(value) is not str:
-            raise TypeError("parameter_signature must contain built-in strings")
-        try:
-            decoded = float.fromhex(value)
-        except ValueError as error:
-            raise ValueError("parameter_signature contains invalid float hex") from error
-        if not isfinite(decoded):
-            raise ValueError("parameter_signature must contain finite values")
-        names.append(name)
-        if parameter.role is ParameterRole.POSITIVE and decoded <= 0.0:
-            raise ValueError("parameter_signature violates a positive parameter contract")
-    if tuple(names) != expected_names:
-        raise ValueError("parameter_signature names are not canonical")
-    canonical = tuple((name, float.fromhex(value).hex()) for name, value in signature)
-    if signature != canonical:
-        raise ValueError("parameter_signature must use canonical float hex values")
+    payload = bytearray(b"veridist.log_likelihood.v1\0")
+    payload.extend(family.value.encode("ascii"))
+    for parameter in specification.parameters:
+        value = validated[parameter.name]
+        normalized = 0.0 if value == 0.0 else value
+        payload.extend(b"\0")
+        payload.extend(parameter.name.encode("ascii"))
+        payload.extend(b"=")
+        payload.extend(normalized.hex().encode("ascii"))
+    return sha256(payload).hexdigest()
+
+
+def _validate_fingerprint(fingerprint: object) -> None:
+    if type(fingerprint) is not str or len(fingerprint) != 64:
+        raise TypeError("parameter_fingerprint must be a SHA-256 hex string")
+    if any(character not in "0123456789abcdef" for character in fingerprint):
+        raise ValueError("parameter_fingerprint must be lowercase hexadecimal")
 
 
 __all__ = [
