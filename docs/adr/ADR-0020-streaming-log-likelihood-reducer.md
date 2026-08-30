@@ -58,7 +58,7 @@ imports, out-of-core adapters, throughput claims, or process-memory claims.
 
 ## Evidence
 
-Independent `Fraction`/integer reference checks cover cancellation,
+Independent `Fraction`/integer reference checks will cover cancellation,
 subnormals, maximum finite outputs, signed zeros, one-rounding cases,
 overflow, count-boundary construction, all five dispatches, scalar failures,
 ragged/lazy inputs, and merge/order/tree identity.  A retained generated-stream
@@ -73,7 +73,8 @@ does not claim a process-memory or throughput guarantee.
   scalar results.
 - `LLR-04`: all five evaluator dispatches and scalar failures are closed.
 - `LLR-05`: lazy/ragged streams are one-pass and retain no observations.
-- `LLR-06`: retained scale artifact is fail-closed and scoped to reducer state.
+- `LLR-06`: a future retained scale artifact will be fail-closed and scoped to
+  reducer state.
 
 ## Dependencies
 
