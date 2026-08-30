@@ -169,3 +169,9 @@ runner or score. The formal mutation runner is not implemented. The narrow
 `SCALE-CSV-EXP-01` retained-artifact checker is implemented; broader adapter,
 RSS, calibration, docs/i18n/example and rendered-RTL artifacts remain required
 continuous gates, not skipped placeholders or late-release work.
+
+`LLR-06` validates `python/evidence/scale-log-likelihood-v1.json`: generated
+Normal(0,1) streams at 10k, 100k and 1m rows by three chunk sizes, independent
+exact-unit reconstruction, one-pass/count/state facts, and the 2162-bit bound.
+Elapsed and tracemalloc fields are descriptive only; this is not a process-
+memory, throughput, or out-of-core claim.

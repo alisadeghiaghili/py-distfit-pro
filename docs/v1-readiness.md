@@ -29,6 +29,13 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
+- `LLR-06` retains a checker-validated generated-stream exact-state artifact at
+  `python/evidence/scale-log-likelihood-v1.json` for 10k/100k/1m rows and three
+  chunk sizes. It verifies one-pass traversal, counts, independently reconstructed
+  exact state units and the 2162-bit bound. Elapsed/tracemalloc facts are
+  descriptive; no process-memory, throughput, out-of-core, fitting, or general
+  cross-platform claim follows from this artifact.
+
 ### Historical snapshot: `bfb496d` (preserved verbatim)
 
 - The family-registry tranche adds one metadata-only production file. The

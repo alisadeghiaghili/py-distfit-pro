@@ -1,6 +1,6 @@
 # ADR-0020: Exact-state streaming log-likelihood reduction
 
-Status: Proposed
+Status: Accepted
 
 Owner: Ali Sadeghi Aghili
 
@@ -39,10 +39,12 @@ integer bit length under the declared count cap.  `math.fsum` is not used for
 this claim because it has no public worst-case fixed-state bound.
 
 State is frozen and slotted, binds a canonical `FamilyId` and an exact,
-deterministic canonical-parameter signature, and retains no observations,
+deterministic private canonical-parameter identity, and retains no observations,
 chunks, paths, localized text, or legacy objects.  State merge adds exact
 integer units, is associative and commutative at state level, rejects family
-or signature mismatches, and enforces the same count/total invariants.
+or identity mismatches, and enforces the same count/total invariants. The SHA-256
+fingerprint is opaque, redacted metadata only; merge authority is the private
+exact identity, not an assumption that SHA-256 collisions cannot occur.
 
 Scalar typed failures produce a locale-neutral likelihood failure without a
 partial total or raw value leakage.  Count-cap and non-representable final
@@ -58,12 +60,20 @@ imports, out-of-core adapters, throughput claims, or process-memory claims.
 
 ## Evidence
 
-Independent `Fraction`/integer reference checks will cover cancellation,
+Independent `Fraction`/integer reference checks cover cancellation,
 subnormals, maximum finite outputs, signed zeros, one-rounding cases,
-overflow, count-boundary construction, all five dispatches, scalar failures,
-ragged/lazy inputs, and merge/order/tree identity.  A retained generated-stream
-matrix separately measures a bounded reducer state for 10k/100k/1m rows and
-does not claim a process-memory or throughput guarantee.
+overflow, supported `restore` count-boundary construction, all five dispatches,
+scalar failures, ragged/lazy inputs, and merge/order/tree identity. The private
+`_evaluate_validated_log_density` seam owns the already-validated parameter
+mapping used by the one-time high-level validation boundary.
+
+`python/evidence/scale-log-likelihood-v1.json` is a retained, fail-closed
+generated one-pass matrix for 10k, 100k and 1m Normal(0,1) observations at
+three chunk sizes. Its checker independently reconstructs the exact binary64
+normal contribution and state units, verifies every count and the 2162-bit
+bound, and treats elapsed/tracemalloc fields as descriptive. It proves only
+fixed reducer-state bounds under the uint64 cap—not process-memory,
+throughput, out-of-core, or cross-platform performance bounds.
 
 ## Test implications
 
@@ -73,7 +83,7 @@ does not claim a process-memory or throughput guarantee.
   scalar results.
 - `LLR-04`: all five evaluator dispatches and scalar failures are closed.
 - `LLR-05`: lazy/ragged streams are one-pass and retain no observations.
-- `LLR-06`: a future retained scale artifact will be fail-closed and scoped to
+- `LLR-06`: retained scale artifact checker is fail-closed and scoped to
   reducer state.
 
 ## Dependencies
