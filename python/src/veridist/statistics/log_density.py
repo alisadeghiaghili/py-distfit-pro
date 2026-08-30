@@ -140,8 +140,6 @@ def _gamma(observation: float, parameters: Mapping[str, float]) -> float:
             log_gamma = _finite_intermediate(lgamma(shape))
             scale_term = _finite_intermediate(shape * log(scale))
             return (shape - 1.0) * log_observation - quotient - log_gamma - scale_term
-        if not isfinite(delta) or delta < -1.0:
-            raise _NumericalOverflow
         deviance = _finite_intermediate(shape * _log1pmx(delta))
         return fsum(
             (
