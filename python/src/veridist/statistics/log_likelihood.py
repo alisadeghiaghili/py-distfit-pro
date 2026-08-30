@@ -15,6 +15,7 @@ from veridist.families.registry import FAMILY_REGISTRY, FamilyId
 from veridist.statistics.log_density import (
     LogDensityErrorCode,
     LogDensityFailure,
+    LogDensitySuccess,
     _evaluate_validated_log_density,
 )
 
@@ -25,6 +26,7 @@ _UNITS_DENOMINATOR: Final = 1 << 1074
 _MAX_CONTRIBUTION_UNITS: Final = ((1 << 53) - 1) << 2045
 MAX_TOTAL_UNITS: Final = MAX_OBSERVATION_COUNT * _MAX_CONTRIBUTION_UNITS
 """Maximum absolute exact unit total under the declared count cap (2162 bits)."""
+
 
 class LogLikelihoodErrorCode(StrEnum):
     """Closed, locale-neutral streaming log-likelihood failure codes."""
@@ -42,14 +44,14 @@ class LogLikelihoodState:
     parameter_fingerprint: str
     observation_count: int
     total_units: int
-    _canonical_identity: tuple[str, str] = field(repr=False, compare=True)
+    _canonical_identity: tuple[str, ...] = field(repr=False, compare=True)
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         raise TypeError("LogLikelihoodState construction is closed; use empty or restore")
 
     @classmethod
     def _create(
-        cls, family: FamilyId, fingerprint: str, count: int, units: int, identity: tuple[str, str]
+        cls, family: FamilyId, fingerprint: str, count: int, units: int, identity: tuple[str, ...]
     ) -> LogLikelihoodState:
         state = object.__new__(cls)
         object.__setattr__(state, "family", family)
@@ -275,6 +277,7 @@ def reduce_log_likelihood_chunks(
                         accumulator.observation_count,
                         evaluated.code,
                     )
+                assert isinstance(evaluated, LogDensitySuccess)
                 accumulator.add(evaluated.log_density)
             except _ObservationLimitExceeded:
                 return LogLikelihoodFailure(
@@ -308,7 +311,7 @@ def _validate_family_and_parameters(
 
 def _identity_and_fingerprint(
     family: FamilyId, validated: Mapping[str, float]
-) -> tuple[tuple[str, str], str]:
+) -> tuple[tuple[str, ...], str]:
     """Hash family plus registry-ordered, normalized canonical parameter bytes."""
 
     specification = FAMILY_REGISTRY.families[family]

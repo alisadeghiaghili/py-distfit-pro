@@ -42,7 +42,19 @@ def _cell(rows: int, chunk_size: int) -> dict[str, object]:
     contribution = -0.5 * __import__("math").log(2.0 * __import__("math").pi)
     numerator, denominator = contribution.as_integer_ratio()
     units = rows * numerator * ((1 << 1074) // denominator)
-    return {"rows": rows, "chunk_size": chunk_size, "one_pass": True, "state": {"observation_count": rows, "total_units": units, "total_units_bit_length": abs(units).bit_length(), "bound_bits": 2162}, "elapsed_seconds": elapsed, "memory": {"tracemalloc_peak_bytes": peak}}
+    return {
+        "rows": rows,
+        "chunk_size": chunk_size,
+        "one_pass": True,
+        "state": {
+            "observation_count": rows,
+            "total_units": units,
+            "total_units_bit_length": abs(units).bit_length(),
+            "bound_bits": 2162,
+        },
+        "elapsed_seconds": elapsed,
+        "memory": {"tracemalloc_peak_bytes": peak},
+    }
 
 
 def main() -> int:
@@ -51,8 +63,14 @@ def main() -> int:
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     sha = _head(root)
-    value: dict[str, object] = {"schema_version": "1", "run": {"git_sha": sha, "git_dirty": False, "generator": "normal-zero-v1"}, "cells": [_cell(rows, budget) for rows in ROWS for budget in BUDGETS]}
-    value["artifact_sha256"] = hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    value: dict[str, object] = {
+        "schema_version": "1",
+        "run": {"git_sha": sha, "git_dirty": False, "generator": "normal-zero-v1"},
+        "cells": [_cell(rows, budget) for rows in ROWS for budget in BUDGETS],
+    }
+    value["artifact_sha256"] = hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
     if _head(root) != sha:
         raise SystemExit("refusing evidence after checkout changed")
     args.output.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")

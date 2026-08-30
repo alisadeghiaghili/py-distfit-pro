@@ -10,7 +10,6 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
 
 ROWS = (10_000, 100_000, 1_000_000)
 BUDGETS = (1_024, 8_192, 65_536)
@@ -24,7 +23,9 @@ MEMORY_KEYS = {"tracemalloc_peak_bytes"}
 def _digest(value: dict[str, object]) -> str:
     body = dict(value)
     body.pop("artifact_sha256", None)
-    return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return hashlib.sha256(
+        json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
 def _units(rows: int) -> int:
@@ -44,12 +45,20 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
     run = value["run"]
     if not isinstance(run, dict) or set(run) != {"git_sha", "git_dirty", "generator"}:
         return [*errors, "run schema invalid"]
-    if run["git_sha"] != expected_git_sha or not isinstance(run["git_sha"], str) or SHA.fullmatch(run["git_sha"]) is None:
+    if (
+        run["git_sha"] != expected_git_sha
+        or not isinstance(run["git_sha"], str)
+        or SHA.fullmatch(run["git_sha"]) is None
+    ):
         errors.append("frozen Git SHA mismatch")
     if run["git_dirty"] is not False or run["generator"] != "normal-zero-v1":
         errors.append("run metadata invalid")
     try:
-        subprocess.run(["git", "-C", str(repo_root), "merge-base", "--is-ancestor", expected_git_sha, "HEAD"], check=True, capture_output=True)
+        subprocess.run(
+            ["git", "-C", str(repo_root), "merge-base", "--is-ancestor", expected_git_sha, "HEAD"],
+            check=True,
+            capture_output=True,
+        )
     except (OSError, subprocess.CalledProcessError):
         errors.append("frozen Git SHA is not an ancestor")
     cells = value["cells"]
@@ -71,11 +80,26 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
         if not isinstance(state, dict) or set(state) != STATE_KEYS:
             errors.append("state schema invalid")
             continue
-        if state != {"observation_count": rows, "total_units": _units(rows), "total_units_bit_length": abs(_units(rows)).bit_length(), "bound_bits": 2162}:
+        if state != {
+            "observation_count": rows,
+            "total_units": _units(rows),
+            "total_units_bit_length": abs(_units(rows)).bit_length(),
+            "bound_bits": 2162,
+        }:
             errors.append("independent exact state oracle mismatch")
-        if not isinstance(memory, dict) or set(memory) != MEMORY_KEYS or type(memory["tracemalloc_peak_bytes"]) is not int or memory["tracemalloc_peak_bytes"] < 0:
+        if (
+            not isinstance(memory, dict)
+            or set(memory) != MEMORY_KEYS
+            or type(memory["tracemalloc_peak_bytes"]) is not int
+            or memory["tracemalloc_peak_bytes"] < 0
+        ):
             errors.append("descriptive memory fact invalid")
-        if not isinstance(cell["elapsed_seconds"], (int, float)) or isinstance(cell["elapsed_seconds"], bool) or not math.isfinite(cell["elapsed_seconds"]) or cell["elapsed_seconds"] < 0:
+        if (
+            not isinstance(cell["elapsed_seconds"], (int, float))
+            or isinstance(cell["elapsed_seconds"], bool)
+            or not math.isfinite(cell["elapsed_seconds"])
+            or cell["elapsed_seconds"] < 0
+        ):
             errors.append("descriptive elapsed fact invalid")
     if seen != {(row, budget) for row in ROWS for budget in BUDGETS}:
         errors.append("matrix coverage invalid")
