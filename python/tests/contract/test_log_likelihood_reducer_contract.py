@@ -253,3 +253,95 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         self.assertEqual(result.observation_count, 3)
         self.assertEqual(fingerprint.call_count, 1)
         self.assertLessEqual(checked.call_count, 2)
+
+    def test_llr06_closed_constructor_and_terminal_failure_boundaries(self) -> None:
+        from veridist.statistics import log_likelihood
+        from veridist.statistics.log_density import LogDensityErrorCode, LogDensityFailure
+        from veridist.statistics.log_likelihood import (
+            MAX_OBSERVATION_COUNT,
+            LogLikelihoodErrorCode,
+            LogLikelihoodFailure,
+            LogLikelihoodState,
+            LogLikelihoodSuccess,
+            _ExactAccumulator,
+            _FinalTotalNotRepresentable,
+            _ObservationLimitExceeded,
+            _validate_family_and_parameters,
+            _validate_fingerprint,
+            reduce_log_likelihood_chunks,
+        )
+
+        state = LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0)
+        with self.assertRaises(ValueError):
+            state.add_log_density(1)
+        capped = LogLikelihoodState.restore(
+            FamilyId.NORMAL,
+            observation_count=MAX_OBSERVATION_COUNT,
+            total_units=0,
+            mu=0.0,
+            sigma=1.0,
+        )
+        with self.assertRaises(_ObservationLimitExceeded):
+            capped.add_log_density(0.0)
+        with self.assertRaises(TypeError):
+            LogLikelihoodState._create("normal", state.parameter_fingerprint, 0, 0, ())
+        with self.assertRaises(ValueError):
+            LogLikelihoodState._create(FamilyId.NORMAL, state.parameter_fingerprint, 0, 1, ())
+        with patch.object(log_likelihood, "isfinite", return_value=False):
+            with self.assertRaises(_FinalTotalNotRepresentable):
+                state.finalize()
+        with self.assertRaises(TypeError):
+            LogLikelihoodSuccess("normal", state.parameter_fingerprint, 0, 0.0)
+        with self.assertRaises(ValueError):
+            LogLikelihoodSuccess(FamilyId.NORMAL, state.parameter_fingerprint, -1, 0.0)
+        with self.assertRaises(ValueError):
+            LogLikelihoodSuccess(FamilyId.NORMAL, state.parameter_fingerprint, 0, 0)
+        self.assertIn(
+            "success",
+            LogLikelihoodSuccess(FamilyId.NORMAL, state.parameter_fingerprint, 0, 0.0).to_json(),
+        )
+        with self.assertRaises(TypeError):
+            LogLikelihoodFailure(
+                "normal", LogLikelihoodErrorCode.OBSERVATION_LIMIT_EXCEEDED, 0, None
+            )
+        with self.assertRaises(TypeError):
+            LogLikelihoodFailure(FamilyId.NORMAL, "bad", 0, None)
+        with self.assertRaises(ValueError):
+            LogLikelihoodFailure(
+                FamilyId.NORMAL, LogLikelihoodErrorCode.OBSERVATION_LIMIT_EXCEEDED, -1, None
+            )
+        with self.assertRaises(ValueError):
+            LogLikelihoodFailure(
+                FamilyId.NORMAL, LogLikelihoodErrorCode.SCALAR_EVALUATION_FAILURE, 0, None
+            )
+        with self.assertRaises(ValueError):
+            LogLikelihoodFailure(
+                FamilyId.NORMAL,
+                LogLikelihoodErrorCode.OBSERVATION_LIMIT_EXCEEDED,
+                0,
+                LogDensityErrorCode.SUPPORT_VIOLATION,
+            )
+        self.assertIn(
+            "failure",
+            LogLikelihoodFailure(
+                FamilyId.NORMAL, LogLikelihoodErrorCode.OBSERVATION_LIMIT_EXCEEDED, 0, None
+            ).to_json(),
+        )
+        accumulator = _ExactAccumulator(MAX_OBSERVATION_COUNT, 0)
+        with self.assertRaises(_ObservationLimitExceeded):
+            accumulator.add(0.0)
+        failure = LogDensityFailure(FamilyId.NORMAL, LogDensityErrorCode.SUPPORT_VIOLATION)
+        with patch.object(log_likelihood, "_evaluate_validated_log_density", return_value=failure):
+            result = reduce_log_likelihood_chunks(FamilyId.NORMAL, ((0.0,),), mu=0.0, sigma=1.0)
+        self.assertIsInstance(result, LogLikelihoodFailure)
+        with patch.object(log_likelihood, "MAX_OBSERVATION_COUNT", 0):
+            result = reduce_log_likelihood_chunks(FamilyId.NORMAL, ((0.0,),), mu=0.0, sigma=1.0)
+        self.assertIsInstance(result, LogLikelihoodFailure)
+        assert isinstance(result, LogLikelihoodFailure)
+        self.assertIs(result.code, LogLikelihoodErrorCode.OBSERVATION_LIMIT_EXCEEDED)
+        with self.assertRaises(TypeError):
+            _validate_family_and_parameters("normal", {})
+        with self.assertRaises(TypeError):
+            _validate_fingerprint("bad")
+        with self.assertRaises(ValueError):
+            _validate_fingerprint("g" * 64)

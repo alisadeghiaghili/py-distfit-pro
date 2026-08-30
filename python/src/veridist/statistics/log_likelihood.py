@@ -75,8 +75,6 @@ class LogLikelihoodState:
         maximum_for_count = self.observation_count * _MAX_CONTRIBUTION_UNITS
         if abs(self.total_units) > maximum_for_count:
             raise ValueError("total_units exceeds the declared count-specific state bound")
-        if self.observation_count == 0 and self.total_units != 0:
-            raise ValueError("empty reducer state must have zero total units")
 
     @classmethod
     def empty(cls, family: FamilyId, /, **parameters: object) -> LogLikelihoodState:
