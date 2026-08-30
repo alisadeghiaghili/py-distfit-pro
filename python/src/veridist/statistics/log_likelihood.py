@@ -123,7 +123,10 @@ class LogLikelihoodSuccess:
         if type(self.family) is not FamilyId:
             raise TypeError("family must be a FamilyId")
         _validate_signature(self.family, self.parameter_signature)
-        if type(self.observation_count) is not int or not 0 <= self.observation_count <= MAX_OBSERVATION_COUNT:
+        if (
+            type(self.observation_count) is not int
+            or not 0 <= self.observation_count <= MAX_OBSERVATION_COUNT
+        ):
             raise ValueError("observation_count is outside the unsigned-64 reducer bound")
         if type(self.total_log_likelihood) is not float or not isfinite(self.total_log_likelihood):
             raise ValueError("total_log_likelihood must be a finite built-in float")
@@ -159,7 +162,10 @@ class LogLikelihoodFailure:
         _validate_signature(self.family, self.parameter_signature)
         if type(self.code) is not LogLikelihoodErrorCode:
             raise TypeError("code must be a LogLikelihoodErrorCode")
-        if type(self.processed_count) is not int or not 0 <= self.processed_count <= MAX_OBSERVATION_COUNT:
+        if (
+            type(self.processed_count) is not int
+            or not 0 <= self.processed_count <= MAX_OBSERVATION_COUNT
+        ):
             raise ValueError("processed_count is outside the unsigned-64 reducer bound")
 
     def to_json(self) -> str:
