@@ -29,10 +29,14 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
-- `LLR-06` retains a checker-validated generated-stream exact-state artifact at
+- `LLR-06` retains a checker-validated generated-stream artifact at
   `python/evidence/scale-log-likelihood-v1.json` for 10k/100k/1m rows and three
-  chunk sizes. It verifies one-pass traversal, counts, independently reconstructed
-  exact state units and the 2162-bit bound. Elapsed/tracemalloc facts are
+  chunk sizes. It records one actual outer iterator acquisition and every yield,
+  then verifies the actual returned total bitwise against independently
+  reconstructed `Fraction` oracle units and the algorithmic 2162-bit bound. It
+  does not claim to measure public reducer state. The initial `e517dd3` bundle
+  was noncompliant because it did not reject wrong-total or second-pass mutants;
+  a corrective RED/GREEN chain now does. Elapsed/tracemalloc facts are
   descriptive; no process-memory, throughput, out-of-core, fitting, or general
   cross-platform claim follows from this artifact.
 

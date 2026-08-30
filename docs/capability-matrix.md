@@ -5,9 +5,10 @@
 Five validated scalar-density families support an exact binary64-output
 streaming reducer. The retained 10k/100k/1m generated-stream matrix at
 `python/evidence/scale-log-likelihood-v1.json` is checker-validated only for
-one-pass traversal and bounded reducer state (2162 bits under the uint64 count
-cap). It is not a process-memory, throughput, out-of-core, fitting, or
-cross-platform scalar-equivalence claim.
+actual one-pass traversal, returned-total equality to an independent exact
+oracle, and the algorithmic 2162-bit reducer bound under the uint64 count cap.
+It does not measure public reducer state and is not a process-memory,
+throughput, out-of-core, fitting, or cross-platform scalar-equivalence claim.
 
 This matrix records callable behavior on the current development branch. It is
 not a release announcement: the package version remains `0.0.0.dev0` and the

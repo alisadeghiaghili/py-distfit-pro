@@ -172,6 +172,8 @@ continuous gates, not skipped placeholders or late-release work.
 
 `LLR-06` validates `python/evidence/scale-log-likelihood-v1.json`: generated
 Normal(0,1) streams at 10k, 100k and 1m rows by three chunk sizes, independent
-exact-unit reconstruction, one-pass/count/state facts, and the 2162-bit bound.
-Elapsed and tracemalloc fields are descriptive only; this is not a process-
-memory, throughput, or out-of-core claim.
+exact-unit reconstruction, one actual outer iterator acquisition, every
+observation yield, returned-total bit equality, and the 2162-bit algorithmic
+bound. It does not claim to observe private reducer state. Elapsed and
+tracemalloc fields are descriptive only; this is not a process-memory,
+throughput, or out-of-core claim.

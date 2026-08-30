@@ -14,7 +14,8 @@ observations or making partition-dependent floating-point claims.
 
 Add a generic streaming reducer for the five canonical `FamilyId` values.  It
 validates canonical parameters once through the registry, evaluates each
-observation through `evaluate_log_density`, and stores the exact sum of every
+observation through the private prepared/validated `_evaluate_validated_log_density`
+seam, and stores the exact sum of every
 successful binary64 log-density in integer units of `2^-1074`.  A finite
 binary64 value is converted with `float.as_integer_ratio`; this is an exact
 conversion of the already-rounded scalar output.
@@ -67,13 +68,22 @@ scalar failures, ragged/lazy inputs, and merge/order/tree identity. The private
 `_evaluate_validated_log_density` seam owns the already-validated parameter
 mapping used by the one-time high-level validation boundary.
 
+The initial `e517dd3` bundle introduced the implementation and scale tests but
+did not observe a second outer iterator acquisition or compare the reducer's
+returned total to an independent oracle; that evidence was noncompliant. The
+corrective RED/GREEN chain adds wrong-total and second-pass mutants before the
+runner/checker repair.
+
 `python/evidence/scale-log-likelihood-v1.json` is a retained, fail-closed
 generated one-pass matrix for 10k, 100k and 1m Normal(0,1) observations at
-three chunk sizes. Its checker independently reconstructs the exact binary64
-normal contribution and state units, verifies every count and the 2162-bit
-bound, and treats elapsed/tracemalloc fields as descriptive. It proves only
-fixed reducer-state bounds under the uint64 cap—not process-memory,
-throughput, out-of-core, or cross-platform performance bounds.
+three chunk sizes. It records one actual outer iterator acquisition, every
+observation yield, and the actual returned total (JSON number plus exact
+`float.hex`). Its checker independently reconstructs the exact binary64 normal
+contribution and oracle units, requires bitwise equality of the returned total
+with `float(Fraction(oracle_units, 2**1074))`, and verifies the 2162-bit
+algorithmic bound. It does not claim to have measured a public reducer state.
+Elapsed/tracemalloc fields are descriptive. It proves neither process-memory,
+throughput, out-of-core, nor cross-platform performance bounds.
 
 ## Test implications
 
