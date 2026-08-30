@@ -131,7 +131,16 @@ def _gamma(observation: float, parameters: Mapping[str, float]) -> float:
     scale = parameters["scale"]
     delta = _ratio_minus_one(observation, shape, scale)
     if shape >= 8.0:
-        if not isfinite(delta) or delta <= -1.0:
+        if delta == -1.0:
+            # The exact positive ratio can round below binary64 resolution here.
+            # Its log-density remains finite, but the deviance representation
+            # would call log1p(-1); use the stable far-left direct form instead.
+            log_observation = _finite_intermediate(log(observation))
+            quotient = _finite_intermediate(observation / scale)
+            log_gamma = _finite_intermediate(lgamma(shape))
+            scale_term = _finite_intermediate(shape * log(scale))
+            return (shape - 1.0) * log_observation - quotient - log_gamma - scale_term
+        if not isfinite(delta) or delta < -1.0:
             raise _NumericalOverflow
         deviance = _finite_intermediate(shape * _log1pmx(delta))
         return fsum(
