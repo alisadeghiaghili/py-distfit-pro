@@ -76,6 +76,24 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         self.assertNotIn("0x", repr(positive))
         self.assertNotIn("location", repr(positive))
 
+    def test_llr02_state_constructor_is_closed_and_restore_derives_exact_identity(self) -> None:
+        from veridist.statistics.log_likelihood import LogLikelihoodState
+
+        honest = LogLikelihoodState.empty(FamilyId.NORMAL, mu=0.0, sigma=1.0)
+        with self.assertRaises(TypeError):
+            LogLikelihoodState(  # type: ignore[call-arg]
+                FamilyId.NORMAL, honest.parameter_fingerprint, 0, 0
+            )
+        restored = LogLikelihoodState.restore(
+            FamilyId.NORMAL, observation_count=0, total_units=0, mu=0, sigma=1
+        )
+        self.assertEqual(honest, restored)
+        transplanted = LogLikelihoodState.restore(
+            FamilyId.GAMMA, observation_count=0, total_units=0, shape=1.0, scale=1.0
+        )
+        with self.assertRaises(ValueError):
+            honest.merge(transplanted)
+
     def test_llr03_order_chunks_and_merge_tree_are_bit_identical(self) -> None:
         from veridist.statistics.log_likelihood import reduce_log_likelihood_chunks
 
