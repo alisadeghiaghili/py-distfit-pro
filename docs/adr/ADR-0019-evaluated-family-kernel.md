@@ -146,9 +146,12 @@ The canonical formulas are evaluated in log space using the standard library:
 - Normal: `-0.5 log(2 pi) - log(sigma) - 0.5 z^2`, `z=(x-mu)/sigma`.
 - Gamma: for `shape < 8` the canonical
   `(shape-1) log(x) - x/scale - lgamma(shape) - shape log(scale)` form; for
-  `shape >= 8` and `abs(delta) <= 0.5`, the cancellation-safe deviance form
+  `shape >= 8`, the cancellation-safe deviance form
   `-log(scale)-0.5log(2pi shape)-stirlerr(shape)+shape*log1pmx(delta)-log1p(delta)`,
-  where `delta=x/(shape*scale)-1` is formed from exact binary64 ratios.
+  where `delta=x/(shape*scale)-1` is formed from exact binary64 ratios. When a
+  strictly positive exact ratio rounds so far left that `delta == -1` in
+  binary64, the evaluator uses the finite direct-log form instead of calling
+  `log1p(-1)`; this is not an overflow.
 - Weibull-min: `log(shape)-log(scale)+(shape-1)log(x/scale)-(x/scale)^shape`,
   with an exact-binary adjacent-ratio `log1p(delta)` path and `expm1` near
   zero; a required exponential above the binary64 bound is typed overflow.

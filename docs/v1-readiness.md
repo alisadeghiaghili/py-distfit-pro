@@ -44,13 +44,14 @@ as a statement about uninspected current files.
   `python -m pytest --cov=veridist --cov-branch --ignore=tests/docs/test_docs_toolchain.py --cov-report=json:coverage.json`
   collected 328 items: 326 passed and the two opt-in browser tests skipped.
   The deterministic checker accepted all 24 enumerated production files with
-  2,328 statements and 792 branches at 100% observed line and branch coverage,
+  2,332 statements and 792 branches at 100% observed line and branch coverage,
   with no accepted exceptions. The generated coverage JSON is deliberately not
   retained as a release artifact, so this ledger does not assert a mutable file
   hash. The current candidate's five-family scalar evaluator has independent
   exact-binary `mpmath==1.3.0` references, a Gamma large-shape/scale/delta grid
-  with more than 90 finite cases, a Lognormal magnitude/adjacent-center/sigma
-  grid, and a fixed-seed ordinary smoke sweep. All reference acceptance uses
+  with more than 90 finite cases plus far-left subnormal direct-log regressions,
+  a Lognormal magnitude/adjacent-center/sigma grid, and a fixed-seed ordinary
+  smoke sweep. All reference acceptance uses
   `max(8 ULP, 2e-14 relative, 2e-14 absolute)`; the sweep is not a mutation
   score or a generalized numerical guarantee. This evidence is limited to
   scalar log-density correctness; it is not fitting, inference, censoring,
