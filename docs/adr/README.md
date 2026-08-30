@@ -34,6 +34,7 @@ needed.
 | 0017 | Exponential right-censored MLE vertical | Accepted; experimental implementation on the 0.0.0.dev0 development branch; 0.1.0a1 remains a target, not a release claim |
 | 0018 | CSV lifetime adapter and one-pass exponential orchestrator | Proposed; a narrow implemented vertical with retained evidence, but formal mutation and complete multilingual rendered-documentation gates remain open |
 | 0019 | Evaluated-family kernel and parameter contracts | Proposed |
+| 0020 | Exact-state streaming log-likelihood reduction | Proposed |
 
 ## Dependency notes
 
