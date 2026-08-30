@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from collections.abc import Iterable
 from pathlib import Path
 from unittest.mock import patch
 
@@ -67,23 +68,35 @@ class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
     def test_runner_rejects_a_correct_count_with_a_wrong_returned_total(self) -> None:
         from veridist.statistics.log_likelihood import LogLikelihoodSuccess
 
-        def wrong_total(*_args: object, **_kwargs: object) -> LogLikelihoodSuccess:
-            return LogLikelihoodSuccess(FamilyId.NORMAL, "0" * 64, 10, 0.0)
+        def wrong_total(
+            family: FamilyId, chunks: Iterable[Iterable[object]], /, **_parameters: object
+        ) -> LogLikelihoodSuccess:
+            count = 0
+            for chunk in chunks:
+                for _ in chunk:
+                    count += 1
+            return LogLikelihoodSuccess(family, "0" * 64, count, 0.0)
 
         with patch.object(RUNNER_MODULE, "reduce_log_likelihood_chunks", side_effect=wrong_total):
-            with self.assertRaises(RuntimeError):
+            with self.assertRaisesRegex(
+                RuntimeError, "returned total does not match independent exact oracle"
+            ):
                 RUNNER_MODULE._cell(10, 1)
 
     def test_runner_rejects_a_second_outer_iterator_acquisition(self) -> None:
         from veridist.statistics.log_likelihood import LogLikelihoodSuccess
 
-        def second_pass(chunks: object, *_args: object, **_kwargs: object) -> LogLikelihoodSuccess:
-            list(chunks)  # type: ignore[arg-type]
-            list(chunks)  # type: ignore[arg-type]
-            return LogLikelihoodSuccess(FamilyId.NORMAL, "0" * 64, 10, -1.0)
+        def second_pass(
+            family: FamilyId, chunks: Iterable[Iterable[object]], /, **_parameters: object
+        ) -> LogLikelihoodSuccess:
+            next(iter(chunks))
+            next(iter(chunks))
+            return LogLikelihoodSuccess(family, "0" * 64, 10, -1.0)
 
         with patch.object(RUNNER_MODULE, "reduce_log_likelihood_chunks", side_effect=second_pass):
-            with self.assertRaises(RuntimeError):
+            with self.assertRaisesRegex(
+                RuntimeError, "generated source was iterated more than once"
+            ):
                 RUNNER_MODULE._cell(10, 1)
 
     def test_checker_rejects_tampered_actual_returned_total(self) -> None:
