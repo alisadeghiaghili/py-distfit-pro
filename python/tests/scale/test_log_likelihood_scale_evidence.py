@@ -100,36 +100,17 @@ class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
             MODULE.validate(value, expected_git_sha=_head(), repo_root=REPO),
         )
 
-    def test_checker_rejects_tampered_exact_state(self) -> None:
-        value = {
-            "schema_version": "1",
-            "run": {"git_sha": _head(), "git_dirty": False, "generator": "normal-zero-v1"},
-            "cells": [],
-        }
-        for rows in MODULE.ROWS:
-            for budget in MODULE.BUDGETS:
-                units = MODULE._units(rows)
-                value["cells"].append(
-                    {
-                        "rows": rows,
-                        "chunk_size": budget,
-                        "one_pass": True,
-                        "state": {
-                            "observation_count": rows,
-                            "total_units": units,
-                            "total_units_bit_length": abs(units).bit_length(),
-                            "bound_bits": 2162,
-                        },
-                        "elapsed_seconds": 0.0,
-                        "memory": {"tracemalloc_peak_bytes": 0},
-                    }
-                )
-        value["artifact_sha256"] = MODULE._digest(value)
+    def test_checker_rejects_tampered_exact_oracle(self) -> None:
+        value = self._value()
         self.assertEqual(MODULE.validate(value, expected_git_sha=_head(), repo_root=REPO), [])
-        value["cells"][0]["state"]["total_units"] += 1
+        cell = value["cells"][0]
+        assert isinstance(cell, dict)
+        oracle = cell["oracle"]
+        assert isinstance(oracle, dict)
+        oracle["oracle_total_units"] += 1
         value["artifact_sha256"] = MODULE._digest(value)
         self.assertIn(
-            "independent exact state oracle mismatch",
+            "independent exact oracle mismatch",
             MODULE.validate(value, expected_git_sha=_head(), repo_root=REPO),
         )
 

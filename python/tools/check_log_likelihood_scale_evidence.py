@@ -9,14 +9,17 @@ import math
 import re
 import subprocess
 import sys
+from fractions import Fraction
 from pathlib import Path
 
 ROWS = (10_000, 100_000, 1_000_000)
 BUDGETS = (1_024, 8_192, 65_536)
 SHA = re.compile(r"[0-9a-f]{40}")
 KEYS = {"schema_version", "run", "cells", "artifact_sha256"}
-CELL_KEYS = {"rows", "chunk_size", "one_pass", "state", "elapsed_seconds", "memory"}
-STATE_KEYS = {"observation_count", "total_units", "total_units_bit_length", "bound_bits"}
+CELL_KEYS = {"rows", "chunk_size", "one_pass", "oracle", "actual", "elapsed_seconds", "memory"}
+ONE_PASS_KEYS = {"iterator_acquisitions", "observation_yields"}
+ORACLE_KEYS = {"oracle_total_units", "oracle_total_units_bit_length", "bound_bits"}
+ACTUAL_KEYS = {"observation_count", "total_log_likelihood", "total_log_likelihood_hex"}
 MEMORY_KEYS = {"tracemalloc_peak_bytes"}
 
 
@@ -40,7 +43,7 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
     errors: list[str] = []
     if not isinstance(value, dict) or set(value) != KEYS:
         return ["artifact schema keys invalid"]
-    if value["schema_version"] != "1" or value["artifact_sha256"] != _digest(value):
+    if value["schema_version"] != "2" or value["artifact_sha256"] != _digest(value):
         errors.append("artifact version or digest invalid")
     run = value["run"]
     if not isinstance(run, dict) or set(run) != {"git_sha", "git_dirty", "generator"}:
@@ -74,19 +77,39 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
             errors.append("cell key invalid or duplicate")
             continue
         seen.add((rows, chunk))
-        if rows not in ROWS or chunk not in BUDGETS or cell["one_pass"] is not True:
+        if rows not in ROWS or chunk not in BUDGETS:
             errors.append("cell scale or pass facts invalid")
-        state, memory = cell["state"], cell["memory"]
-        if not isinstance(state, dict) or set(state) != STATE_KEYS:
-            errors.append("state schema invalid")
+        one_pass, oracle, actual, memory = (
+            cell["one_pass"],
+            cell["oracle"],
+            cell["actual"],
+            cell["memory"],
+        )
+        if not isinstance(one_pass, dict) or set(one_pass) != ONE_PASS_KEYS:
+            errors.append("one-pass measurement schema invalid")
             continue
-        if state != {
-            "observation_count": rows,
-            "total_units": _units(rows),
-            "total_units_bit_length": abs(_units(rows)).bit_length(),
+        if one_pass != {"iterator_acquisitions": 1, "observation_yields": rows}:
+            errors.append("actual one-pass traversal mismatch")
+        if not isinstance(oracle, dict) or set(oracle) != ORACLE_KEYS:
+            errors.append("oracle schema invalid")
+            continue
+        if oracle != {
+            "oracle_total_units": _units(rows),
+            "oracle_total_units_bit_length": abs(_units(rows)).bit_length(),
             "bound_bits": 2162,
         }:
-            errors.append("independent exact state oracle mismatch")
+            errors.append("independent exact oracle mismatch")
+        expected = float(Fraction(_units(rows), 1 << 1074))
+        if not isinstance(actual, dict) or set(actual) != ACTUAL_KEYS:
+            errors.append("actual result schema invalid")
+            continue
+        if (
+            actual["observation_count"] != rows
+            or type(actual["total_log_likelihood"]) is not float
+            or actual["total_log_likelihood_hex"] != expected.hex()
+            or actual["total_log_likelihood"].hex() != expected.hex()
+        ):
+            errors.append("actual returned total does not match independent exact oracle")
         if (
             not isinstance(memory, dict)
             or set(memory) != MEMORY_KEYS
