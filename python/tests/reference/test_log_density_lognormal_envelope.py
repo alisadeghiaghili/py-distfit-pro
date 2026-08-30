@@ -20,36 +20,44 @@ class LognormalEnvelopeTests(unittest.TestCase):
             evaluate_log_density,
         )
 
-        x = 3.0
-        base = math.log(x)
-        centers = (base, math.nextafter(base, -math.inf), math.nextafter(base, math.inf))
+        observations = (
+            float.fromhex("0x1.0000000000000p-1022"),
+            3.0,
+            float.fromhex("0x1.fffffffffffffp+1023"),
+        )
         sigmas = (float.fromhex("0x0.0000000000001p-1022"), 1.0e-18, 1.0e-16, 1.0e-12, 1.5)
+        checked = 0
         finite_truths = 0
         overflow_truths = 0
-        for mean in centers:
-            for sigma in sigmas:
-                with self.subTest(mean=mean, sigma=sigma):
-                    expected = oracle.lognormal(x, mu_log=mean, sigma_log=sigma)
-                    result = evaluate_log_density(
-                        FamilyId.LOGNORMAL,
-                        x,
-                        mu_log=mean,
-                        sigma_log=sigma,
-                    )
-                    if math.isfinite(expected):
-                        self.assertIsInstance(result, LogDensitySuccess)
-                        self.assertAlmostEqual(
-                            result.log_density,
-                            expected,
-                            delta=_tolerance(expected),
+        for x in observations:
+            base = math.log(x)
+            centers = (base, math.nextafter(base, -math.inf), math.nextafter(base, math.inf))
+            for mean in centers:
+                for sigma in sigmas:
+                    with self.subTest(x=x, mean=mean, sigma=sigma):
+                        expected = oracle.lognormal(x, mu_log=mean, sigma_log=sigma)
+                        result = evaluate_log_density(
+                            FamilyId.LOGNORMAL,
+                            x,
+                            mu_log=mean,
+                            sigma_log=sigma,
                         )
-                        finite_truths += 1
-                    else:
-                        self.assertIsInstance(result, LogDensityFailure)
-                        self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)
-                        overflow_truths += 1
-        self.assertGreaterEqual(finite_truths, 6)
-        self.assertGreaterEqual(overflow_truths, 3)
+                        checked += 1
+                        if math.isfinite(expected):
+                            self.assertIsInstance(result, LogDensitySuccess)
+                            self.assertAlmostEqual(
+                                result.log_density,
+                                expected,
+                                delta=_tolerance(expected),
+                            )
+                            finite_truths += 1
+                        else:
+                            self.assertIsInstance(result, LogDensityFailure)
+                            self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)
+                            overflow_truths += 1
+        self.assertEqual(checked, len(observations) * 3 * len(sigmas))
+        self.assertGreaterEqual(finite_truths, 20)
+        self.assertGreaterEqual(overflow_truths, 9)
 
 
 def _tolerance(expected: float) -> float:
