@@ -12,21 +12,26 @@ from veridist.families.registry import FamilyId
 class GammaEnvelopeTests(unittest.TestCase):
     """Finite Gamma truths retain the ordinary scalar tolerance everywhere tested."""
 
-    def test_large_shape_delta_that_rounds_to_negative_one_is_typed_overflow(self) -> None:
-        from veridist.statistics.log_density import (
-            LogDensityErrorCode,
-            LogDensityFailure,
-            evaluate_log_density,
-        )
+    def test_large_shape_far_left_subnormal_ratio_keeps_a_finite_log_density(self) -> None:
+        from veridist.statistics.log_density import LogDensitySuccess, evaluate_log_density
 
-        result = evaluate_log_density(
-            FamilyId.GAMMA,
-            float.fromhex("0x0.0000000000001p-1022"),
-            shape=8.0,
-            scale=1.0,
-        )
-        self.assertIsInstance(result, LogDensityFailure)
-        self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)
+        observation = float.fromhex("0x0.0000000000001p-1022")
+        for scale in (1.0, float.fromhex("0x1.fffffffffffffp+1023")):
+            with self.subTest(scale=scale):
+                expected = oracle.gamma(observation, shape=8.0, scale=scale)
+                self.assertTrue(math.isfinite(expected))
+                result = evaluate_log_density(
+                    FamilyId.GAMMA,
+                    observation,
+                    shape=8.0,
+                    scale=scale,
+                )
+                self.assertIsInstance(result, LogDensitySuccess)
+                self.assertAlmostEqual(
+                    result.log_density,
+                    expected,
+                    delta=_tolerance(expected),
+                )
 
     def test_large_shape_scale_delta_grid_matches_independent_oracle(self) -> None:
         from veridist.statistics.log_density import LogDensitySuccess, evaluate_log_density
