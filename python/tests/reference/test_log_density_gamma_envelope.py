@@ -12,6 +12,22 @@ from veridist.families.registry import FamilyId
 class GammaEnvelopeTests(unittest.TestCase):
     """Finite Gamma truths retain the ordinary scalar tolerance everywhere tested."""
 
+    def test_large_shape_delta_that_rounds_to_negative_one_is_typed_overflow(self) -> None:
+        from veridist.statistics.log_density import (
+            LogDensityErrorCode,
+            LogDensityFailure,
+            evaluate_log_density,
+        )
+
+        result = evaluate_log_density(
+            FamilyId.GAMMA,
+            float.fromhex("0x0.0000000000001p-1022"),
+            shape=8.0,
+            scale=1.0,
+        )
+        self.assertIsInstance(result, LogDensityFailure)
+        self.assertEqual(result.code, LogDensityErrorCode.NUMERICAL_OVERFLOW)
+
     def test_large_shape_scale_delta_grid_matches_independent_oracle(self) -> None:
         from veridist.statistics.log_density import LogDensitySuccess, evaluate_log_density
 
