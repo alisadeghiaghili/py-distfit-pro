@@ -50,7 +50,7 @@ as a statement about uninspected current files.
 - On 2026-08-30, the CI-shaped local command
   `python -m pytest --cov=veridist --cov-branch --ignore=tests/docs/test_docs_toolchain.py --cov-report=json:coverage.json`
   collected 328 items: 326 passed and the two opt-in browser tests skipped.
-  The deterministic checker accepted all 24 enumerated production files with
+  The deterministic checker accepted all 25 enumerated production files with
   2,332 statements and 792 branches at 100% observed line and branch coverage,
   with no accepted exceptions. The generated coverage JSON is deliberately not
   retained as a release artifact, so this ledger does not assert a mutable file
