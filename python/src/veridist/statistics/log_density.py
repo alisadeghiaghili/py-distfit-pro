@@ -94,13 +94,29 @@ def evaluate_log_density(
         raise TypeError("family must be a FamilyId")
     specification = FAMILY_REGISTRY.families[family]
     validated = specification.validate_parameters(**parameters)
+    return _evaluate_validated_log_density(family, validated, observation)
+
+
+def _evaluate_validated_log_density(
+    family: FamilyId, parameters: Mapping[str, float], observation: object
+) -> LogDensityResult:
+    """Evaluate with registry-validated canonical parameters owned by a caller.
+
+    This internal seam deliberately accepts only the mapping returned by the
+    immutable registry validation boundary.  It is used by streaming reduction
+    to validate parameters once per operation, rather than once per scalar.
+    """
+
+    if type(family) is not FamilyId:
+        raise TypeError("family must be a FamilyId")
+    specification = FAMILY_REGISTRY.families[family]
     numeric_observation = _validate_observation(observation)
     if numeric_observation is None:
         return LogDensityFailure(family, LogDensityErrorCode.NONFINITE_OBSERVATION)
     if specification.fixed_location == 0.0 and numeric_observation <= 0.0:
         return LogDensityFailure(family, LogDensityErrorCode.SUPPORT_VIOLATION)
     try:
-        candidate = _DISPATCH[family](numeric_observation, validated)
+        candidate = _DISPATCH[family](numeric_observation, parameters)
     except (OverflowError, _NumericalOverflow):
         return LogDensityFailure(family, LogDensityErrorCode.NUMERICAL_OVERFLOW)
     except ValueError:

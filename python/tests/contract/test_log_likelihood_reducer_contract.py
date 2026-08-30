@@ -6,8 +6,9 @@ from fractions import Fraction
 from math import isfinite
 import unittest
 from dataclasses import FrozenInstanceError
+from unittest.mock import patch
 
-from veridist.families.registry import FamilyId
+from veridist.families.registry import FamilyId, FamilySpec
 
 
 class LogLikelihoodReducerContracts(unittest.TestCase):
@@ -128,3 +129,14 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
             reduce_log_likelihood_chunks(FamilyId.NORMAL, 1, mu=0.0, sigma=1.0)  # type: ignore[arg-type]
         with self.assertRaises(TypeError):
             reduce_log_likelihood_chunks(FamilyId.NORMAL, (1,), mu=0.0, sigma=1.0)  # type: ignore[arg-type]
+
+    def test_llr05_parameters_are_validated_once_before_the_stream_is_consumed(self) -> None:
+        from veridist.statistics.log_likelihood import reduce_log_likelihood_chunks
+
+        original = FamilySpec.validate_parameters
+        with patch.object(FamilySpec, "validate_parameters", autospec=True, wraps=original) as validated:
+            result = reduce_log_likelihood_chunks(
+                FamilyId.NORMAL, ((0.0, 1.0, 2.0),), mu=0.0, sigma=1.0
+            )
+        self.assertEqual(result.observation_count, 3)
+        self.assertEqual(validated.call_count, 1)

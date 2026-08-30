@@ -10,8 +10,8 @@ from fractions import Fraction
 from math import isfinite
 from typing import Final, TypeAlias
 
-from veridist.families.registry import FAMILY_REGISTRY, FamilyId
-from veridist.statistics.log_density import LogDensityFailure, evaluate_log_density
+from veridist.families.registry import FAMILY_REGISTRY, FamilyId, ParameterRole
+from veridist.statistics.log_density import LogDensityFailure, _evaluate_validated_log_density
 
 MAX_OBSERVATION_COUNT: Final = (1 << 64) - 1
 """The explicit unsigned-64 observation cap for one reducer state."""
@@ -205,7 +205,8 @@ def reduce_log_likelihood_chunks(
     deliberately not a complete-input count.
     """
 
-    state = LogLikelihoodState.empty(family, **parameters)
+    validated = _validate_family_and_parameters(family, parameters)
+    state = LogLikelihoodState(family, _signature_from_validated(validated), 0, 0)
     if not isinstance(chunks, Iterable):
         raise TypeError("chunks must be an iterable of observation iterables")
     for chunk in chunks:
@@ -213,7 +214,7 @@ def reduce_log_likelihood_chunks(
             raise TypeError("each chunk must be an iterable of observations")
         for observation in chunk:
             try:
-                evaluated = evaluate_log_density(family, observation, **parameters)
+                evaluated = _evaluate_validated_log_density(family, validated, observation)
                 if type(evaluated) is LogDensityFailure:
                     return LogLikelihoodFailure(
                         family,
@@ -259,8 +260,7 @@ def _validate_signature(family: FamilyId, signature: object) -> None:
     if type(signature) is not tuple or len(signature) != len(expected_names):
         raise TypeError("parameter_signature must match canonical parameter names")
     names: list[str] = []
-    values: dict[str, float] = {}
-    for item in signature:
+    for item, parameter in zip(signature, specification.parameters, strict=True):
         if type(item) is not tuple or len(item) != 2:
             raise TypeError("parameter_signature must contain name/float-hex pairs")
         name, value = item
@@ -273,11 +273,12 @@ def _validate_signature(family: FamilyId, signature: object) -> None:
         if not isfinite(decoded):
             raise ValueError("parameter_signature must contain finite values")
         names.append(name)
-        values[name] = decoded
+        if parameter.role is ParameterRole.POSITIVE and decoded <= 0.0:
+            raise ValueError("parameter_signature violates a positive parameter contract")
     if tuple(names) != expected_names:
         raise ValueError("parameter_signature names are not canonical")
-    validated = specification.validate_parameters(**values)
-    if signature != _signature_from_validated(validated):
+    canonical = tuple((name, float.fromhex(value).hex()) for name, value in signature)
+    if signature != canonical:
         raise ValueError("parameter_signature must use canonical float hex values")
 
 

@@ -58,7 +58,7 @@ class LogLikelihoodReducerReferenceTests(unittest.TestCase):
         with self.assertRaises(_ObservationLimitExceeded):
             capped.merge(one)
         with patch(
-            "veridist.statistics.log_likelihood.evaluate_log_density",
+            "veridist.statistics.log_likelihood._evaluate_validated_log_density",
             return_value=LogDensitySuccess(FamilyId.NORMAL, maximum),
         ):
             result = reduce_log_likelihood_chunks(
