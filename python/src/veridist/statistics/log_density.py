@@ -107,8 +107,6 @@ def _evaluate_validated_log_density(
     to validate parameters once per operation, rather than once per scalar.
     """
 
-    if type(family) is not FamilyId:
-        raise TypeError("family must be a FamilyId")
     specification = FAMILY_REGISTRY.families[family]
     numeric_observation = _validate_observation(observation)
     if numeric_observation is None:
