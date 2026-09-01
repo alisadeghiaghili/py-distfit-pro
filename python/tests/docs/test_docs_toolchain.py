@@ -305,7 +305,7 @@ class DocsToolchainContractTests(unittest.TestCase):
         de_index = toolchain._parse_po(DOCS_ROOT / "locales" / "de" / "LC_MESSAGES" / "index.po")
         self.assertEqual(
             fa_index["Evidence-first, deliberately narrow distribution primitives."],
-            "ابزارک‌های توزیعی با اولویت شواهد و دامنهٔ عمداً محدود.",
+            "اجزای پایهٔ توزیع با اولویت شواهد و دامنهٔ عمداً محدود.",
         )
         self.assertEqual(
             de_index["Evidence-first, deliberately narrow distribution primitives."],

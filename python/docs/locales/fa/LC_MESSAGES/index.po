@@ -22,7 +22,7 @@ msgstr "مستندات وریدیست"
 #: ../../../py-distfit-pro/python/docs/source/index.md:4
 #: b1fddf2826ed4a2fbc11fad3ed29d638
 msgid "Evidence-first, deliberately narrow distribution primitives."
-msgstr "ابزارک‌های توزیعی با اولویت شواهد و دامنهٔ عمداً محدود."
+msgstr "اجزای پایهٔ توزیع با اولویت شواهد و دامنهٔ عمداً محدود."
 
 #: ../../../py-distfit-pro/python/docs/source/index.md:6
 #: 9814c9aa49bf427f895e987889c33855
