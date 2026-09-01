@@ -244,6 +244,16 @@ class DocsToolchainContractTests(unittest.TestCase):
         self.assertNotIn("autofunction", api_page)
         self.assertNotIn("automodule", api_page)
 
+    def test_exponential_schema_fence_runs_in_a_fresh_namespace(self) -> None:
+        tutorial_page = (SOURCE_ROOT / "exponential-right-censoring.md").read_text(encoding="utf-8")
+        fences = re.findall(r"```python\n(.*?)```", tutorial_page, flags=re.DOTALL)
+        schema_fence = next(fence for fence in fences if "CsvLifetimeSchema" in fence)
+        self.assertIn("from veridist import CsvLifetimeSchema", schema_fence)
+        namespace: dict[str, object] = {}
+        exec(schema_fence, namespace)
+        self.assertEqual(namespace["schema"].time_column, "time")
+        self.assertEqual(namespace["schema"].event_column, "event_observed")
+
     def test_family_and_streaming_page_is_narrow_callable_and_honest(self) -> None:
         page = (SOURCE_ROOT / "families-log-density-likelihood.md").read_text(encoding="utf-8")
         self.assertIn("(veridist-families-log-density-likelihood)=", page)
@@ -274,6 +284,46 @@ class DocsToolchainContractTests(unittest.TestCase):
                 self.assertIn("FAMILY_REGISTRY", readme)
                 self.assertIn("evaluate_log_density", readme)
                 self.assertIn("reduce_log_likelihood_chunks", readme)
+
+    def test_machine_literal_exemption_is_pure_and_fails_closed_for_prose(self) -> None:
+        toolchain = load_toolchain()
+        for literal in ("`normal`", "`shape > 0`, `scale > 0`", r"\operatorname{LL}"):
+            with self.subTest(literal=literal):
+                self.assertTrue(toolchain._is_machine_literal(literal))
+        for prose in (
+            "`evaluate_log_density` evaluates one finite observation.",
+            "`normal` is a supported family.",
+            "`reduce_log_likelihood_chunks`\nconsumes chunks once.",
+            "prefix `normal`",
+        ):
+            with self.subTest(prose=prose):
+                self.assertFalse(toolchain._is_machine_literal(prose))
+
+    def test_localized_lead_readme_and_catalog_headers_are_semantically_complete(self) -> None:
+        toolchain = load_toolchain()
+        fa_index = toolchain._parse_po(DOCS_ROOT / "locales" / "fa" / "LC_MESSAGES" / "index.po")
+        de_index = toolchain._parse_po(DOCS_ROOT / "locales" / "de" / "LC_MESSAGES" / "index.po")
+        self.assertEqual(
+            fa_index["Evidence-first, deliberately narrow distribution primitives."],
+            "ابزارک‌های توزیعی با اولویت شواهد و دامنهٔ عمداً محدود.",
+        )
+        self.assertEqual(
+            de_index["Evidence-first, deliberately narrow distribution primitives."],
+            "Evidenzorientierte, bewusst eng abgegrenzte Verteilungsgrundbausteine.",
+        )
+        fa_readme = (PYTHON_ROOT / "README.fa.md").read_text(encoding="utf-8")
+        for identity in ("normal", "gamma", "weibull_min", "lognormal", "gumbel_right"):
+            self.assertIn(identity, fa_readme)
+        self.assertIn("چگالیِ لگاریتمی binary64 موفق", fa_readme)
+        self.assertIn("مجموع صحیحِ دقیق", fa_readme)
+        for locale in ("fa", "de"):
+            for stem in ("index", "api", "families-log-density-likelihood"):
+                header = (DOCS_ROOT / "locales" / locale / "LC_MESSAGES" / f"{stem}.po").read_text(
+                    encoding="utf-8"
+                ).partition("\n\n")[0]
+                with self.subTest(locale=locale, stem=stem):
+                    self.assertNotRegex(header, r"YEAR|FULL NAME|LL@li\.org|EMAIL@ADDRESS")
+                    self.assertIn("Ali Sadeghi Aghili", header)
 
     def test_persian_styles_isolate_machine_reading_direction(self) -> None:
         css = (SOURCE_ROOT / "_static" / "rtl.css").read_text(encoding="utf-8")

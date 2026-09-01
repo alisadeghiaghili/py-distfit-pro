@@ -78,6 +78,15 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                         const style = getComputedStyle(element);
                         return [name, {direction: style.direction, unicodeBidi: style.unicodeBidi}];
                       })),
+                      urlExemplars: [...document.querySelectorAll('a.veridist-api-url')].map((element) => {
+                        const style = getComputedStyle(element);
+                        const box = element.getBoundingClientRect();
+                        return {
+                          direction: style.direction,
+                          unicodeBidi: style.unicodeBidi,
+                          visible: box.width > 0 && box.height > 0,
+                        };
+                      }),
                         })""")
                         self.assertEqual(fa["lang"], "fa", page_name)
                         self.assertEqual(fa["dir"], "rtl", page_name)
@@ -93,6 +102,12 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                             },
                             page_name,
                         )
+                        expected_urls = (
+                            [{"direction": "ltr", "unicodeBidi": "isolate", "visible": True}]
+                            if page_name == "families-log-density-likelihood.html"
+                            else []
+                        )
+                        self.assertEqual(fa["urlExemplars"], expected_urls, page_name)
                         page.goto((outputs["de"] / page_name).as_uri(), wait_until="load")
                         de = page.evaluate("""() => ({
                       lang: document.documentElement.lang, dir: document.documentElement.dir,
