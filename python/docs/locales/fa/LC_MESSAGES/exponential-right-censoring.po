@@ -1,12 +1,16 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: veridist 0.0.0.dev0\n"
+"Report-Msgid-Bugs-To: alisadeghiaghili@gmail.com\n"
+"PO-Revision-Date: 2026-09-01 21:55+0330\n"
+"Last-Translator: Ali Sadeghi Aghili <alisadeghiaghili@gmail.com>\n"
 "Language: fa\n"
+"Language-Team: Persian documentation <alisadeghiaghili@gmail.com>\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 msgid "Exponential right-censoring tutorial"
-msgstr "آموزش سانسورشدگی راست در مدل نمایی"
+msgstr "آموزش سانسور از راست در مدل نمایی"
 
 msgid "Model and estimate"
 msgstr "مدل و برآورد"
@@ -18,7 +22,7 @@ msgid "Strict CSV input"
 msgstr "ورودی CSV سخت‌گیرانه"
 
 msgid "The public adapter accepts UTF-8 CSV with exactly `time,event_observed` in that order. Each data row is one finite non-negative time and token `1` (event) or `0` (right censored). A caller supplies a non-secret `PublicSourceId` instead of relying on a local path in returned facts. The adapter never guesses columns, headers, encodings, delimiters, missing values, or censoring conventions."
-msgstr "آداپتور عمومی CSV با UTF-8 و دقیقاً `time,event_observed` را به همین ترتیب می‌پذیرد. هر سطر داده شامل یک زمان متناهی نامنفی و توکن `1` (رخداد) یا `0` (سانسورشده از راست) است. فراخواننده به جای اتکا به مسیر محلی در واقعیت‌های بازگردانده‌شده، یک `PublicSourceId` غیرمحرمانه می‌دهد. آداپتور هرگز ستون‌ها، سرستون‌ها، کدگذاری، جداکننده، مقدار گمشده یا قرارداد سانسور را حدس نمی‌زند."
+msgstr "آداپتور عمومی CSV با UTF-8 و دقیقاً `time,event_observed` را به همین ترتیب می‌پذیرد. هر سطر داده شامل یک زمان متناهی نامنفی و توکن `1` (رخداد) یا `0` (با سانسور از راست) است. فراخواننده به جای اتکا به مسیر محلی در واقعیت‌های بازگردانده‌شده، یک `PublicSourceId` غیرمحرمانه می‌دهد. آداپتور هرگز ستون‌ها، سرستون‌ها، کدگذاری، جداکننده، مقدار گمشده یا قرارداد سانسور را حدس نمی‌زند."
 
 msgid "The schema declaration below is executable Python. It names the only accepted header pair and intentionally keeps machine-readable identifiers left to right."
 msgstr "اعلان schema زیر، Python قابل اجرا است. تنها جفت سرستون پذیرفته‌شده را نام می‌برد و شناسه‌های ماشین‌خوان را آگاهانه از چپ به راست نگه می‌دارد."

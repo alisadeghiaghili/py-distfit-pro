@@ -2,12 +2,12 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: veridist 0.0.0.dev0\n"
-"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"Report-Msgid-Bugs-To: alisadeghiaghili@gmail.com\n"
 "POT-Creation-Date: 2026-09-01 21:24+0330\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2026-09-01 21:55+0330\n"
+"Last-Translator: Ali Sadeghi Aghili <alisadeghiaghili@gmail.com>\n"
 "Language: de\n"
-"Language-Team: de <LL@li.org>\n"
+"Language-Team: German documentation <alisadeghiaghili@gmail.com>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
@@ -22,7 +22,7 @@ msgstr "Veridist-Dokumentation"
 #: ../../../py-distfit-pro/python/docs/source/index.md:4
 #: b1fddf2826ed4a2fbc11fad3ed29d638
 msgid "Evidence-first, deliberately narrow distribution primitives."
-msgstr "Evidenzorientierte Verteilungsanpassung."
+msgstr "Evidenzorientierte, bewusst eng abgegrenzte Verteilungsgrundbausteine."
 
 #: ../../../py-distfit-pro/python/docs/source/index.md:6
 #: 9814c9aa49bf427f895e987889c33855

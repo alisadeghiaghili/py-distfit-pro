@@ -1,3 +1,16 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: veridist 0.0.0.dev0\n"
+"Report-Msgid-Bugs-To: alisadeghiaghili@gmail.com\n"
+"PO-Revision-Date: 2026-09-01 21:55+0330\n"
+"Last-Translator: Ali Sadeghi Aghili <alisadeghiaghili@gmail.com>\n"
+"Language: fa\n"
+"Language-Team: Persian documentation <alisadeghiaghili@gmail.com>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
 msgid "Evaluated families, scalar log density, and streaming log likelihood"
 msgstr "خانواده‌های ارزیابی‌شده، چگالی لگاریتمی اسکالر و درست‌نمایی لگاریتمی جریانی"
 
@@ -6,6 +19,9 @@ msgstr "رجیستری بستهٔ پنج‌خانواده‌ای"
 
 msgid "`FAMILY_REGISTRY` is immutable metadata for exactly five evaluated families: `normal`, `gamma`, `weibull_min`, `lognormal`, and `gumbel_right`. It fixes canonical names, aliases, parameter names, validation roles, and the currently available scalar `logpdf` operation. It is neither a generic distribution registry nor a fitting, inference, goodness-of-fit, or ranking interface."
 msgstr "`FAMILY_REGISTRY` فراداده‌ای تغییرناپذیر برای دقیقاً پنج خانوادهٔ ارزیابی‌شدهٔ `normal`، `gamma`، `weibull_min`، `lognormal` و `gumbel_right` است. این رجیستری نام‌های مرجع، نام‌های مستعار، نام پارامترها، نقش‌های اعتبارسنجی و عملیات اسکالر `logpdf` که هم‌اکنون موجود است را تثبیت می‌کند. این نه رجیستری عمومی توزیع‌ها است و نه رابط برازش، استنباط، نیکویی برازش یا رتبه‌بندی."
+
+msgid "For the contract-level API surface, see <a class=\"veridist-api-url\" href=\"api.html#veridist-api\">veridist.statistics.log_density</a>."
+msgstr "برای سطح API قراردادی، <a class=\"veridist-api-url\" href=\"api.html#veridist-api\">veridist.statistics.log_density</a> را ببینید."
 
 msgid "Family"
 msgstr "خانواده"
@@ -44,7 +60,7 @@ msgid "Scalar log-density evaluation"
 msgstr "ارزیابی چگالی لگاریتمی اسکالر"
 
 msgid "`evaluate_log_density` evaluates one built-in finite scalar observation after canonical parameter validation. A successful result contains a finite binary64 log-density. Data-domain failures are closed values: `nonfinite_observation`, `support_violation`, `nonfinite_log_density`, or `numerical_overflow`. Programmer misuse of a family identity or parameter set raises rather than being converted into a data result. This is not an array API, a CDF/PPF API, censoring likelihood, fit, inference, goodness-of-fit test, or model ranking."
-msgstr "`evaluate_log_density` پس از اعتبارسنجی پارامترهای مرجع، یک مشاهدهٔ اسکالر متناهیِ داخلی را ارزیابی می‌کند. نتیجهٔ موفق شامل چگالی لگاریتمی متناهی binary64 است. شکست‌های حوزهٔ داده، مقادیر بستهٔ `nonfinite_observation`، `support_violation`، `nonfinite_log_density` یا `numerical_overflow` هستند. استفادهٔ نادرست برنامه‌نویس از هویت خانواده یا مجموعهٔ پارامترها به‌جای تبدیل شدن به نتیجهٔ داده، استثنا ایجاد می‌کند. این API آرایه، APIِ CDF/PPF، درست‌نمایی سانسورشده، برازش، استنباط، آزمون نیکویی برازش یا رتبه‌بندی مدل نیست."
+msgstr "`evaluate_log_density` پس از اعتبارسنجی پارامترهای مرجع، یک مشاهدهٔ اسکالر متناهیِ داخلی را ارزیابی می‌کند. نتیجهٔ موفق شامل چگالی لگاریتمی متناهی binary64 است. شکست‌های حوزهٔ داده، مقادیر بستهٔ `nonfinite_observation`، `support_violation`، `nonfinite_log_density` یا `numerical_overflow` هستند. استفادهٔ نادرست برنامه‌نویس از هویت خانواده یا مجموعهٔ پارامترها به‌جای تبدیل شدن به نتیجهٔ داده، استثنا ایجاد می‌کند. این API آرایه، APIِ CDF/PPF، درست‌نمایی با سانسور، برازش، استنباط، آزمون نیکویی برازش یا رتبه‌بندی مدل نیست."
 
 msgid "Exact-state streaming log likelihood"
 msgstr "درست‌نمایی لگاریتمی جریانی با حالت دقیق"
@@ -65,4 +81,4 @@ msgid "`LLR-06` retains generated-stream evidence for normal-zero scalar reducti
 msgstr "`LLR-06` شواهد جریانِ تولیدشده برای کاهش اسکالرِ نرمالِ با میانگین صفر را در 10k/100k/1m مشاهده و سه اندازهٔ قطعه نگه می‌دارد. این شواهد یک بار گرفتن iterator بیرونی، تک‌تک مشاهده‌های yieldشده، توافق بیتیِ مجموع نهایی با اوراکل مستقلِ واحدهای دقیق و کران الگوریتمی ۲۱۶۲بیتی را ثبت می‌کنند. زمان سپری‌شده و مقادیر `tracemalloc` فقط توصیفی‌اند."
 
 msgid "This evidence is scoped to the tested scalar normal stream and exact reducer. It does not establish fitting, inference, goodness-of-fit, ranking, arrays, censoring, generic out-of-core processing, throughput, process-memory/RSS bounds, another data adapter, or cross-platform performance."
-msgstr "دامنهٔ این شواهد به جریان اسکالر نرمالِ آزموده‌شده و کاهندهٔ دقیق محدود است. این شواهد برازش، استنباط، نیکویی برازش، رتبه‌بندی، آرایه‌ها، سانسورش، پردازش عمومی برون‌هسته‌ای، گذردهی، کران حافظهٔ فرایند/RSS، آداپتور دادهٔ دیگر یا کارایی میان‌سکویی را اثبات نمی‌کنند."
+msgstr "دامنهٔ این شواهد به جریان اسکالر نرمالِ آزموده‌شده و کاهندهٔ دقیق محدود است. این شواهد برازش، استنباط، نیکویی برازش، رتبه‌بندی، آرایه‌ها، سانسور، پردازش عمومی برون‌هسته‌ای، گذردهی، کران حافظهٔ فرایند/RSS، آداپتور دادهٔ دیگر یا کارایی میان‌سکویی را اثبات نمی‌کنند."
