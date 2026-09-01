@@ -15,7 +15,10 @@ SUPPORTED_DIRECTIONS = {"en": "ltr", "fa": "rtl", "de": "ltr"}
 def _is_machine_literal(value: str) -> bool:
     """Return whether a gettext message is an intentionally stable API token."""
 
-    return value.startswith("`") or value.startswith("\\")
+    return bool(re.fullmatch(r"`[^`\r\n]+`(?:,\s*`[^`\r\n]+`)*", value)) or value in {
+        r"\operatorname{LL}",
+        r"\operatorname{LL} = \operatorname{round}_{binary64}\left(\sum_i \log f(x_i)\right)",
+    }
 
 
 def direction_for(locale: str) -> str:
