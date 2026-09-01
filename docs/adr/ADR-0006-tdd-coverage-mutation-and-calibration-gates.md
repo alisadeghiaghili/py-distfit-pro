@@ -47,7 +47,29 @@ Ruff, strict source type checking, Python 3.11--3.14 tests, coverage, package
 inspection and documentation checks is present in `e23cda5` through `89202c6`
 and pushed; its remote result remains **UNVERIFIED**.
 
-The formal mutation runner required by this ADR is still **NOT IMPLEMENTED**.
-Temporary targeted probes used during development are not an enumerated mutant
-set and do not establish the required 80% score. Statistical calibration and
-retained production-scale evidence also remain unimplemented.
+## Formal mutation implementation addendum -- 2026-09-01
+
+Formal mutation infrastructure is implemented, but it is **NOT YET EXECUTED**
+on GitHub Linux and therefore establishes no mutation score or release pass.
+Its binding scope is every Python file in all four critical production
+directories: `src/veridist/domain`, `statistics`, `families`, and `engine`.
+There are no hand-picked mutation sites, `pragma: no mutate`, `do_not_mutate`,
+or exclusion patterns. The fail-closed schema/checker binds the checked-out
+commit and source-tree digest, the pinned `mutmut==3.7.0` configuration, full
+`tests` selection, baseline result, environment, every mutant identity and
+per-file/per-module totals. It rejects missing files/modules, duplicate IDs,
+booleans disguised as counts, source/config drift, empty scored denominator,
+score below 80%, and suspicious, timeout, error, or unclassified results.
+
+Mutmut 3.7.0 generates function/method mutants, not module-level executable
+code. Module-level lines remain in the coverage and contract-test gates but
+are honestly outside this tool-generated mutant denominator. A critical
+executable file with zero generated function/method mutants must still appear
+in evidence with `generated=0` and an empty identity list; it cannot be
+silently omitted. If every executable critical file has zero mutants, the
+checker rejects the evidence because there is no scored denominator. Native
+Windows is deliberately refused: mutmut 3.7.0 requires POSIX/fork. A future
+GitHub Linux gate must run the complete baseline, mutation run, export and
+gate, retaining evidence/logs even on failure; no result currently exists.
+Temporary targeted probes remain diagnostic only. Statistical calibration and
+retained production-scale evidence remain unimplemented.

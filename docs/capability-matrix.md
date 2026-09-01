@@ -51,4 +51,5 @@ The public package surface exposes only `fit_exponential_csv`,
 result. It has no legacy runtime import. The retained scale artifact is limited
 to the strict CSV/exponential matrix; it does not establish generic big-data,
 portable RSS, throughput, retry/checkpoint, cancellation, or other-adapter
-support. The formal mutation runner remains **NOT IMPLEMENTED**.
+support. The formal mutation infrastructure is implemented, but has **NOT YET
+EXECUTED** on GitHub Linux and no score is claimed.

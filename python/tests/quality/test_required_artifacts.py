@@ -50,7 +50,7 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             "fixed O(1) reducer state",
             "one CSV iterator and one pass",
             "SCALE-CSV-EXP-01",
-            "formal mutation runner remains **NOT IMPLEMENTED**",
+            "formal mutation infrastructure is implemented",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, content)
@@ -81,6 +81,17 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             1,
             "quality/coverage-manifest.json must remain visible to Git",
         )
+
+    def test_mutation_checker_and_runner_are_versioned_and_cache_is_ignored(self) -> None:
+        for artifact in (
+            PYTHON_ROOT / "quality" / "mutation-manifest.json",
+            PYTHON_ROOT / "tools" / "check_mutation_evidence.py",
+            PYTHON_ROOT / "tools" / "run_mutation.py",
+        ):
+            with self.subTest(artifact=artifact):
+                self.assertTrue(artifact.is_file())
+        ignored = (REPOSITORY_ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("python/mutants/", ignored)
 
 
 if __name__ == "__main__":

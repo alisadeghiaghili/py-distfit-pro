@@ -48,6 +48,9 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+python/mutants/
+python/mutation-evidence.json
+.mutation-tmp/
 
 # Translations
 *.mo

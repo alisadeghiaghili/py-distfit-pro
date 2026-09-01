@@ -28,6 +28,10 @@ test = [
     "pytest>=8.3",
     "pytest-cov>=6,<8",
 ]
+mutation = [
+    "mutmut==3.7.0",
+    "pytest>=8.3",
+]
 browser = [
     "playwright==1.62.0",
 ]
@@ -73,3 +77,15 @@ select = ["E", "F", "I", "UP"]
 python_version = "3.11"
 strict = true
 files = ["src"]
+
+# This is intentionally the complete binding critical production scope.  Do not
+# add exclusion keys here: the evidence checker rejects them.
+[tool.mutmut]
+source_paths = [
+    "src/veridist/domain",
+    "src/veridist/statistics",
+    "src/veridist/families",
+    "src/veridist/engine",
+]
+pytest_add_cli_args_test_selection = ["tests"]
+mutate_only_covered_lines = false
