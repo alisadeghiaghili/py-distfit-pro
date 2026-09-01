@@ -78,7 +78,9 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                         const style = getComputedStyle(element);
                         return [name, {direction: style.direction, unicodeBidi: style.unicodeBidi}];
                       })),
-                      urlExemplars: [...document.querySelectorAll('a.veridist-api-url')].map((element) => {
+                      urlExemplars: [...document.querySelectorAll(
+                        'a.veridist-api-url'
+                      )].map((element) => {
                         const style = getComputedStyle(element);
                         const box = element.getBoundingClientRect();
                         return {
