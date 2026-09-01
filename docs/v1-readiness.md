@@ -96,13 +96,18 @@ as a statement about uninspected current files.
   nonempty Persian HTML screenshots; computed RTL/right alignment and
   LTR/isolate facts pass for success and failure reports. Exact Playwright
   1.62.0 bundled-Chromium execution is verified for the merged PR #31 vertical.
-  `I18N-RTL-DOC-01` additionally passes locally with Edge against Sphinx-built
-  Persian and German tutorial pages: the Farsi root/body are `fa`/RTL/right,
-  German is `de`/LTR, and independently selected inline code, highlighted
-  Python block, table and static math nodes are LTR with `unicode-bidi:isolate`.
-  The page uses a local static math asset rather than a network MathJax fetch.
-  PDF, network-font, and pixel-baseline rendering remain unverified and are
-  not claimed.
+  `I18N-RTL-DOC-01` additionally passes locally with Edge 151 against
+  Sphinx-built Persian and German `exponential-right-censoring` and
+  `families-log-density-likelihood` pages: the Farsi root/body are
+  `fa`/RTL/right, German is `de`/LTR, and independently selected inline code,
+  highlighted Python block, table and static math nodes are LTR with
+  `unicode-bidi:isolate`. The local browser scope is those two pages in each
+  locale plus the existing report success/failure gate; no documentation
+  screenshots are retained locally, while the CI policy retains only the two
+  report screenshots. The pages use a local static math asset rather than a
+  network MathJax fetch. Remote pinned-Chromium evidence for the subsequent
+  family-kernel documentation commits, PDF rendering, network-font rendering,
+  and pixel-baseline comparison remain unverified and are not claimed.
 - Eight scratch-only manual patches were each killed by one targeted unittest:
   `fit_exponential` materialized `tuple(observations)` / `test_exp14_memory_growth_is_bounded_for_unique_generated_observations`;
   `merge` used the raw two totals / `test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions`;
