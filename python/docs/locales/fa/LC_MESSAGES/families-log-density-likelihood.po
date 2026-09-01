@@ -1,0 +1,68 @@
+msgid "Evaluated families, scalar log density, and streaming log likelihood"
+msgstr "خانواده‌های ارزیابی‌شده، چگالی لگاریتمی اسکالر و درست‌نمایی لگاریتمی جریانی"
+
+msgid "Closed five-family registry"
+msgstr "رجیستری بستهٔ پنج‌خانواده‌ای"
+
+msgid "`FAMILY_REGISTRY` is immutable metadata for exactly five evaluated families: `normal`, `gamma`, `weibull_min`, `lognormal`, and `gumbel_right`. It fixes canonical names, aliases, parameter names, validation roles, and the currently available scalar `logpdf` operation. It is neither a generic distribution registry nor a fitting, inference, goodness-of-fit, or ranking interface."
+msgstr "`FAMILY_REGISTRY` فراداده‌ای تغییرناپذیر برای دقیقاً پنج خانوادهٔ ارزیابی‌شدهٔ `normal`، `gamma`، `weibull_min`، `lognormal` و `gumbel_right` است. این رجیستری نام‌های مرجع، نام‌های مستعار، نام پارامترها، نقش‌های اعتبارسنجی و عملیات اسکالر `logpdf` که هم‌اکنون موجود است را تثبیت می‌کند. این نه رجیستری عمومی توزیع‌ها است و نه رابط برازش، استنباط، نیکویی برازش یا رتبه‌بندی."
+
+msgid "Family"
+msgstr "خانواده"
+
+msgid "Canonical parameters"
+msgstr "پارامترهای مرجع"
+
+msgid "`normal`"
+msgstr "`normal`"
+
+msgid "`mu`, `sigma > 0`"
+msgstr "`mu`، `sigma > 0`"
+
+msgid "`gamma`"
+msgstr "`gamma`"
+
+msgid "`shape > 0`, `scale > 0`"
+msgstr "`shape > 0`، `scale > 0`"
+
+msgid "`weibull_min`"
+msgstr "`weibull_min`"
+
+msgid "`lognormal`"
+msgstr "`lognormal`"
+
+msgid "`mu_log`, `sigma_log > 0`"
+msgstr "`mu_log`، `sigma_log > 0`"
+
+msgid "`gumbel_right`"
+msgstr "`gumbel_right`"
+
+msgid "`location`, `scale > 0`"
+msgstr "`location`، `scale > 0`"
+
+msgid "Scalar log-density evaluation"
+msgstr "ارزیابی چگالی لگاریتمی اسکالر"
+
+msgid "`evaluate_log_density` evaluates one built-in finite scalar observation after canonical parameter validation. A successful result contains a finite binary64 log-density. Data-domain failures are closed values: `nonfinite_observation`, `support_violation`, `nonfinite_log_density`, or `numerical_overflow`. Programmer misuse of a family identity or parameter set raises rather than being converted into a data result. This is not an array API, a CDF/PPF API, censoring likelihood, fit, inference, goodness-of-fit test, or model ranking."
+msgstr "`evaluate_log_density` پس از اعتبارسنجی پارامترهای مرجع، یک مشاهدهٔ اسکالر متناهیِ داخلی را ارزیابی می‌کند. نتیجهٔ موفق شامل چگالی لگاریتمی متناهی binary64 است. شکست‌های حوزهٔ داده، مقادیر بستهٔ `nonfinite_observation`، `support_violation`، `nonfinite_log_density` یا `numerical_overflow` هستند. استفادهٔ نادرست برنامه‌نویس از هویت خانواده یا مجموعهٔ پارامترها به‌جای تبدیل شدن به نتیجهٔ داده، استثنا ایجاد می‌کند. این API آرایه، APIِ CDF/PPF، درست‌نمایی سانسورشده، برازش، استنباط، آزمون نیکویی برازش یا رتبه‌بندی مدل نیست."
+
+msgid "Exact-state streaming log likelihood"
+msgstr "درست‌نمایی لگاریتمی جریانی با حالت دقیق"
+
+msgid "`reduce_log_likelihood_chunks` consumes an iterable of ragged observation chunks once. It evaluates each scalar through the same closed evaluator and accumulates each successful binary64 result as an exact integer number of subnormal units. The final sum is rounded to binary64 once, at finalization; it is not a chunk-wise floating-point sum."
+msgstr "`reduce_log_likelihood_chunks` یک iterable از قطعه‌های نامنظم مشاهده را فقط یک‌بار مصرف می‌کند. هر اسکالر را با همان ارزیاب بسته محاسبه می‌کند و هر نتیجهٔ موفق binary64 را به صورت تعداد صحیحِ دقیقِ واحدهای زیرنرمال انباشته می‌سازد. مجموع نهایی فقط یک‌بار، هنگام نهایی‌سازی، به binary64 گرد می‌شود؛ این جمع ممیزشناورِ قطعه‌به‌قطعه نیست."
+
+msgid "\\operatorname{LL} = \\operatorname{round}_{binary64}\\left(\\sum_i \\log f(x_i)\\right)"
+msgstr "\\operatorname{LL} = \\operatorname{round}_{binary64}\\left(\\sum_i \\log f(x_i)\\right)"
+
+msgid "The immutable `LogLikelihoodState` supports compatible exact-state merging. One state has an explicit unsigned-64 observation limit (`2^64 - 1`); its maximum absolute exact integer total has a documented 2162-bit bound. A scalar failure stops reduction and reports only the number of successful observations before it. An empty chunk sequence succeeds with count zero and total `0.0`."
+msgstr "`LogLikelihoodState` تغییرناپذیر از ادغام سازگارِ حالت‌های دقیق پشتیبانی می‌کند. یک حالت دارای حد صریحِ مشاهدهٔ بدون‌علامت ۶۴بیتی (`2^64 - 1`) است؛ بیشینهٔ قدر مطلقِ مجموع صحیحِ دقیق آن، کران مستند ۲۱۶۲بیتی دارد. شکست اسکالر، کاهش را متوقف می‌کند و فقط شمار مشاهده‌های موفق پیش از آن را گزارش می‌دهد. دنبالهٔ قطعهٔ خالی با شمار صفر و مجموع `0.0` موفق است."
+
+msgid "Evidence and limits"
+msgstr "شواهد و محدودیت‌ها"
+
+msgid "`LLR-06` retains generated-stream evidence for normal-zero scalar reduction at 10k/100k/1m observations and three chunk sizes. It records one outer iterator acquisition, every yielded observation, bitwise final-total agreement with an independent exact-unit oracle, and the 2162-bit algorithmic bound. Elapsed time and `tracemalloc` values are descriptive only."
+msgstr "`LLR-06` شواهد جریانِ تولیدشده برای کاهش اسکالرِ نرمالِ با میانگین صفر را در 10k/100k/1m مشاهده و سه اندازهٔ قطعه نگه می‌دارد. این شواهد یک بار گرفتن iterator بیرونی، تک‌تک مشاهده‌های yieldشده، توافق بیتیِ مجموع نهایی با اوراکل مستقلِ واحدهای دقیق و کران الگوریتمی ۲۱۶۲بیتی را ثبت می‌کنند. زمان سپری‌شده و مقادیر `tracemalloc` فقط توصیفی‌اند."
+
+msgid "This evidence is scoped to the tested scalar normal stream and exact reducer. It does not establish fitting, inference, goodness-of-fit, ranking, arrays, censoring, generic out-of-core processing, throughput, process-memory/RSS bounds, another data adapter, or cross-platform performance."
+msgstr "دامنهٔ این شواهد به جریان اسکالر نرمالِ آزموده‌شده و کاهندهٔ دقیق محدود است. این شواهد برازش، استنباط، نیکویی برازش، رتبه‌بندی، آرایه‌ها، سانسورش، پردازش عمومی برون‌هسته‌ای، گذردهی، کران حافظهٔ فرایند/RSS، آداپتور دادهٔ دیگر یا کارایی میان‌سکویی را اثبات نمی‌کنند."

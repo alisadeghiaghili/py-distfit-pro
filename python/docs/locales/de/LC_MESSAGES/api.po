@@ -1,18 +1,86 @@
+
 msgid ""
 msgstr ""
 "Project-Id-Version: veridist 0.0.0.dev0\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-09-01 21:24+0330\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Language-Team: de <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
 
+#: ../../../py-distfit-pro/python/docs/source/api.md:2
+#: 80ba3d5a4d1840c3bfcf90fb0a3b30e4
 msgid "CSV exponential API"
 msgstr "CSV-API für die Exponentialverteilung"
 
-msgid "`fit_exponential_csv(path, *, schema, source_id, limits)` is the public source entry point. `CsvLifetimeSchema(\"time\", \"event_observed\")` selects the only accepted header; `PublicSourceId` is an opaque identifier safe for returned provenance; and `CsvLifetimeLimits` supplies positive byte budgets. The result is always an `ExponentialSourceFitResult`: a finite rate-only estimate, a typed statistical non-estimate, or a typed execution failure."
-msgstr "`fit_exponential_csv(path, *, schema, source_id, limits)` ist der öffentliche Quelleneinstieg. `CsvLifetimeSchema(\"time\", \"event_observed\")` wählt die einzig akzeptierte Kopfzeile; `PublicSourceId` ist eine undurchsichtige Kennung, die für die zurückgegebene Provenienz sicher ist; und `CsvLifetimeLimits` liefert positive Byte-Budgets. Das Ergebnis ist stets ein `ExponentialSourceFitResult`: eine endliche Schätzung nur für die Rate, ein typisiertes statistisches Nicht-Schätzergebnis oder ein typisierter Ausführungsfehler."
+#: ../../../py-distfit-pro/python/docs/source/api.md:4
+#: a805ace4a33f4d74b2773c79b8e2d634
+msgid ""
+"`fit_exponential_csv(path, *, schema, source_id, limits)` is the public "
+"source entry point. `CsvLifetimeSchema(\"time\", \"event_observed\")` "
+"selects the only accepted header; `PublicSourceId` is an opaque "
+"identifier safe for returned provenance; and `CsvLifetimeLimits` supplies"
+" positive byte budgets. The result is always an "
+"`ExponentialSourceFitResult`: a finite rate-only estimate, a typed "
+"statistical non-estimate, or a typed execution failure."
+msgstr ""
+"`fit_exponential_csv(path, *, schema, source_id, limits)` ist der "
+"öffentliche Quelleneinstieg. `CsvLifetimeSchema(\"time\", "
+"\"event_observed\")` wählt die einzig akzeptierte Kopfzeile; "
+"`PublicSourceId` ist eine undurchsichtige Kennung, die für die "
+"zurückgegebene Provenienz sicher ist; und `CsvLifetimeLimits` liefert "
+"positive Byte-Budgets. Das Ergebnis ist stets ein "
+"`ExponentialSourceFitResult`: eine endliche Schätzung nur für die Rate, "
+"ein typisiertes statistisches Nicht-Schätzergebnis oder ein typisierter "
+"Ausführungsfehler."
 
-msgid "Times must be finite and non-negative. Event token `1` denotes an exact event; token `0` denotes independent right censoring. The CSV contract is deliberately strict rather than a permissive spreadsheet reader: wrong encoding, headers, tokens, fields, budgets, or source access produce typed failures."
-msgstr "Zeiten müssen endlich und nichtnegativ sein. Ereignis-Token `1` bezeichnet ein exaktes Ereignis; Token `0` bezeichnet unabhängige Rechtszensierung. Der CSV-Vertrag ist absichtlich strikt statt ein nachsichtiger Tabellenleser zu sein: falsche Kodierung, Kopfzeilen, Token, Felder, Budgets oder Quellzugriff erzeugen typisierte Fehler."
+#: ../../../py-distfit-pro/python/docs/source/api.md:11
+#: 1833a5c123e242f6b9de30e121f3a23b
+msgid ""
+"Times must be finite and non-negative. Event token `1` denotes an exact "
+"event; token `0` denotes independent right censoring. The CSV contract is"
+" deliberately strict rather than a permissive spreadsheet reader: wrong "
+"encoding, headers, tokens, fields, budgets, or source access produce "
+"typed failures."
+msgstr ""
+"Zeiten müssen endlich und nichtnegativ sein. Ereignis-Token `1` "
+"bezeichnet ein exaktes Ereignis; Token `0` bezeichnet unabhängige "
+"Rechtszensierung. Der CSV-Vertrag ist absichtlich strikt statt ein "
+"nachsichtiger Tabellenleser zu sein: falsche Kodierung, Kopfzeilen, "
+"Token, Felder, Budgets oder Quellzugriff erzeugen typisierte Fehler."
 
-msgid "The vertical fixes `location=0`, has no confidence interval or goodness-of-fit claim, and supplies no weights, covariates, truncation, left/interval censoring, free location, model selection, retry, checkpointing, or cancellation."
-msgstr "Die Funktionseinheit setzt `location=0` fest, erhebt keinen Anspruch auf Konfidenzintervalle oder Anpassungsgüte und liefert keine Gewichte, Kovariaten, Trunkierung, Links-/Intervallzensierung, freie Lage, Modellauswahl, Wiederholung, Checkpointing oder Abbruch."
+#: ../../../py-distfit-pro/python/docs/source/api.md:16
+#: 1478a9ccaff744f2a753a40cb5ecfca0
+msgid ""
+"The vertical fixes `location=0`, has no confidence interval or goodness-"
+"of-fit claim, and supplies no weights, covariates, truncation, "
+"left/interval censoring, free location, model selection, retry, "
+"checkpointing, or cancellation."
+msgstr ""
+"Die Funktionseinheit setzt `location=0` fest, erhebt keinen Anspruch auf "
+"Konfidenzintervalle oder Anpassungsgüte und liefert keine Gewichte, "
+"Kovariaten, Trunkierung, Links-/Intervallzensierung, freie Lage, "
+"Modellauswahl, Wiederholung, Checkpointing oder Abbruch."
+
+#: ../../../py-distfit-pro/python/docs/source/api.md:20
+#: 4d989cbd91c84534b9514957d2feaf0f
+msgid "Evaluated scalar primitives"
+msgstr "Ausgewertete skalare Grundbausteine"
+
+#: ../../../py-distfit-pro/python/docs/source/api.md:22
+#: 30115293c8af496789227b02d4463447
+msgid ""
+"`veridist.families.registry` exports immutable `FAMILY_REGISTRY` metadata"
+" and `FamilyId` for five evaluated families. "
+"`veridist.statistics.log_density` exports scalar `evaluate_log_density`; "
+"`veridist.statistics.log_likelihood` exports `LogLikelihoodState` and "
+"`reduce_log_likelihood_chunks`. These are separate, finite scalar "
+"contracts: they are not generic fitting, inference, goodness-of-fit, "
+"ranking, array, or censoring APIs."
+msgstr "`veridist.families.registry` exportiert unveränderliche `FAMILY_REGISTRY`-Metadaten und `FamilyId` für fünf ausgewertete Familien. `veridist.statistics.log_density` exportiert das skalare `evaluate_log_density`; `veridist.statistics.log_likelihood` exportiert `LogLikelihoodState` und `reduce_log_likelihood_chunks`. Dies sind getrennte, endliche skalare Verträge und keine APIs für allgemeine Anpassung, Inferenz, Anpassungsgüte, Rankings, Arrays oder Zensierung."
