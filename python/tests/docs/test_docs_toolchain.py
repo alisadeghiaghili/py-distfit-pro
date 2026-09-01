@@ -244,6 +244,37 @@ class DocsToolchainContractTests(unittest.TestCase):
         self.assertNotIn("autofunction", api_page)
         self.assertNotIn("automodule", api_page)
 
+    def test_family_and_streaming_page_is_narrow_callable_and_honest(self) -> None:
+        page = (SOURCE_ROOT / "families-log-density-likelihood.md").read_text(encoding="utf-8")
+        self.assertIn("(veridist-families-log-density-likelihood)=", page)
+        self.assertIn("FAMILY_REGISTRY", page)
+        self.assertIn("evaluate_log_density", page)
+        self.assertIn("reduce_log_likelihood_chunks", page)
+        self.assertIn("normal", page)
+        self.assertIn("gamma", page)
+        self.assertIn("weibull_min", page)
+        self.assertIn("lognormal", page)
+        self.assertIn("gumbel_right", page)
+        self.assertIn("successful binary64 result as an exact", page)
+        self.assertIn("once", page)
+        self.assertIn("unsigned-64", page)
+        self.assertIn("2162-bit", page)
+        self.assertIn("10k/100k/1m", page)
+        self.assertIn("nor a fitting, inference", page)
+        self.assertIn("not an array API", page)
+        self.assertIn("censoring likelihood", page)
+        self.assertIn('```python', page)
+        self.assertIn('```{math}', page)
+        self.assertIn("| Family | Canonical parameters |", page)
+
+    def test_readmes_describe_the_same_narrow_public_surface(self) -> None:
+        for readme_name in ("README.md", "README.fa.md", "README.de.md"):
+            with self.subTest(readme_name=readme_name):
+                readme = (PYTHON_ROOT / readme_name).read_text(encoding="utf-8")
+                self.assertIn("FAMILY_REGISTRY", readme)
+                self.assertIn("evaluate_log_density", readme)
+                self.assertIn("reduce_log_likelihood_chunks", readme)
+
     def test_persian_styles_isolate_machine_reading_direction(self) -> None:
         css = (SOURCE_ROOT / "_static" / "rtl.css").read_text(encoding="utf-8")
         for selector in ("pre", "code", "table", ".math"):

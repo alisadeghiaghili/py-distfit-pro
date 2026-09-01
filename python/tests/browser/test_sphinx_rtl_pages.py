@@ -51,11 +51,12 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                 )
                 try:
                     page = browser.new_page()
-                    page.goto(
-                        (outputs["fa"] / "exponential-right-censoring.html").as_uri(),
-                        wait_until="load",
-                    )
-                    fa = page.evaluate("""() => ({
+                    for page_name in (
+                        "exponential-right-censoring.html",
+                        "families-log-density-likelihood.html",
+                    ):
+                        page.goto((outputs["fa"] / page_name).as_uri(), wait_until="load")
+                        fa = page.evaluate("""() => ({
                       lang: document.documentElement.lang, dir: document.documentElement.dir,
                       body: {
                         direction: getComputedStyle(document.body).direction,
@@ -77,31 +78,32 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                         const style = getComputedStyle(element);
                         return [name, {direction: style.direction, unicodeBidi: style.unicodeBidi}];
                       })),
-                    })""")
-                    self.assertEqual(fa["lang"], "fa")
-                    self.assertEqual(fa["dir"], "rtl")
-                    self.assertEqual(fa["body"], {"direction": "rtl", "align": "right"})
-                    self.assertEqual(fa["networkScripts"], [])
-                    self.assertEqual(
-                        fa["exemplars"],
-                        {
-                            name: {"direction": "ltr", "unicodeBidi": "isolate"}
-                            for name in ("code", "pre", "table", "math")
-                        },
-                    )
-                    page.goto(
-                        (outputs["de"] / "exponential-right-censoring.html").as_uri(),
-                        wait_until="load",
-                    )
-                    de = page.evaluate("""() => ({
+                        })""")
+                        self.assertEqual(fa["lang"], "fa", page_name)
+                        self.assertEqual(fa["dir"], "rtl", page_name)
+                        self.assertEqual(
+                            fa["body"], {"direction": "rtl", "align": "right"}, page_name
+                        )
+                        self.assertEqual(fa["networkScripts"], [], page_name)
+                        self.assertEqual(
+                            fa["exemplars"],
+                            {
+                                name: {"direction": "ltr", "unicodeBidi": "isolate"}
+                                for name in ("code", "pre", "table", "math")
+                            },
+                            page_name,
+                        )
+                        page.goto((outputs["de"] / page_name).as_uri(), wait_until="load")
+                        de = page.evaluate("""() => ({
                       lang: document.documentElement.lang, dir: document.documentElement.dir,
                       body: getComputedStyle(document.body).direction,
                       exemplarCount: ['code.literal', '.highlight pre', 'table.docutils', '.math']
                         .map((selector) => document.querySelector(selector)).filter(Boolean).length,
-                    })""")
-                    self.assertEqual(
-                        de,
-                        {"lang": "de", "dir": "ltr", "body": "ltr", "exemplarCount": 4},
-                    )
+                        })""")
+                        self.assertEqual(
+                            de,
+                            {"lang": "de", "dir": "ltr", "body": "ltr", "exemplarCount": 4},
+                            page_name,
+                        )
                 finally:
                     browser.close()
