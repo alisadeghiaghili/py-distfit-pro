@@ -48,6 +48,7 @@
     {"id":"DOC-MSG-FAM-LL-TITLE","page":"families-log-density-likelihood.md","source":"Evaluated families, scalar log density, and streaming log likelihood"},
     {"id":"DOC-MSG-FAM-REGISTRY-TITLE","page":"families-log-density-likelihood.md","source":"Closed five-family registry"},
     {"id":"DOC-MSG-FAM-REGISTRY-BODY","page":"families-log-density-likelihood.md","source":"`FAMILY_REGISTRY` is immutable metadata for exactly five evaluated families: `normal`, `gamma`, `weibull_min`, `lognormal`, and `gumbel_right`. It fixes canonical names, aliases, parameter names, validation roles, and the currently available scalar `logpdf` operation. It is neither a generic distribution registry nor a fitting, inference, goodness-of-fit, or ranking interface."},
+    {"id":"DOC-MSG-FAM-API-LINK","page":"families-log-density-likelihood.md","source":"For the contract-level API surface, see <a class=\"veridist-api-url\" href=\"api.html#veridist-api\">veridist.statistics.log_density</a>."},
     {"id":"DOC-MSG-FAM-TABLE-HEAD","page":"families-log-density-likelihood.md","source":"Family"},
     {"id":"DOC-MSG-FAM-TABLE-PARAMS","page":"families-log-density-likelihood.md","source":"Canonical parameters"},
     {"id":"DOC-MSG-FAM-NORMAL","page":"families-log-density-likelihood.md","source":"`normal`"},

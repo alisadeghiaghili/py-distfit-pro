@@ -9,6 +9,9 @@ canonical names, aliases, parameter names, validation roles, and the currently
 available scalar `logpdf` operation. It is neither a generic distribution
 registry nor a fitting, inference, goodness-of-fit, or ranking interface.
 
+For the contract-level API surface, see
+<a class="veridist-api-url" href="api.html#veridist-api">veridist.statistics.log_density</a>.
+
 | Family | Canonical parameters |
 | --- | --- |
 | `normal` | `mu`, `sigma > 0` |
