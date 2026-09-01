@@ -7,10 +7,44 @@ import json
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 CRITICAL_MODULES = ("domain", "statistics", "families", "engine")
 UNRESOLVED_STATUSES = {"suspicious", "timeout", "error", "unclassified"}
 ALLOWED_STATUSES = {"killed", "survived", *UNRESOLVED_STATUSES}
+
+
+def official_status(exit_code: object) -> str:
+    if exit_code is None:
+        return "not_checked"
+    if isinstance(exit_code, bool) or not isinstance(exit_code, int):
+        return "unknown"
+    return {
+        0: "survived",
+        1: "killed",
+        3: "killed",
+        5: "no_tests",
+        33: "no_tests",
+        2: "interrupted",
+        34: "skipped",
+        35: "suspicious",
+        36: "timeout",
+        37: "type_check",
+        -24: "timeout",
+        24: "timeout",
+        152: "timeout",
+        255: "timeout",
+        -11: "segfault",
+        -9: "segfault",
+    }.get(exit_code, "unknown")
+
+
+def scoring_status(exit_code: object) -> str:
+    value = official_status(exit_code)
+    if value in {"killed", "type_check"}:
+        return "killed"
+    if value == "survived":
+        return "survived"
+    return "unresolved"
 
 
 def canonical_json(value: object) -> str:

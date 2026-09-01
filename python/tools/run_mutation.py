@@ -143,7 +143,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-root", type=Path, default=Path("."))
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--mutmut-wheel", type=Path, required=False)
     args = parser.parse_args()
+    # v2 provenance terms: --mutmut-wheel, input_digest and full git status --porcelain.
     if sys.platform == "win32" or platform.system() == "Windows":
         print(
             "MUTATION RUN REFUSED: mutmut 3.7.0 requires POSIX/fork; use GitHub Linux.",

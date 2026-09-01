@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 import tempfile
@@ -30,7 +29,16 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
         sys.path.insert(0, str(PYTHON_ROOT / "tools"))
         import mutation_evidence
 
-        expected = {0: "survived", 1: "killed", 3: "killed", 5: "no_tests", 36: "timeout", 37: "type_check", -11: "segfault", None: "not_checked"}
+        expected = {
+            0: "survived",
+            1: "killed",
+            3: "killed",
+            5: "no_tests",
+            36: "timeout",
+            37: "type_check",
+            -11: "segfault",
+            None: "not_checked",
+        }
         for code, status in expected.items():
             with self.subTest(code=code):
                 self.assertEqual(mutation_evidence.official_status(code), status)
@@ -43,12 +51,31 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             (root / "pyproject.toml").write_text("[tool.mutmut]\n", encoding="utf-8")
             evidence = root / "evidence.json"
             evidence.write_text("{}", encoding="utf-8")
-            result = subprocess.run([sys.executable, str(CHECKER), "--project-root", str(root), "--evidence", str(evidence)], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CHECKER),
+                    "--project-root",
+                    str(root),
+                    "--evidence",
+                    str(evidence),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("--mutants-root", result.stderr)
 
     def test_runner_provenance_contracts_are_present(self) -> None:
         runner = (PYTHON_ROOT / "tools" / "run_mutation.py").read_text(encoding="utf-8")
-        for required in ("--mutmut-wheel", "git status --porcelain", "input_digest", "baseline", "mutation"):
+        required_terms = (
+            "--mutmut-wheel",
+            "git status --porcelain",
+            "input_digest",
+            "baseline",
+            "mutation",
+        )
+        for required in required_terms:
             with self.subTest(required=required):
                 self.assertIn(required, runner)

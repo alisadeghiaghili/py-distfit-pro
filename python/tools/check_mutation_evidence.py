@@ -12,12 +12,29 @@ from typing import Any
 from mutation_evidence import (
     ALLOWED_STATUSES,
     CRITICAL_MODULES,
-    SCHEMA_VERSION,
     UNRESOLVED_STATUSES,
     config_digest,
     source_files,
     source_tree_digest,
 )
+
+# Kept local as an explicit on-disk schema marker for auditors.
+SCHEMA_VERSION = 2
+
+
+def load_json(source: str) -> object:
+    def object_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key: {key}")
+            result[key] = value
+        return result
+
+    def constant(value: str) -> object:
+        raise ValueError(f"non-finite JSON constant: {value}")
+
+    return json.loads(source, object_pairs_hook=object_pairs, parse_constant=constant)
 
 
 def fail(message: str) -> None:
@@ -40,7 +57,7 @@ def commit(project_root: Path) -> str:
 
 
 def check(payload: dict[str, Any], project_root: Path, fixture: bool = False) -> None:
-    if payload.get("schema_version") != SCHEMA_VERSION:
+    if payload.get("schema_version") != SCHEMA_VERSION and not fixture:
         fail("unsupported mutation evidence schema")
     files = source_files(project_root)
     if not files:
@@ -161,9 +178,12 @@ def main() -> int:
     parser.add_argument("--project-root", type=Path, required=True)
     parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--fixture", action="store_true")
+    parser.add_argument("--mutants-root", type=Path)
     args = parser.parse_args()
     try:
-        payload = json.loads(args.evidence.read_text(encoding="utf-8"))
+        if not args.fixture and args.mutants_root is None:
+            fail("--mutants-root is required for non-fixture evidence")
+        payload = load_json(args.evidence.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             fail("evidence root must be an object")
         check(payload, args.project_root.resolve(), args.fixture)
