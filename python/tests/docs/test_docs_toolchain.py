@@ -30,7 +30,7 @@ class _TextCollector(HTMLParser):
 
 
 def _semantic_text(value: str) -> str:
-    return re.sub(r"\s+", " ", value.replace("`", "")).strip()
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", value).replace("`", "")).strip()
 
 
 def _rendered_text(path: Path) -> str:
@@ -252,7 +252,7 @@ class DocsToolchainContractTests(unittest.TestCase):
         namespace: dict[str, object] = {}
         exec(schema_fence, namespace)
         self.assertEqual(namespace["schema"].time_column, "time")
-        self.assertEqual(namespace["schema"].event_column, "event_observed")
+        self.assertEqual(namespace["schema"].event_observed_column, "event_observed")
 
     def test_family_and_streaming_page_is_narrow_callable_and_honest(self) -> None:
         page = (SOURCE_ROOT / "families-log-density-likelihood.md").read_text(encoding="utf-8")
@@ -317,7 +317,12 @@ class DocsToolchainContractTests(unittest.TestCase):
         self.assertIn("چگالیِ لگاریتمی binary64 موفق", fa_readme)
         self.assertIn("مجموع صحیحِ دقیق", fa_readme)
         for locale in ("fa", "de"):
-            for stem in ("index", "api", "families-log-density-likelihood"):
+            for stem in (
+                "index",
+                "api",
+                "exponential-right-censoring",
+                "families-log-density-likelihood",
+            ):
                 header = (DOCS_ROOT / "locales" / locale / "LC_MESSAGES" / f"{stem}.po").read_text(
                     encoding="utf-8"
                 ).partition("\n\n")[0]
