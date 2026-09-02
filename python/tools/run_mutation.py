@@ -53,11 +53,13 @@ def now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
-def run_logged(command: list[str], project_root: Path, log_path: Path) -> dict[str, Any]:
+def run_logged(
+    command: list[str], execution: list[str], project_root: Path, log_path: Path, logs_root: Path
+) -> dict[str, Any]:
     started = now()
     try:
         result = subprocess.run(
-            command, cwd=project_root, capture_output=True, text=True, check=False
+            execution, cwd=project_root, capture_output=True, text=True, check=False
         )
         exit_code = result.returncode
         content = result.stdout + result.stderr
@@ -72,7 +74,7 @@ def run_logged(command: list[str], project_root: Path, log_path: Path) -> dict[s
         "started_at": started,
         "ended_at": now(),
         "exit_code": exit_code,
-        "log_path": str(log_path),
+        "log_path": log_path.relative_to(logs_root).as_posix(),
         "log_sha256": sha256_bytes(log_path.read_bytes()),
     }
 
@@ -129,6 +131,9 @@ def export(
     baseline: dict[str, Any],
     mutation: dict[str, Any],
     cache_root: Path,
+    records: dict[str, str],
+    pre_digest: str,
+    post_digest: str,
 ) -> None:
     files = source_files(project_root)
     cache_parts: list[bytes] = []
@@ -152,7 +157,6 @@ def export(
         }
         for module in CRITICAL_MODULES
     ]
-    records, digest = input_digest(project_root)
     denominator = totals["killed"] + totals["survived"]
     payload = {
         "schema_version": 2,
@@ -171,9 +175,9 @@ def export(
         "environment": {"python": sys.version, "platform": platform.platform()},
         "provenance": {
             "inputs": records,
-            "input_digest": digest,
-            "pre_input_digest": digest,
-            "post_input_digest": digest,
+            "input_digest": pre_digest,
+            "pre_input_digest": pre_digest,
+            "post_input_digest": post_digest,
         },
         "baseline": baseline,
         "mutation": mutation,
@@ -187,7 +191,11 @@ def export(
     staging.write_text(
         json.dumps(payload, allow_nan=False, sort_keys=True) + "\n", encoding="utf-8"
     )
-    if ensure_clean_tree(project_root) != commit or input_digest(project_root)[1] != digest:
+    if (
+        pre_digest != post_digest
+        or ensure_clean_tree(project_root) != commit
+        or input_digest(project_root)[1] != post_digest
+    ):
         staging.unlink(missing_ok=True)
         fail("repository/input drift before evidence publication")
     staging.replace(output)
@@ -239,16 +247,35 @@ def main() -> int:
         reject_mutation_pragmas(root)
         commit = ensure_clean_tree(root)
         verify_mutmut(wheel)
+        records, pre_digest = input_digest(root)
         baseline = run_logged(
-            [sys.executable, "-m", "pytest", "tests"], root, logs / "baseline.log"
+            ["python", "-m", "pytest", "tests"],
+            [sys.executable, "-m", "pytest", "tests"],
+            root,
+            logs / "baseline.log",
+            logs,
         )
         started = True
-        if baseline["exit_code"] == 0:
-            mutation = run_logged(["mutmut", "run"], root, logs / "mutmut.log")
+        if baseline["state"] == "passed":
+            mutation = run_logged(
+                ["mutmut", "run"], ["mutmut", "run"], root, logs / "mutmut.log", logs
+            )
         else:
             mutation = {"state": "not_run", "command": ["mutmut", "run"]}
-        export(root, args.output.resolve(), commit, wheel, baseline, mutation, cache)
-        return 0 if baseline["exit_code"] == mutation["exit_code"] == 0 else 1
+        post_digest = input_digest(root)[1]
+        export(
+            root,
+            args.output.resolve(),
+            commit,
+            wheel,
+            baseline,
+            mutation,
+            cache,
+            records,
+            pre_digest,
+            post_digest,
+        )
+        return 0 if baseline["state"] == mutation["state"] == "passed" else 1
     except (OSError, RuntimeError, ValueError, importlib.metadata.PackageNotFoundError) as error:
         if started:
             try:

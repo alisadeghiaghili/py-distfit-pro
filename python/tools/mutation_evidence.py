@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -86,7 +87,9 @@ def source_files(project_root: Path) -> list[str]:
 def tree_files(project_root: Path, relative: str) -> list[str]:
     base = project_root / relative
     return sorted(
-        path.relative_to(project_root).as_posix() for path in base.rglob("*") if path.is_file()
+        path.relative_to(project_root).as_posix()
+        for path in base.rglob("*")
+        if path.is_file() and "__pycache__" not in path.parts and not path.suffix == ".pyc"
     )
 
 
@@ -185,17 +188,28 @@ def config_digest(project_root: Path) -> str:
 
 
 def input_files(project_root: Path) -> list[str]:
-    names = source_files(project_root) + tree_files(project_root, "tests")
-    names += [
+    candidates = source_files(project_root) + tree_files(project_root, "tests")
+    candidates += [
         "pyproject.toml",
         "quality/mutation-manifest.json",
         "tools/mutation_evidence.py",
         "tools/run_mutation.py",
         "tools/check_mutation_evidence.py",
     ]
-    if (project_root.parent / ".github" / "workflows" / "mutation.yml").is_file():
-        names.append("../.github/workflows/mutation.yml")
-    return sorted(names)
+    result = subprocess.run(
+        ["git", "ls-files", "-z", "--", *candidates],
+        cwd=project_root,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise ValueError("cannot enumerate tracked mutation inputs")
+    files = sorted(item for item in result.stdout.decode("utf-8").split("\0") if item)
+    if set(files) != set(candidates) - {
+        name for name in candidates if not (project_root / name).is_file()
+    }:
+        raise ValueError("mutation input manifest contains untracked or missing file")
+    return files
 
 
 def input_digest(project_root: Path) -> tuple[dict[str, str], str]:

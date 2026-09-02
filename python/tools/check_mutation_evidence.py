@@ -128,7 +128,10 @@ def phase(
     if not fixture:
         if logs_root is None:
             fail("--logs-root is required for non-fixture evidence")
-        path = Path(record["log_path"]).resolve()
+        relative = Path(record["log_path"])
+        if relative.is_absolute() or ".." in relative.parts:
+            fail(f"{name} log path must be safe and relative")
+        path = (cast(Path, logs_root) / relative).resolve()
         if (
             logs_root not in path.parents
             or not path.is_file()
@@ -257,7 +260,7 @@ def check(
     baseline = phase(
         payload["baseline"],
         "baseline",
-        [sys.executable, "-m", "pytest", "tests"],
+        ["python", "-m", "pytest", "tests"],
         fixture,
         logs_root,
     )
