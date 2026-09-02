@@ -79,3 +79,36 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
         for required in required_terms:
             with self.subTest(required=required):
                 self.assertIn(required, runner)
+
+    def test_raw_cache_validation_requires_exact_meta_schema(self) -> None:
+        sys.path.insert(0, str(PYTHON_ROOT / "tools"))
+        import check_mutation_evidence
+
+        source = "src/veridist/domain/example.py"
+        with tempfile.TemporaryDirectory() as temporary:
+            cache = Path(temporary)
+            target = cache / f"{source}.meta"
+            target.parent.mkdir(parents=True)
+            target.write_text('{"exit_code_by_key": {}}', encoding="utf-8")
+            with self.assertRaises(ValueError):
+                check_mutation_evidence.file_meta(cache, source)
+
+    def test_raw_cache_rejects_identity_relations_outside_exit_codes(self) -> None:
+        sys.path.insert(0, str(PYTHON_ROOT / "tools"))
+        import check_mutation_evidence
+
+        source = "src/veridist/domain/example.py"
+        payload = {
+            "exit_code_by_key": {"mutant": 1},
+            "hash_by_function_name": {},
+            "type_check_error_by_key": {"fabricated": "error"},
+            "durations_by_key": {},
+            "estimated_durations_by_key": {},
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            cache = Path(temporary)
+            target = cache / f"{source}.meta"
+            target.parent.mkdir(parents=True)
+            target.write_text(__import__("json").dumps(payload), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                check_mutation_evidence.file_meta(cache, source)

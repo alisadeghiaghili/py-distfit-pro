@@ -1,4 +1,4 @@
-"""TDD contracts for mutation schema, checker and Windows runner refusal."""
+"""TDD contracts for cache-bound mutation evidence v2."""
 
 from __future__ import annotations
 
@@ -11,16 +11,32 @@ from pathlib import Path
 
 PYTHON_ROOT = Path(__file__).parents[2]
 sys.path.insert(0, str(PYTHON_ROOT / "tools"))
-from mutation_evidence import config_digest, source_tree_digest  # noqa: E402
+from mutation_evidence import (  # noqa: E402
+    CRITICAL_MODULES,
+    MUTMUT_WHEEL_SHA256,
+    config_digest,
+    source_tree_digest,
+)
 
 CHECKER = PYTHON_ROOT / "tools" / "check_mutation_evidence.py"
 RUNNER = PYTHON_ROOT / "tools" / "run_mutation.py"
-COUNT_KEYS = ("generated", "killed", "survived", "suspicious", "timeout", "error", "unclassified")
+COUNT_KEYS = ("generated", "killed", "survived", "unresolved")
+
+
+def command(exit_code: int = 0) -> dict[str, object]:
+    return {
+        "command": ["pytest", "tests"],
+        "started_at": "2026-01-01T00:00:00Z",
+        "ended_at": "2026-01-01T00:00:01Z",
+        "exit_code": exit_code,
+        "log_path": "fixture.log",
+        "log_sha256": "0" * 64,
+    }
 
 
 def fixture(root: Path) -> dict[str, object]:
     reports: list[dict[str, object]] = []
-    for module in ("domain", "statistics", "families", "engine"):
+    for module in CRITICAL_MODULES:
         name = f"src/veridist/{module}/sample.py"
         target = root / name
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -31,11 +47,20 @@ def fixture(root: Path) -> dict[str, object]:
                 "generated": 1,
                 "killed": 1,
                 "survived": 0,
-                "suspicious": 0,
-                "timeout": 0,
-                "error": 0,
-                "unclassified": 0,
-                "mutants": [{"id": f"{module}.value__mutmut_1", "status": "killed"}],
+                "unresolved": 0,
+                "mutants": [
+                    {
+                        "id": f"{name}::value__mutmut_1",
+                        "cache_key": "value__mutmut_1",
+                        "exit_code": 1,
+                        "official_status": "killed",
+                        "scoring_status": "killed",
+                    }
+                ],
+                "function_hashes": {},
+                "type_check_errors": {},
+                "durations": {},
+                "estimated_durations": {},
             }
         )
     (root / "pyproject.toml").write_text(
@@ -45,26 +70,45 @@ def fixture(root: Path) -> dict[str, object]:
         'pytest_add_cli_args_test_selection = ["tests"]\nmutate_only_covered_lines = false\n',
         encoding="utf-8",
     )
+    (root / "quality").mkdir()
+    (root / "quality" / "mutation-manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "production_root": "src/veridist",
+                "critical_modules": list(CRITICAL_MODULES),
+                "mutmut_version": "3.7.0",
+                "minimum_score": 0.8,
+                "pytest_selection": ["tests"],
+            }
+        ),
+        encoding="utf-8",
+    )
     return {
-        "schema_version": 1,
-        "source": {"commit": "fixture", "tree_sha256": source_tree_digest(root)},
+        "schema_version": 2,
+        "source": {
+            "commit": "fixture",
+            "tree_sha256": source_tree_digest(root),
+            "cache_sha256": "fixture",
+        },
         "config": {
             "mutmut_version": "3.7.0",
+            "wheel_sha256": MUTMUT_WHEEL_SHA256,
             "config_sha256": config_digest(root),
-            "source_paths": [
-                f"src/veridist/{name}" for name in ("domain", "statistics", "families", "engine")
-            ],
+            "source_paths": [f"src/veridist/{name}" for name in CRITICAL_MODULES],
             "pytest_selection": ["tests"],
         },
         "environment": {"python": "fixture", "platform": "fixture"},
-        "baseline": {"passed": True, "command": ["pytest", "tests"]},
+        "provenance": {"inputs": {}, "input_digest": "fixture"},
+        "baseline": command(),
+        "mutation": command(),
         "files": reports,
         "modules": [
             {
                 "module": module,
                 **{key: 1 if key in {"generated", "killed"} else 0 for key in COUNT_KEYS},
             }
-            for module in ("domain", "statistics", "families", "engine")
+            for module in CRITICAL_MODULES
         ],
         "totals": {key: 4 if key in {"generated", "killed"} else 0 for key in COUNT_KEYS},
         "score": 1.0,
@@ -72,8 +116,8 @@ def fixture(root: Path) -> dict[str, object]:
 
 
 def check(root: Path, payload: dict[str, object]) -> subprocess.CompletedProcess[str]:
-    path = root / "evidence.json"
-    path.write_text(json.dumps(payload), encoding="utf-8")
+    evidence = root / "evidence.json"
+    evidence.write_text(json.dumps(payload), encoding="utf-8")
     return subprocess.run(
         [
             sys.executable,
@@ -81,7 +125,7 @@ def check(root: Path, payload: dict[str, object]) -> subprocess.CompletedProcess
             "--project-root",
             str(root),
             "--evidence",
-            str(path),
+            str(evidence),
             "--fixture",
         ],
         capture_output=True,
@@ -97,25 +141,27 @@ class MutationEvidenceTests(unittest.TestCase):
             result = check(root, fixture(root))
             self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_rejects_tampering(self) -> None:
-        for change in ("missing", "bool", "duplicate", "unresolved"):
+    def test_rejects_status_score_and_schema_tampering(self) -> None:
+        for change in ("bool", "wrong-status", "extra-key", "unresolved", "score"):
             with self.subTest(change=change), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 payload = fixture(root)
-                reports = payload["files"]
-                assert isinstance(reports, list)
-                if change == "missing":
-                    payload["files"] = reports[:-1]
-                elif change == "bool":
-                    reports[0]["killed"] = True
-                elif change == "duplicate":
-                    reports[1]["mutants"][0]["id"] = reports[0]["mutants"][0]["id"]
+                report = payload["files"][0]  # type: ignore[index]
+                if change == "bool":
+                    report["killed"] = True
+                elif change == "wrong-status":
+                    report["mutants"][0]["official_status"] = "survived"
+                elif change == "extra-key":
+                    report["extra"] = 1
+                elif change == "unresolved":
+                    report["mutants"][0]["exit_code"] = None
+                    report["mutants"][0]["official_status"] = "not_checked"
+                    report["mutants"][0]["scoring_status"] = "unresolved"
+                    report["killed"], report["unresolved"] = 0, 1
+                    payload["totals"]["killed"], payload["totals"]["unresolved"] = 3, 1
+                    payload["modules"][0]["killed"], payload["modules"][0]["unresolved"] = 0, 1
                 else:
-                    reports[0]["mutants"][0]["status"] = "timeout"
-                    reports[0]["killed"] = 0
-                    reports[0]["timeout"] = 1
-                    payload["totals"]["killed"] = 3
-                    payload["totals"]["timeout"] = 1
+                    payload["score"] = True
                 self.assertNotEqual(check(root, payload).returncode, 0)
 
     def test_runner_refuses_native_windows_before_mutmut_execution(self) -> None:
