@@ -112,3 +112,49 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             target.write_text(__import__("json").dumps(payload), encoding="utf-8")
             with self.assertRaises(ValueError):
                 check_mutation_evidence.file_meta(cache, source)
+
+    def test_unknown_mutmut_exit_code_is_suspicious(self) -> None:
+        sys.path.insert(0, str(PYTHON_ROOT / "tools"))
+        import mutation_evidence
+
+        self.assertEqual(mutation_evidence.official_status(999), "suspicious")
+
+    def test_mutmut_configuration_is_closed_to_result_affecting_options(self) -> None:
+        sys.path.insert(0, str(PYTHON_ROOT / "tools"))
+        import mutation_evidence
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            root.joinpath("pyproject.toml").write_text(
+                "[tool.mutmut]\n"
+                'source_paths = ["src/veridist/domain", "src/veridist/statistics", '
+                '"src/veridist/families", "src/veridist/engine"]\n'
+                'pytest_add_cli_args_test_selection = ["tests"]\n'
+                "mutate_only_covered_lines = false\n"
+                'also_mutate = ["src/ignored"]\n',
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError):
+                mutation_evidence.mutation_config(root)
+
+    def test_checker_rejects_non_utc_backward_or_invalid_phase_records(self) -> None:
+        sys.path.insert(0, str(PYTHON_ROOT / "tools"))
+        from tests.quality import test_mutation_evidence
+
+        for field, value in (
+            ("started_at", "2026-01-01T00:00:00+00:00"),
+            ("ended_at", "2025-12-31T23:59:59Z"),
+            ("missing_state", None),
+        ):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                payload = test_mutation_evidence.fixture(root)
+                if field == "missing_state":
+                    payload["baseline"].pop("state", None)
+                else:
+                    payload["baseline"][field] = value
+                self.assertNotEqual(test_mutation_evidence.check(root, payload).returncode, 0)
+
+    def test_checker_requires_logs_root_for_non_fixture_evidence(self) -> None:
+        checker = CHECKER.read_text(encoding="utf-8")
+        self.assertIn("--logs-root", checker)
