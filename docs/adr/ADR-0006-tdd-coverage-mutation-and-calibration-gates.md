@@ -71,8 +71,8 @@ silently omitted. If every executable critical file has zero mutants, the
 checker rejects the evidence because there is no scored denominator. Native
 Windows is deliberately refused: mutmut 3.7.0 requires POSIX/fork. The
 versioned GitHub Linux workflow runs the complete `tests` baseline, then the
-curated behavioral oracle selection for each mutation run, export and gate
-export and gate on Ubuntu/Python 3.13 after verifying the pinned PyPI wheel
+curated behavioral oracle selection for each mutation run, exports evidence,
+and gates on Ubuntu/Python 3.13 after verifying the pinned PyPI wheel
 SHA-256. It retains evidence, both logs and raw cache metadata even on failure,
 but it has not yet produced a remote result or score.
 Temporary targeted probes remain diagnostic only. Statistical calibration and
