@@ -76,6 +76,7 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             "baseline",
             "mutation",
             '"also_copy": ["tools"]',
+            '"pytest_selection": ["tests/contract", "tests/reference", "tests/unit"]',
         )
         for required in required_terms:
             with self.subTest(required=required):
@@ -130,7 +131,7 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
                 "[tool.mutmut]\n"
                 'source_paths = ["src/veridist/domain", "src/veridist/statistics", '
                 '"src/veridist/families", "src/veridist/engine"]\n'
-                'pytest_add_cli_args_test_selection = ["tests"]\n'
+                'pytest_add_cli_args_test_selection = ["tests/contract", "tests/reference", "tests/unit"]\n'
                 "mutate_only_covered_lines = false\n"
             )
             root.joinpath("pyproject.toml").write_text(
@@ -138,6 +139,25 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
                 encoding="utf-8",
             )
             self.assertEqual(mutation_evidence.mutation_config(root)["also_copy"], ["tools"])
+            self.assertEqual(
+                mutation_evidence.mutation_config(root)["pytest_add_cli_args_test_selection"],
+                ["tests/contract", "tests/reference", "tests/unit"],
+            )
+            for selection in (
+                '["tests"]',
+                '["tests/reference", "tests/contract", "tests/unit"]',
+                '["tests/contract", "tests/reference", "tests/unit", "tests/scale"]',
+            ):
+                with self.subTest(selection=selection):
+                    root.joinpath("pyproject.toml").write_text(
+                        configuration.replace(
+                            '["tests/contract", "tests/reference", "tests/unit"]', selection
+                        )
+                        + 'also_copy = ["tools"]\n',
+                        encoding="utf-8",
+                    )
+                    with self.assertRaises(ValueError):
+                        mutation_evidence.mutation_config(root)
             for value in ('[]', '["tool"]', '["tools", "tests"]'):
                 with self.subTest(value=value):
                     root.joinpath("pyproject.toml").write_text(
