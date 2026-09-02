@@ -158,3 +158,23 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
     def test_checker_requires_logs_root_for_non_fixture_evidence(self) -> None:
         checker = CHECKER.read_text(encoding="utf-8")
         self.assertIn("--logs-root", checker)
+
+    def test_input_manifest_is_tracked_and_excludes_cache_artifacts(self) -> None:
+        sys.path.insert(0, str(PYTHON_ROOT / "tools"))
+        import mutation_evidence
+
+        files = mutation_evidence.input_files(PYTHON_ROOT)
+        self.assertNotIn(".pytest_cache/example.pyc", files)
+        self.assertNotIn("mutants/example.meta", files)
+        self.assertTrue(all("__pycache__" not in item for item in files))
+
+    def test_portable_runner_commands_and_relative_logs_are_contractual(self) -> None:
+        runner = (PYTHON_ROOT / "tools" / "run_mutation.py").read_text(encoding="utf-8")
+        self.assertIn('["python", "-m", "pytest", "tests"]', runner)
+        self.assertIn('["mutmut", "run"]', runner)
+        self.assertIn("relative_to(logs_root)", runner)
+
+    def test_runner_handles_not_run_mutation_without_exit_code_access(self) -> None:
+        runner = (PYTHON_ROOT / "tools" / "run_mutation.py").read_text(encoding="utf-8")
+        self.assertIn('baseline["state"] == "passed"', runner)
+        self.assertNotIn('baseline["exit_code"] == mutation["exit_code"]', runner)
