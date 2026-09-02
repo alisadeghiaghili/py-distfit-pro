@@ -88,5 +88,12 @@ source_paths = [
     "src/veridist/engine",
 ]
 pytest_add_cli_args_test_selection = ["tests/contract", "tests/reference", "tests/unit"]
-also_copy = ["tools"]
+also_copy = [
+    "tools",
+    "src/veridist/__init__.py",
+    "src/veridist/execution.py",
+    "src/veridist/py.typed",
+    "src/veridist/adapters",
+    "src/veridist/reporting",
+]
 mutate_only_covered_lines = false

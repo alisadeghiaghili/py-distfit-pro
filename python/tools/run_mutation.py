@@ -172,7 +172,14 @@ def export(
             "config_sha256": config_digest(project_root),
             "source_paths": [f"src/veridist/{name}" for name in CRITICAL_MODULES],
             "pytest_selection": ["tests/contract", "tests/reference", "tests/unit"],
-            "also_copy": ["tools"],
+            "also_copy": [
+                "tools",
+                "src/veridist/__init__.py",
+                "src/veridist/execution.py",
+                "src/veridist/py.typed",
+                "src/veridist/adapters",
+                "src/veridist/reporting",
+            ],
         },
         "environment": {"python": sys.version, "platform": platform.platform()},
         "provenance": {

@@ -238,7 +238,15 @@ def check(
         or config["config_sha256"] != config_digest(project_root)
         or config["source_paths"] != [f"src/veridist/{name}" for name in CRITICAL_MODULES]
         or config["pytest_selection"] != ["tests/contract", "tests/reference", "tests/unit"]
-        or config["also_copy"] != ["tools"]
+        or config["also_copy"]
+        != [
+            "tools",
+            "src/veridist/__init__.py",
+            "src/veridist/execution.py",
+            "src/veridist/py.typed",
+            "src/veridist/adapters",
+            "src/veridist/reporting",
+        ]
     ):
         fail("mutation configuration drift")
     env = exact(payload["environment"], {"python", "platform"}, "environment")

@@ -75,7 +75,8 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             "input_digest",
             "baseline",
             "mutation",
-            '"also_copy": ["tools", "src/veridist/__init__.py", "src/veridist/execution.py", "src/veridist/py.typed", "src/veridist/adapters", "src/veridist/reporting"]',
+            '"also_copy": [',
+            '"src/veridist/reporting",',
             '"pytest_selection": ["tests/contract", "tests/reference", "tests/unit"]',
         )
         for required in required_terms:

@@ -172,7 +172,15 @@ def mutation_config(project_root: Path) -> dict[str, Any]:
         or config.get("source_paths") != [f"src/veridist/{item}" for item in CRITICAL_MODULES]
         or config.get("pytest_add_cli_args_test_selection")
         != ["tests/contract", "tests/reference", "tests/unit"]
-        or config.get("also_copy") != ["tools"]
+        or config.get("also_copy")
+        != [
+            "tools",
+            "src/veridist/__init__.py",
+            "src/veridist/execution.py",
+            "src/veridist/py.typed",
+            "src/veridist/adapters",
+            "src/veridist/reporting",
+        ]
         or config.get("mutate_only_covered_lines") is not False
     ):
         raise ValueError("invalid mutmut configuration")
