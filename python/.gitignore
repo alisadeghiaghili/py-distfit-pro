@@ -6,6 +6,9 @@ htmlcov/
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/
+mutants/
+mutation-evidence.json
+.mutation-tmp/
 __pycache__/
 *.py[cod]
 build/
