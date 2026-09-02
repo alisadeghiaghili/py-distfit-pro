@@ -6,13 +6,92 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from json import loads
+from os import environ
 from pathlib import Path
+from shutil import copy2, copytree
 
 PYTHON_ROOT = Path(__file__).parents[2]
 CHECKER = PYTHON_ROOT / "tools" / "check_mutation_evidence.py"
 
 
 class MutationEvidenceV2Contracts(unittest.TestCase):
+    def test_mutation_config_partitions_every_package_file(self) -> None:
+        sys.path.insert(0, str(PYTHON_ROOT / "tools"))
+        import mutation_evidence
+
+        config = mutation_evidence.mutation_config(PYTHON_ROOT)
+        package = PYTHON_ROOT / "src" / "veridist"
+
+        def expand(entries: list[str]) -> set[Path]:
+            files: set[Path] = set()
+            for entry in entries:
+                target = PYTHON_ROOT / entry
+                if target.is_dir():
+                    files.update(
+                        path
+                        for path in target.rglob("*")
+                        if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+                    )
+                else:
+                    files.add(target)
+            return files
+
+        all_files = {
+            path
+            for path in package.rglob("*")
+            if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+        }
+        mutated = expand(config["source_paths"])
+        copied = expand([path for path in config["also_copy"] if path != "tools"])
+        self.assertFalse(mutated & copied)
+        self.assertEqual(mutated | copied, all_files)
+
+    def test_mutant_tree_shadows_installed_veridist_package(self) -> None:
+        sys.path.insert(0, str(PYTHON_ROOT / "tools"))
+        import mutation_evidence
+
+        config = mutation_evidence.mutation_config(PYTHON_ROOT)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            mutant_root = root / "mutants"
+
+            def copy_entry(entry: str) -> None:
+                source = PYTHON_ROOT / entry
+                destination = mutant_root / entry
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if source.is_dir():
+                    copytree(source, destination)
+                else:
+                    copy2(source, destination)
+
+            for entry in config["source_paths"]:
+                copy_entry(entry)
+            for entry in config["also_copy"]:
+                if entry != "tools":
+                    copy_entry(entry)
+            script = (
+                "import importlib, json; names=['veridist','veridist.domain',"
+                "'veridist.statistics','veridist.families','veridist.engine',"
+                "'veridist.adapters','veridist.reporting','veridist.execution']; "
+                "files={name: importlib.import_module(name).__file__ for name in names}; "
+                "print(json.dumps(files))"
+            )
+            environment = dict(environ)
+            environment["PYTHONPATH"] = str(mutant_root / "src")
+            result = subprocess.run(
+                [sys.executable, "-c", script],
+                cwd=root,
+                env=environment,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            files = loads(result.stdout)
+            for path in files.values():
+                self.assertTrue(Path(path).is_relative_to(mutant_root / "src"))
+
     def test_checker_exposes_duplicate_and_nonfinite_safe_json_loader(self) -> None:
         sys.path.insert(0, str(PYTHON_ROOT / "tools"))
         import check_mutation_evidence
