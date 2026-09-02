@@ -68,8 +68,10 @@ executable file with zero generated function/method mutants must still appear
 in evidence with `generated=0` and an empty identity list; it cannot be
 silently omitted. If every executable critical file has zero mutants, the
 checker rejects the evidence because there is no scored denominator. Native
-Windows is deliberately refused: mutmut 3.7.0 requires POSIX/fork. A future
-GitHub Linux gate must run the complete baseline, mutation run, export and
-gate, retaining evidence/logs even on failure; no result currently exists.
+Windows is deliberately refused: mutmut 3.7.0 requires POSIX/fork. The
+versioned GitHub Linux workflow runs the complete baseline, mutation run,
+export and gate on Ubuntu/Python 3.13 after verifying the pinned PyPI wheel
+SHA-256. It retains evidence, both logs and raw cache metadata even on failure,
+but it has not yet produced a remote result or score.
 Temporary targeted probes remain diagnostic only. Statistical calibration and
 retained production-scale evidence remain unimplemented.

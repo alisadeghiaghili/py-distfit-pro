@@ -13,6 +13,7 @@ MANIFEST = PYTHON_ROOT / "quality" / "coverage-manifest.json"
 CAPABILITY_MATRIX = REPOSITORY_ROOT / "docs" / "capability-matrix.md"
 READINESS = REPOSITORY_ROOT / "docs" / "v1-readiness.md"
 EVALUATED_FAMILY_ADR = REPOSITORY_ROOT / "docs" / "adr" / "ADR-0019-evaluated-family-kernel.md"
+MUTATION_WORKFLOW = REPOSITORY_ROOT / ".github" / "workflows" / "mutation.yml"
 
 
 class RequiredQualityArtifactTests(unittest.TestCase):
@@ -92,6 +93,25 @@ class RequiredQualityArtifactTests(unittest.TestCase):
                 self.assertTrue(artifact.is_file())
         ignored = (REPOSITORY_ROOT / ".gitignore").read_text(encoding="utf-8")
         self.assertIn("python/mutants/", ignored)
+
+    def test_mutation_workflow_is_pinned_linux_evidence_gate(self) -> None:
+        workflow = MUTATION_WORKFLOW.read_text(encoding="utf-8")
+        for required in (
+            "runs-on: ubuntu-latest",
+            'python-version: \"3.13\"',
+            "workflow_dispatch:",
+            "pull_request:",
+            "types: [published]",
+            "MUTMUT_WHEEL_SHA256:",
+            "1d2f9a1bfa4a474b2213df6b17223150b492bf4a85af0eda4fb322297337fb32",
+            "--mutmut-wheel",
+            "--logs-dir",
+            "--mutants-root",
+            "if: always()",
+            "python/mutants/**/*.meta",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, workflow)
 
 
 if __name__ == "__main__":

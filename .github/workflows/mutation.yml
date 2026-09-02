@@ -1,0 +1,112 @@
+name: mutation
+
+on:
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    name: mutation / critical statistical core
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONUTF8: "1"
+      PYTHONUNBUFFERED: "1"
+      MUTMUT_VERSION: "3.7.0"
+      MUTMUT_WHEEL: mutmut-3.7.0-py2.py3-none-any.whl
+      MUTMUT_WHEEL_SHA256: 1d2f9a1bfa4a474b2213df6b17223150b492bf4a85af0eda4fb322297337fb32
+
+    steps:
+      - name: Check out the exact triggering revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Create an isolated environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/veridist-mutation-venv"
+          echo "$RUNNER_TEMP/veridist-mutation-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Download and verify the pinned mutmut wheel from PyPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          wheel_path="$RUNNER_TEMP/$MUTMUT_WHEEL"
+          python -m pip download \
+            --disable-pip-version-check \
+            --index-url https://pypi.org/simple \
+            --no-deps \
+            --only-binary=:all: \
+            --dest "$RUNNER_TEMP" \
+            "mutmut==$MUTMUT_VERSION"
+          test -f "$wheel_path"
+          actual_sha256="$(sha256sum "$wheel_path" | awk '{print $1}')"
+          test "$actual_sha256" = "$MUTMUT_WHEEL_SHA256"
+
+      - name: Install the project test dependencies and verified wheel
+        working-directory: python
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install '.[test]'
+          python -m pip install "$RUNNER_TEMP/$MUTMUT_WHEEL"
+          test "$(mutmut --version)" = "$MUTMUT_VERSION"
+
+      - name: Prepare a fresh mutation cache
+        working-directory: python
+        shell: bash
+        run: |
+          set -euo pipefail
+          cache_root="$GITHUB_WORKSPACE/python/mutants"
+          case "$cache_root" in
+            "$GITHUB_WORKSPACE"/python/mutants) ;;
+            *) echo "unexpected mutation cache path" >&2; exit 2 ;;
+          esac
+          if [[ -e "$cache_root" ]]; then
+            rm -rf -- "$cache_root"
+          fi
+          test ! -e "$cache_root"
+
+      - name: Run the fail-closed mutation gate
+        id: mutation
+        working-directory: python
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/mutation-evidence.json"
+          python tools/run_mutation.py \
+            --project-root . \
+            --output "$output" \
+            --mutmut-wheel "$RUNNER_TEMP/$MUTMUT_WHEEL" \
+            --logs-dir "$RUNNER_TEMP/mutation-logs"
+          python tools/check_mutation_evidence.py \
+            --project-root . \
+            --evidence "$output" \
+            --mutants-root "$GITHUB_WORKSPACE/python/mutants"
+
+      - name: Retain mutation evidence and raw cache
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/mutation-evidence.json
+            ${{ runner.temp }}/mutation-logs/baseline.log
+            ${{ runner.temp }}/mutation-logs/mutmut.log
+            python/mutants/**/*.meta

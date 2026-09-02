@@ -117,8 +117,9 @@ as a statement about uninspected current files.
   the final `REPORT_KEYS` item was removed / `test_i18n_exp04_has_exact_stable_keys_and_semantic_facts_for_every_result`;
   every machine fact became `mutated` / `test_i18n_exp13_machine_values_are_bound_to_success_and_failure_facts`;
   and Persian `dir="rtl"` became `dir="ltr"` / `test_i18n_exp02_farsi_report_has_rtl_root_and_ltr_isolates`.
-  This is diagnostic evidence only. The formal mutation infrastructure is
-  implemented, but its GitHub Linux execution and score are **NOT YET EXECUTED**.
+  This is diagnostic evidence only. The formal mutation infrastructure and its
+  versioned GitHub Linux workflow are implemented, but no remote execution or
+  score is yet retained or claimed.
 - `SCALE-CSV-EXP-01` retains an actual strict CSV adapter and one-pass
   exponential-orchestrator trace at `python/evidence/scale-csv-exponential-v1.json`.
   Its fail-closed checker accepts exactly nine cells: 10k/100k/1m rows by
