@@ -31,7 +31,9 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
                     files.update(
                         path
                         for path in target.rglob("*")
-                        if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+                        if path.is_file()
+                        and "__pycache__" not in path.parts
+                        and path.suffix != ".pyc"
                     )
                 else:
                     files.add(target)
