@@ -195,6 +195,7 @@ def input_files(project_root: Path) -> list[str]:
         "tools/mutation_evidence.py",
         "tools/run_mutation.py",
         "tools/check_mutation_evidence.py",
+        "../.github/workflows/mutation.yml",
     ]
     result = subprocess.run(
         ["git", "ls-files", "-z", "--", *candidates],
