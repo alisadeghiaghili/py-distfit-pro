@@ -116,6 +116,9 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             "if: always()",
             "python/mutants/**/*.meta",
             "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+            "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
+            "fetch-depth: 0",
+            "persist-credentials: false",
             "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
             "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
         ):

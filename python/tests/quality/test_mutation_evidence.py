@@ -171,14 +171,19 @@ class MutationEvidenceTests(unittest.TestCase):
                 self.assertNotEqual(check(root, payload).returncode, 0)
 
     def test_runner_refuses_native_windows_before_mutmut_execution(self) -> None:
+        launcher = (
+            "import platform, runpy, sys; "
+            "platform.system = lambda: 'Windows'; "
+            f"sys.path.insert(0, {str(PYTHON_ROOT / 'tools')!r}); "
+            f"sys.argv = [{str(RUNNER)!r}, '--project-root', {str(PYTHON_ROOT)!r}, "
+            "'--output', 'ignored.json']; "
+            f"runpy.run_path({str(RUNNER)!r}, run_name='__main__')"
+        )
         result = subprocess.run(
             [
                 sys.executable,
-                str(RUNNER),
-                "--project-root",
-                str(PYTHON_ROOT),
-                "--output",
-                "ignored.json",
+                "-c",
+                launcher,
             ],
             capture_output=True,
             text=True,
