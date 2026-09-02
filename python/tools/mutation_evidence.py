@@ -140,7 +140,7 @@ def mutation_manifest(project_root: Path) -> dict[str, Any]:
         or value["production_root"] != "src/veridist"
         or value["critical_modules"] != list(CRITICAL_MODULES)
         or value["mutmut_version"] != MUTMUT_VERSION
-        or value["pytest_selection"] != ["tests"]
+        or value["pytest_selection"] != ["tests/contract", "tests/reference", "tests/unit"]
     ):
         raise ValueError("mutation manifest scope/version drift")
     score = value["minimum_score"]
@@ -170,7 +170,8 @@ def mutation_config(project_root: Path) -> dict[str, Any]:
     if (
         set(config) != allowed
         or config.get("source_paths") != [f"src/veridist/{item}" for item in CRITICAL_MODULES]
-        or config.get("pytest_add_cli_args_test_selection") != ["tests"]
+        or config.get("pytest_add_cli_args_test_selection")
+        != ["tests/contract", "tests/reference", "tests/unit"]
         or config.get("also_copy") != ["tools"]
         or config.get("mutate_only_covered_lines") is not False
     ):

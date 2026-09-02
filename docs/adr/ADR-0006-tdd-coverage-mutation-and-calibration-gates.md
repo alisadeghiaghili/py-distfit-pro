@@ -55,8 +55,9 @@ Its binding scope is every Python file in all four critical production
 directories: `src/veridist/domain`, `statistics`, `families`, and `engine`.
 There are no hand-picked mutation sites, `pragma: no mutate`, `do_not_mutate`,
 or exclusion patterns. The fail-closed schema/checker binds the checked-out
-commit and source-tree digest, the pinned `mutmut==3.7.0` configuration, full
-`tests` selection, baseline result, environment, every mutant identity and
+commit and source-tree digest, the pinned `mutmut==3.7.0` configuration, the
+curated behavioral mutation selection (`tests/contract`, `tests/reference`,
+and `tests/unit`), baseline result, environment, every mutant identity and
 per-file/per-module totals. It rejects missing files/modules, duplicate IDs,
 booleans disguised as counts, source/config drift, empty scored denominator,
 score below 80%, and suspicious, timeout, error, or unclassified results.
@@ -69,7 +70,8 @@ in evidence with `generated=0` and an empty identity list; it cannot be
 silently omitted. If every executable critical file has zero mutants, the
 checker rejects the evidence because there is no scored denominator. Native
 Windows is deliberately refused: mutmut 3.7.0 requires POSIX/fork. The
-versioned GitHub Linux workflow runs the complete baseline, mutation run,
+versioned GitHub Linux workflow runs the complete `tests` baseline, then the
+curated behavioral oracle selection for each mutation run, export and gate
 export and gate on Ubuntu/Python 3.13 after verifying the pinned PyPI wheel
 SHA-256. It retains evidence, both logs and raw cache metadata even on failure,
 but it has not yet produced a remote result or score.

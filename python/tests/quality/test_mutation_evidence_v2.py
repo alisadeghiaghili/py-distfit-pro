@@ -131,7 +131,8 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
                 "[tool.mutmut]\n"
                 'source_paths = ["src/veridist/domain", "src/veridist/statistics", '
                 '"src/veridist/families", "src/veridist/engine"]\n'
-                'pytest_add_cli_args_test_selection = ["tests/contract", "tests/reference", "tests/unit"]\n'
+                'pytest_add_cli_args_test_selection = ["tests/contract", '
+                '"tests/reference", "tests/unit"]\n'
                 "mutate_only_covered_lines = false\n"
             )
             root.joinpath("pyproject.toml").write_text(

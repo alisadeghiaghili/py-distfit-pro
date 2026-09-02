@@ -237,7 +237,7 @@ def check(
         != "1d2f9a1bfa4a474b2213df6b17223150b492bf4a85af0eda4fb322297337fb32"
         or config["config_sha256"] != config_digest(project_root)
         or config["source_paths"] != [f"src/veridist/{name}" for name in CRITICAL_MODULES]
-        or config["pytest_selection"] != ["tests"]
+        or config["pytest_selection"] != ["tests/contract", "tests/reference", "tests/unit"]
         or config["also_copy"] != ["tools"]
     ):
         fail("mutation configuration drift")

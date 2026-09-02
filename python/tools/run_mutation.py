@@ -171,7 +171,7 @@ def export(
             "wheel_sha256": sha256_bytes(wheel.read_bytes()),
             "config_sha256": config_digest(project_root),
             "source_paths": [f"src/veridist/{name}" for name in CRITICAL_MODULES],
-            "pytest_selection": ["tests"],
+            "pytest_selection": ["tests/contract", "tests/reference", "tests/unit"],
             "also_copy": ["tools"],
         },
         "environment": {"python": sys.version, "platform": platform.platform()},

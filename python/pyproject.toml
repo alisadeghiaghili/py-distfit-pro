@@ -87,6 +87,6 @@ source_paths = [
     "src/veridist/families",
     "src/veridist/engine",
 ]
-pytest_add_cli_args_test_selection = ["tests"]
+pytest_add_cli_args_test_selection = ["tests/contract", "tests/reference", "tests/unit"]
 also_copy = ["tools"]
 mutate_only_covered_lines = false
