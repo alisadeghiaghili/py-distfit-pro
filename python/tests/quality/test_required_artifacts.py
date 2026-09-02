@@ -108,6 +108,7 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             "1d2f9a1bfa4a474b2213df6b17223150b492bf4a85af0eda4fb322297337fb32",
             "importlib.metadata.version('mutmut')",
             "--index-url https://pypi.org/simple",
+            "python -m pip install '.[test,docs]'",
             "--mutmut-wheel",
             "--logs-dir",
             "--logs-root",
