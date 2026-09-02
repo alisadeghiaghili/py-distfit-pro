@@ -75,7 +75,7 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             "input_digest",
             "baseline",
             "mutation",
-            '"also_copy": ["tools"]',
+            '"also_copy": ["tools", "src/veridist/__init__.py", "src/veridist/execution.py", "src/veridist/py.typed", "src/veridist/adapters", "src/veridist/reporting"]',
             '"pytest_selection": ["tests/contract", "tests/reference", "tests/unit"]',
         )
         for required in required_terms:
@@ -135,11 +135,21 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
                 '"tests/reference", "tests/unit"]\n'
                 "mutate_only_covered_lines = false\n"
             )
+            copy = (
+                '["tools", "src/veridist/__init__.py", "src/veridist/execution.py", '
+                '"src/veridist/py.typed", "src/veridist/adapters", "src/veridist/reporting"]'
+            )
             root.joinpath("pyproject.toml").write_text(
-                configuration + 'also_copy = ["tools"]\n',
+                configuration + f"also_copy = {copy}\n",
                 encoding="utf-8",
             )
-            self.assertEqual(mutation_evidence.mutation_config(root)["also_copy"], ["tools"])
+            self.assertEqual(
+                mutation_evidence.mutation_config(root)["also_copy"],
+                [
+                    "tools", "src/veridist/__init__.py", "src/veridist/execution.py",
+                    "src/veridist/py.typed", "src/veridist/adapters", "src/veridist/reporting",
+                ],
+            )
             self.assertEqual(
                 mutation_evidence.mutation_config(root)["pytest_add_cli_args_test_selection"],
                 ["tests/contract", "tests/reference", "tests/unit"],
@@ -154,12 +164,12 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
                         configuration.replace(
                             '["tests/contract", "tests/reference", "tests/unit"]', selection
                         )
-                        + 'also_copy = ["tools"]\n',
+                        + f"also_copy = {copy}\n",
                         encoding="utf-8",
                     )
                     with self.assertRaises(ValueError):
                         mutation_evidence.mutation_config(root)
-            for value in ('[]', '["tool"]', '["tools", "tests"]'):
+            for value in ('[]', '["tools"]', copy + ','):
                 with self.subTest(value=value):
                     root.joinpath("pyproject.toml").write_text(
                         configuration + f"also_copy = {value}\n", encoding="utf-8"
@@ -167,7 +177,7 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         mutation_evidence.mutation_config(root)
             root.joinpath("pyproject.toml").write_text(
-                configuration + 'also_copy = ["tools"]\nalso_mutate = ["src/ignored"]\n',
+                configuration + f"also_copy = {copy}\nalso_mutate = [\"src/ignored\"]\n",
                 encoding="utf-8",
             )
             with self.assertRaises(ValueError):

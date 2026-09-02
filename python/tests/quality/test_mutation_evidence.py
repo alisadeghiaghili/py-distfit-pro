@@ -22,6 +22,14 @@ CHECKER = PYTHON_ROOT / "tools" / "check_mutation_evidence.py"
 RUNNER = PYTHON_ROOT / "tools" / "run_mutation.py"
 COUNT_KEYS = ("generated", "killed", "survived", "unresolved")
 MUTATION_SELECTION = ["tests/contract", "tests/reference", "tests/unit"]
+MUTATION_COPY = [
+    "tools",
+    "src/veridist/__init__.py",
+    "src/veridist/execution.py",
+    "src/veridist/py.typed",
+    "src/veridist/adapters",
+    "src/veridist/reporting",
+]
 
 
 def command(exit_code: int = 0) -> dict[str, object]:
@@ -70,7 +78,9 @@ def fixture(root: Path) -> dict[str, object]:
         'source_paths = ["src/veridist/domain", "src/veridist/statistics", '
         '"src/veridist/families", "src/veridist/engine"]\n'
         'pytest_add_cli_args_test_selection = ["tests/contract", "tests/reference", "tests/unit"]\n'
-        'also_copy = ["tools"]\nmutate_only_covered_lines = false\n',
+        'also_copy = ["tools", "src/veridist/__init__.py", "src/veridist/execution.py", '
+        '"src/veridist/py.typed", "src/veridist/adapters", "src/veridist/reporting"]\n'
+        'mutate_only_covered_lines = false\n',
         encoding="utf-8",
     )
     (root / "quality").mkdir()
@@ -100,7 +110,7 @@ def fixture(root: Path) -> dict[str, object]:
             "config_sha256": config_digest(root),
             "source_paths": [f"src/veridist/{name}" for name in CRITICAL_MODULES],
             "pytest_selection": MUTATION_SELECTION,
-            "also_copy": ["tools"],
+            "also_copy": MUTATION_COPY,
         },
         "environment": {"python": "fixture", "platform": "fixture"},
         "provenance": {
