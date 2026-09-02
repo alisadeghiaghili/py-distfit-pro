@@ -6,6 +6,7 @@ import argparse
 import math
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -17,6 +18,7 @@ from mutation_evidence import (
     input_digest,
     mutation_manifest,
     official_status,
+    reject_mutation_pragmas,
     scoring_status,
     sha256_bytes,
     source_files,
@@ -69,6 +71,73 @@ def finite(value: object, label: str) -> float:
     return float(cast(float, value))
 
 
+def utc_timestamp(value: object, label: str) -> datetime:
+    if not isinstance(value, str) or not value.endswith("Z"):
+        fail(f"{label} must be an RFC3339 UTC timestamp")
+    try:
+        return datetime.fromisoformat(cast(str, value)[:-1] + "+00:00")
+    except ValueError as error:
+        raise ValueError(f"{label} must be an RFC3339 UTC timestamp") from error
+
+
+def sha256(value: object, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(char not in "0123456789abcdef" for char in value)
+    ):
+        fail(f"{label} must be lower-case SHA-256")
+    return cast(str, value)
+
+
+def phase(
+    value: object,
+    name: str,
+    command: list[str],
+    fixture: bool,
+    logs_root: Path | None,
+) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        fail(f"{name} has invalid state")
+    data = cast(dict[str, Any], value)
+    if data.get("state") not in {"passed", "failed", "not_run"}:
+        fail(f"{name} has invalid state")
+    state = data["state"]
+    keys = (
+        {"state", "command"}
+        if state == "not_run"
+        else {"state", "command", "started_at", "ended_at", "exit_code", "log_path", "log_sha256"}
+    )
+    record = exact(data, keys, name)
+    if record["command"] != command:
+        fail(f"{name} command drift")
+    if state == "not_run":
+        return record
+    started = utc_timestamp(record["started_at"], f"{name}:started_at")
+    ended = utc_timestamp(record["ended_at"], f"{name}:ended_at")
+    if started > ended:
+        fail(f"{name} ended before it started")
+    exit_code = record["exit_code"]
+    if isinstance(exit_code, bool) or not isinstance(exit_code, int):
+        fail(f"{name} exit code invalid")
+    if (state == "passed") != (exit_code == 0):
+        fail(f"{name} state/exit-code mismatch")
+    digest = sha256(record["log_sha256"], f"{name}:log_sha256")
+    if not isinstance(record["log_path"], str) or not record["log_path"]:
+        fail(f"{name} log path invalid")
+    if not fixture:
+        if logs_root is None:
+            fail("--logs-root is required for non-fixture evidence")
+        path = Path(record["log_path"]).resolve()
+        if (
+            logs_root not in path.parents
+            or not path.is_file()
+            or sha256_bytes(path.read_bytes()) != digest
+        ):
+            fail(f"{name} log binding mismatch")
+    return record
+
+
 def commit(root: Path) -> str:
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=False
@@ -91,13 +160,21 @@ def file_meta(cache: Path, source: str) -> tuple[dict[str, Any], bytes]:
     for key, code in meta["exit_code_by_key"].items():
         if code is not None and (isinstance(code, bool) or not isinstance(code, int)):
             fail(f"raw meta {source}:{key} exit code invalid")
+    if any(not isinstance(value, str) for value in meta["hash_by_function_name"].values()):
+        fail(f"raw meta {source}: function hash invalid")
     if not set(meta["type_check_error_by_key"]).issubset(meta["exit_code_by_key"]):
         fail(f"raw meta {source}: type-check identity drift")
+    for key, error in meta["type_check_error_by_key"].items():
+        if error is not None and not isinstance(error, str):
+            fail(f"raw meta {source}: type-check error invalid")
+        if meta["exit_code_by_key"][key] != 37:
+            fail(f"raw meta {source}: type-check exit-code drift")
     for key in ("durations_by_key", "estimated_durations_by_key"):
         if not set(meta[key]).issubset(meta["exit_code_by_key"]):
             fail(f"raw meta {source}: duration identity drift")
         for value in meta[key].values():
-            finite(value, f"raw meta {source}:{key}")
+            if finite(value, f"raw meta {source}:{key}") < 0:
+                fail(f"raw meta {source}:{key} duration must be non-negative")
     return meta, raw
 
 
@@ -106,6 +183,7 @@ def check(
     project_root: Path,
     fixture: bool = False,
     mutants_root: Path | None = None,
+    logs_root: Path | None = None,
 ) -> None:
     exact(payload, set(TOP_KEYS), "evidence")
     if payload["schema_version"] != SCHEMA_VERSION:
@@ -135,41 +213,37 @@ def check(
     env = exact(payload["environment"], {"python", "platform"}, "environment")
     if not all(isinstance(env[key], str) and env[key] for key in env):
         fail("invalid environment")
-    provenance = exact(payload["provenance"], {"inputs", "input_digest"}, "provenance")
+    provenance = exact(
+        payload["provenance"],
+        {"inputs", "input_digest", "pre_input_digest", "post_input_digest"},
+        "provenance",
+    )
     if not isinstance(provenance["inputs"], dict) or not isinstance(
         provenance["input_digest"], str
     ):
         fail("invalid provenance")
-    if not fixture and provenance != {
-        "inputs": input_digest(project_root)[0],
-        "input_digest": input_digest(project_root)[1],
-    }:
-        fail("input provenance drift")
+    if not fixture:
+        current_inputs, current_digest = input_digest(project_root)
+        if provenance != {
+            "inputs": current_inputs,
+            "input_digest": current_digest,
+            "pre_input_digest": current_digest,
+            "post_input_digest": current_digest,
+        }:
+            fail("input provenance drift")
     mutation_manifest(project_root)
-    for name in ("baseline", "mutation"):
-        record = exact(
-            payload[name],
-            {"command", "started_at", "ended_at", "exit_code", "log_path", "log_sha256"},
-            name,
-        )
-        if (
-            not isinstance(record["command"], list)
-            or not record["command"]
-            or any(not isinstance(item, str) or not item for item in record["command"])
-        ):
-            fail(f"invalid {name} command")
-        if (
-            not all(
-                isinstance(record[key], str) and record[key]
-                for key in ("started_at", "ended_at", "log_path", "log_sha256")
-            )
-            or isinstance(record["exit_code"], bool)
-            or not isinstance(record["exit_code"], int)
-        ):
-            fail(f"invalid {name} result")
-    if payload["baseline"]["exit_code"] != 0:
+    reject_mutation_pragmas(project_root)
+    baseline = phase(
+        payload["baseline"],
+        "baseline",
+        [sys.executable, "-m", "pytest", "tests"],
+        fixture,
+        logs_root,
+    )
+    mutation = phase(payload["mutation"], "mutation", ["mutmut", "run"], fixture, logs_root)
+    if baseline["state"] != "passed":
         fail("baseline did not pass")
-    if payload["mutation"]["exit_code"] != 0:
+    if mutation["state"] != "passed":
         fail("mutation run did not complete")
     reports = payload["files"]
     if not isinstance(reports, list):
@@ -292,10 +366,11 @@ def main() -> int:
     parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--fixture", action="store_true")
     parser.add_argument("--mutants-root", type=Path)
+    parser.add_argument("--logs-root", type=Path)
     args = parser.parse_args()
     try:
-        if not args.fixture and args.mutants_root is None:
-            fail("--mutants-root is required for non-fixture evidence")
+        if not args.fixture and (args.mutants_root is None or args.logs_root is None):
+            fail("--mutants-root and --logs-root are required for non-fixture evidence")
         payload = load_json(args.evidence.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             fail("evidence root must be object")
@@ -304,6 +379,7 @@ def main() -> int:
             args.project_root.resolve(),
             args.fixture,
             args.mutants_root.resolve() if args.mutants_root else None,
+            args.logs_root.resolve() if args.logs_root else None,
         )
     except (OSError, ValueError) as error:
         print(f"MUTATION EVIDENCE FAIL: {error}", file=sys.stderr)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 from typing import Any
 
@@ -46,7 +47,7 @@ def official_status(exit_code: object) -> str:
         255: "timeout",
         -11: "segfault",
         -9: "segfault",
-    }.get(exit_code, "unknown")
+    }.get(exit_code, "suspicious")
 
 
 def scoring_status(exit_code: object) -> str:
@@ -157,15 +158,26 @@ def mutation_config(project_root: Path) -> dict[str, Any]:
     config = project.get("tool", {}).get("mutmut")
     if not isinstance(config, dict):
         raise ValueError("[tool.mutmut] is required")
-    forbidden = {"do_not_mutate", "do_not_mutate_patterns", "only_mutate"} & set(config)
+    allowed = {
+        "source_paths",
+        "pytest_add_cli_args_test_selection",
+        "mutate_only_covered_lines",
+    }
     if (
-        forbidden
+        set(config) != allowed
         or config.get("source_paths") != [f"src/veridist/{item}" for item in CRITICAL_MODULES]
         or config.get("pytest_add_cli_args_test_selection") != ["tests"]
         or config.get("mutate_only_covered_lines") is not False
     ):
         raise ValueError("invalid mutmut configuration")
     return config
+
+
+def reject_mutation_pragmas(project_root: Path) -> None:
+    pattern = re.compile(r"pragma\s*:\s*no\s*mutate", re.IGNORECASE)
+    for name in source_files(project_root):
+        if pattern.search((project_root / name).read_text(encoding="utf-8")):
+            raise ValueError(f"mutation exclusion pragma is forbidden: {name}")
 
 
 def config_digest(project_root: Path) -> str:

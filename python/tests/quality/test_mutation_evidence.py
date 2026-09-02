@@ -25,7 +25,8 @@ COUNT_KEYS = ("generated", "killed", "survived", "unresolved")
 
 def command(exit_code: int = 0) -> dict[str, object]:
     return {
-        "command": ["pytest", "tests"],
+        "state": "passed" if exit_code == 0 else "failed",
+        "command": [sys.executable, "-m", "pytest", "tests"],
         "started_at": "2026-01-01T00:00:00Z",
         "ended_at": "2026-01-01T00:00:01Z",
         "exit_code": exit_code,
@@ -99,9 +100,14 @@ def fixture(root: Path) -> dict[str, object]:
             "pytest_selection": ["tests"],
         },
         "environment": {"python": "fixture", "platform": "fixture"},
-        "provenance": {"inputs": {}, "input_digest": "fixture"},
+        "provenance": {
+            "inputs": {},
+            "input_digest": "fixture",
+            "pre_input_digest": "fixture",
+            "post_input_digest": "fixture",
+        },
         "baseline": command(),
-        "mutation": command(),
+        "mutation": {**command(), "command": ["mutmut", "run"]},
         "files": reports,
         "modules": [
             {

@@ -20,6 +20,7 @@ from mutation_evidence import (
     input_digest,
     mutation_manifest,
     official_status,
+    reject_mutation_pragmas,
     scoring_status,
     sha256_bytes,
     source_files,
@@ -54,14 +55,23 @@ def now() -> str:
 
 def run_logged(command: list[str], project_root: Path, log_path: Path) -> dict[str, Any]:
     started = now()
-    result = subprocess.run(command, cwd=project_root, capture_output=True, text=True, check=False)
+    try:
+        result = subprocess.run(
+            command, cwd=project_root, capture_output=True, text=True, check=False
+        )
+        exit_code = result.returncode
+        content = result.stdout + result.stderr
+    except OSError as error:
+        exit_code = 127
+        content = f"process start failed: {error}\n"
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    log_path.write_text(result.stdout + result.stderr, encoding="utf-8")
+    log_path.write_text(content, encoding="utf-8")
     return {
+        "state": "passed" if exit_code == 0 else "failed",
         "command": command,
         "started_at": started,
         "ended_at": now(),
-        "exit_code": result.returncode,
+        "exit_code": exit_code,
         "log_path": str(log_path),
         "log_sha256": sha256_bytes(log_path.read_bytes()),
     }
@@ -159,7 +169,12 @@ def export(
             "pytest_selection": ["tests"],
         },
         "environment": {"python": sys.version, "platform": platform.platform()},
-        "provenance": {"inputs": records, "input_digest": digest},
+        "provenance": {
+            "inputs": records,
+            "input_digest": digest,
+            "pre_input_digest": digest,
+            "post_input_digest": digest,
+        },
         "baseline": baseline,
         "mutation": mutation,
         "files": reports,
@@ -185,6 +200,17 @@ def verify_mutmut(wheel: Path) -> None:
         fail("installed mutmut version is not 3.7.0")
 
 
+def publish_diagnostic(output: Path, error: Exception) -> None:
+    """Persist an explicitly incomplete artifact when a started run cannot export evidence."""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = output.with_suffix(output.suffix + ".tmp")
+    staging.write_text(
+        json.dumps({"schema_version": 2, "state": "incomplete", "error": str(error)}) + "\n",
+        encoding="utf-8",
+    )
+    staging.replace(output)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-root", type=Path, default=Path("."))
@@ -205,22 +231,30 @@ def main() -> int:
     wheel = args.mutmut_wheel.resolve() if args.mutmut_wheel else None
     baseline: dict[str, Any] | None = None
     mutation: dict[str, Any] | None = None
+    started = False
     try:
         if wheel is None:
             fail("--mutmut-wheel is required")
         mutation_manifest(root)
+        reject_mutation_pragmas(root)
         commit = ensure_clean_tree(root)
         verify_mutmut(wheel)
         baseline = run_logged(
             [sys.executable, "-m", "pytest", "tests"], root, logs / "baseline.log"
         )
+        started = True
         if baseline["exit_code"] == 0:
             mutation = run_logged(["mutmut", "run"], root, logs / "mutmut.log")
         else:
-            mutation = {**baseline, "command": ["mutmut", "run"], "exit_code": 125}
+            mutation = {"state": "not_run", "command": ["mutmut", "run"]}
         export(root, args.output.resolve(), commit, wheel, baseline, mutation, cache)
         return 0 if baseline["exit_code"] == mutation["exit_code"] == 0 else 1
     except (OSError, RuntimeError, ValueError, importlib.metadata.PackageNotFoundError) as error:
+        if started:
+            try:
+                publish_diagnostic(args.output.resolve(), error)
+            except OSError:
+                pass
         print(f"MUTATION RUN FAIL: {error}", file=sys.stderr)
         return 1
 
