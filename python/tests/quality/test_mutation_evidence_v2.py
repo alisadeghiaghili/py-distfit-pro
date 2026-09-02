@@ -75,6 +75,7 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             "input_digest",
             "baseline",
             "mutation",
+            '"also_copy": ["tools"]',
         )
         for required in required_terms:
             with self.subTest(required=required):
@@ -119,19 +120,33 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
 
         self.assertEqual(mutation_evidence.official_status(999), "suspicious")
 
-    def test_mutmut_configuration_is_closed_to_result_affecting_options(self) -> None:
+    def test_mutmut_configuration_requires_exact_tools_copy_and_rejects_extra_options(self) -> None:
         sys.path.insert(0, str(PYTHON_ROOT / "tools"))
         import mutation_evidence
 
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            root.joinpath("pyproject.toml").write_text(
+            configuration = (
                 "[tool.mutmut]\n"
                 'source_paths = ["src/veridist/domain", "src/veridist/statistics", '
                 '"src/veridist/families", "src/veridist/engine"]\n'
                 'pytest_add_cli_args_test_selection = ["tests"]\n'
                 "mutate_only_covered_lines = false\n"
-                'also_mutate = ["src/ignored"]\n',
+            )
+            root.joinpath("pyproject.toml").write_text(
+                configuration + 'also_copy = ["tools"]\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(mutation_evidence.mutation_config(root)["also_copy"], ["tools"])
+            for value in ('[]', '["tool"]', '["tools", "tests"]'):
+                with self.subTest(value=value):
+                    root.joinpath("pyproject.toml").write_text(
+                        configuration + f"also_copy = {value}\n", encoding="utf-8"
+                    )
+                    with self.assertRaises(ValueError):
+                        mutation_evidence.mutation_config(root)
+            root.joinpath("pyproject.toml").write_text(
+                configuration + 'also_copy = ["tools"]\nalso_mutate = ["src/ignored"]\n',
                 encoding="utf-8",
             )
             with self.assertRaises(ValueError):

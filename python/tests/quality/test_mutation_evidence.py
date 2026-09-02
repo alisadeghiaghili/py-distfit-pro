@@ -68,7 +68,8 @@ def fixture(root: Path) -> dict[str, object]:
         "[tool.mutmut]\n"
         'source_paths = ["src/veridist/domain", "src/veridist/statistics", '
         '"src/veridist/families", "src/veridist/engine"]\n'
-        'pytest_add_cli_args_test_selection = ["tests"]\nmutate_only_covered_lines = false\n',
+        'pytest_add_cli_args_test_selection = ["tests"]\n'
+        'also_copy = ["tools"]\nmutate_only_covered_lines = false\n',
         encoding="utf-8",
     )
     (root / "quality").mkdir()
@@ -98,6 +99,7 @@ def fixture(root: Path) -> dict[str, object]:
             "config_sha256": config_digest(root),
             "source_paths": [f"src/veridist/{name}" for name in CRITICAL_MODULES],
             "pytest_selection": ["tests"],
+            "also_copy": ["tools"],
         },
         "environment": {"python": "fixture", "platform": "fixture"},
         "provenance": {
