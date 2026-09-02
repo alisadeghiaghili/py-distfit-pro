@@ -99,7 +99,8 @@ jobs:
           python tools/check_mutation_evidence.py \
             --project-root . \
             --evidence "$output" \
-            --mutants-root "$GITHUB_WORKSPACE/python/mutants"
+            --mutants-root "$GITHUB_WORKSPACE/python/mutants" \
+            --logs-root "$RUNNER_TEMP/mutation-logs"
 
       - name: Retain mutation evidence and raw cache
         if: always()

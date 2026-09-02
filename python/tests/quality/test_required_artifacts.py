@@ -110,6 +110,7 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             "--index-url https://pypi.org/simple",
             "--mutmut-wheel",
             "--logs-dir",
+            "--logs-root",
             "--mutants-root",
             "if: always()",
             "python/mutants/**/*.meta",
