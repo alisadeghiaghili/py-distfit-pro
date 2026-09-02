@@ -147,6 +147,21 @@ def commit(root: Path) -> str:
     return result.stdout.strip()
 
 
+def ensure_clean_relevant_tree(project_root: Path) -> None:
+    """Reject tracked or untracked evidence inputs changed after the mutation run."""
+    result = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        fail("cannot inspect evidence checkout cleanliness")
+    if result.stdout.strip():
+        fail("evidence checkout is dirty")
+
+
 def file_meta(cache: Path, source: str) -> tuple[dict[str, Any], bytes]:
     path = cache / f"{source}.meta"
     if not path.is_file():
@@ -169,6 +184,11 @@ def file_meta(cache: Path, source: str) -> tuple[dict[str, Any], bytes]:
             fail(f"raw meta {source}: type-check error invalid")
         if meta["exit_code_by_key"][key] != 37:
             fail(f"raw meta {source}: type-check exit-code drift")
+    if any(
+        code == 37 and key not in meta["type_check_error_by_key"]
+        for key, code in meta["exit_code_by_key"].items()
+    ):
+        fail(f"raw meta {source}: missing type-check result")
     for key in ("durations_by_key", "estimated_durations_by_key"):
         if not set(meta[key]).issubset(meta["exit_code_by_key"]):
             fail(f"raw meta {source}: duration identity drift")
@@ -223,6 +243,7 @@ def check(
     ):
         fail("invalid provenance")
     if not fixture:
+        ensure_clean_relevant_tree(project_root)
         current_inputs, current_digest = input_digest(project_root)
         if provenance != {
             "inputs": current_inputs,
