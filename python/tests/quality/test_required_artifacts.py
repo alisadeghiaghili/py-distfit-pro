@@ -92,8 +92,8 @@ class RequiredQualityArtifactTests(unittest.TestCase):
         ):
             with self.subTest(artifact=artifact):
                 self.assertTrue(artifact.is_file())
-        ignored = (REPOSITORY_ROOT / ".gitignore").read_text(encoding="utf-8")
-        self.assertIn("python/mutants/", ignored)
+        ignored = (PYTHON_ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("mutants/", ignored)
 
     def test_mutation_workflow_is_pinned_linux_evidence_gate(self) -> None:
         workflow = MUTATION_WORKFLOW.read_text(encoding="utf-8")
