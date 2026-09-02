@@ -165,7 +165,9 @@ run passes. Local Edge browser evidence passes for Persian report HTML and the
 Farsi/German built Sphinx tutorial contract; remote matched-Chromium CI and any
 PDF rendering evidence remain unverified. Eight
 targeted manual mutant probes were killed, but they are not a formal mutation
-runner or score. The formal mutation runner is not implemented. The narrow
+score. The formal mutation runner and its versioned GitHub Linux workflow are
+implemented; no Linux execution, retained evidence, score, or release PASS
+exists yet. The narrow
 `SCALE-CSV-EXP-01` retained-artifact checker is implemented; broader adapter,
 RSS, calibration, docs/i18n/example and rendered-RTL artifacts remain required
 continuous gates, not skipped placeholders or late-release work.

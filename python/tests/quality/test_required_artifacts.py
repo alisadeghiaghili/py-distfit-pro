@@ -51,7 +51,8 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             "fixed O(1) reducer state",
             "one CSV iterator and one pass",
             "SCALE-CSV-EXP-01",
-            "formal mutation infrastructure is implemented",
+            "formal mutation infrastructure and its versioned GitHub Linux",
+            "no remote execution has yet been retained",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, content)
@@ -103,12 +104,18 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             "pull_request:",
             "types: [published]",
             "MUTMUT_WHEEL_SHA256:",
+            "MUTMUT_WHEEL: mutmut-3.7.0-py3-none-any.whl",
             "1d2f9a1bfa4a474b2213df6b17223150b492bf4a85af0eda4fb322297337fb32",
+            "importlib.metadata.version('mutmut')",
+            "--index-url https://pypi.org/simple",
             "--mutmut-wheel",
             "--logs-dir",
             "--mutants-root",
             "if: always()",
             "python/mutants/**/*.meta",
+            "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+            "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+            "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, workflow)
