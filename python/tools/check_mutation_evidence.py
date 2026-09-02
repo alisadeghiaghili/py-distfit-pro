@@ -221,7 +221,14 @@ def check(
         fail("stale source binding")
     config = exact(
         payload["config"],
-        {"mutmut_version", "wheel_sha256", "config_sha256", "source_paths", "pytest_selection"},
+        {
+            "mutmut_version",
+            "wheel_sha256",
+            "config_sha256",
+            "source_paths",
+            "pytest_selection",
+            "also_copy",
+        },
         "config",
     )
     if (
@@ -231,6 +238,7 @@ def check(
         or config["config_sha256"] != config_digest(project_root)
         or config["source_paths"] != [f"src/veridist/{name}" for name in CRITICAL_MODULES]
         or config["pytest_selection"] != ["tests"]
+        or config["also_copy"] != ["tools"]
     ):
         fail("mutation configuration drift")
     env = exact(payload["environment"], {"python", "platform"}, "environment")

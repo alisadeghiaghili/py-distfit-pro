@@ -19,6 +19,7 @@ from mutation_evidence import (
     config_digest,
     input_digest,
     mutation_manifest,
+    mutation_config,
     official_status,
     reject_mutation_pragmas,
     scoring_status,
@@ -171,6 +172,7 @@ def export(
             "config_sha256": config_digest(project_root),
             "source_paths": [f"src/veridist/{name}" for name in CRITICAL_MODULES],
             "pytest_selection": ["tests"],
+            "also_copy": ["tools"],
         },
         "environment": {"python": sys.version, "platform": platform.platform()},
         "provenance": {
@@ -244,6 +246,7 @@ def main() -> int:
         if wheel is None:
             fail("--mutmut-wheel is required")
         mutation_manifest(root)
+        mutation_config(root)
         reject_mutation_pragmas(root)
         commit = ensure_clean_tree(root)
         verify_mutmut(wheel)

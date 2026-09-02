@@ -88,4 +88,5 @@ source_paths = [
     "src/veridist/engine",
 ]
 pytest_add_cli_args_test_selection = ["tests"]
+also_copy = ["tools"]
 mutate_only_covered_lines = false
