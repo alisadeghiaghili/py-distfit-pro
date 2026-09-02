@@ -93,7 +93,43 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             with self.subTest(artifact=artifact):
                 self.assertTrue(artifact.is_file())
         ignored = (PYTHON_ROOT / ".gitignore").read_text(encoding="utf-8")
-        self.assertIn("mutants/", ignored)
+        self.assertIn("/mutants/", ignored)
+        self.assertIn("/mutation-evidence.json", ignored)
+        self.assertIn("/.mutation-tmp/", ignored)
+
+    def test_mutation_cache_ignores_are_limited_to_the_python_root(self) -> None:
+        ignored = (PYTHON_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+        self.assertIn("/mutants/", ignored)
+        self.assertIn("/mutation-evidence.json", ignored)
+        self.assertIn("/.mutation-tmp/", ignored)
+
+        ignored_paths = (
+            "mutants/cache.py",
+            "mutation-evidence.json",
+            ".mutation-tmp/cache.json",
+        )
+        retained_paths = (
+            "src/veridist/mutants/example.py",
+            "tests/mutants/example.py",
+            "subdir/mutation-evidence.json",
+            "subdir/.mutation-tmp/cache.json",
+        )
+        for path in ignored_paths:
+            with self.subTest(path=path):
+                result = subprocess.run(
+                    ["git", "check-ignore", "-q", "--no-index", "--", path],
+                    cwd=PYTHON_ROOT,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0)
+        for path in retained_paths:
+            with self.subTest(path=path):
+                result = subprocess.run(
+                    ["git", "check-ignore", "-q", "--no-index", "--", path],
+                    cwd=PYTHON_ROOT,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 1)
 
     def test_mutation_workflow_is_pinned_linux_evidence_gate(self) -> None:
         workflow = MUTATION_WORKFLOW.read_text(encoding="utf-8")
