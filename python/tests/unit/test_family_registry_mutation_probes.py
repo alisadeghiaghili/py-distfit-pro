@@ -80,3 +80,63 @@ class FamilyRegistryMutationProbeTests(unittest.TestCase):
             FAMILY_REGISTRY.resolve("normal").supports("logpdf")  # type: ignore[arg-type]
         with self.assertRaises(TypeError):
             FAMILY_REGISTRY.resolve("normal").plans("logpdf")  # type: ignore[arg-type]
+
+    def test_registry_rejects_each_identity_collision_class_exactly(self) -> None:
+        gamma = _valid_family(id=FamilyId.GAMMA)
+        cases = (
+            (
+                "duplicate-canonical",
+                (_valid_family(), _valid_family(aliases=("bell",))),
+                "canonical family id collision",
+            ),
+            (
+                "canonical-versus-alias",
+                (_valid_family(aliases=("gamma",)), gamma),
+                "alias collision",
+            ),
+            (
+                "alias-versus-alias",
+                (
+                    _valid_family(aliases=("shared",)),
+                    _valid_family(id=FamilyId.GAMMA, aliases=("shared",)),
+                ),
+                "alias collision",
+            ),
+            (
+                "normalized-aliases",
+                (
+                    _valid_family(aliases=("a_b",)),
+                    _valid_family(id=FamilyId.GAMMA, aliases=("ab",)),
+                ),
+                "alias normalization collision",
+            ),
+        )
+        for name, families, message in cases:
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, f"^{message}$"):
+                    FamilyRegistry(families)
+
+    def test_registry_resolve_is_exact_closed_and_preserves_spec_identity(self) -> None:
+        normal = _valid_family(aliases=("bell",))
+        gamma = _valid_family(id=FamilyId.GAMMA, aliases=("shape_scale",))
+        registry = FamilyRegistry((normal, gamma))
+        self.assertIs(registry.resolve("normal"), normal)
+        self.assertIs(registry.resolve("bell"), normal)
+        self.assertIs(registry.resolve("gamma"), gamma)
+        self.assertIs(registry.resolve("shape_scale"), gamma)
+        self.assertEqual(tuple(registry), (FamilyId.NORMAL, FamilyId.GAMMA))
+        self.assertEqual(registry.list(), (normal, gamma))
+
+        class StringSubclass(str):
+            pass
+
+        for name in ("", " normal", "normal ", "NORMAL", "unknown"):
+            with self.subTest(name=name), self.assertRaisesRegex(
+                ValueError, "^unknown evaluated family$"
+            ):
+                registry.resolve(name)
+        for value in (StringSubclass("normal"), b"normal", None, FamilyId.NORMAL):
+            with self.subTest(value=value), self.assertRaisesRegex(
+                TypeError, "^family name must be a built-in string$"
+            ):
+                registry.resolve(value)  # type: ignore[arg-type]
