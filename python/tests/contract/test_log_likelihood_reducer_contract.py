@@ -346,34 +346,31 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
         with self.assertRaises(ValueError):
             _validate_fingerprint("g" * 64)
 
-    def test_llr02_fingerprint_matches_independent_ordered_binary64_wire_oracle(self) -> None:
+    def test_llr02_fingerprint_matches_golden_canonical_binary64_contract(self) -> None:
         from veridist.statistics.log_likelihood import LogLikelihoodState
 
-        values = {"location": -0.0, "scale": 1.5}
-        ordered_names = ("location", "scale")
-        encoded = tuple(
-            (0.0 if values[name] == 0.0 else values[name]).hex() for name in ordered_names
-        )
-        payload = "veridist.log_likelihood.v1\0gumbel_right\0" + "\0".join(encoded)
-        expected = sha256(payload.encode("ascii")).hexdigest()
-        state = LogLikelihoodState.empty(FamilyId.GUMBEL_RIGHT, **values)
+        # SHA-256 of the documented v1 wire fixture: gumbel_right,
+        # location=0.0, scale=1.5 in canonical registry parameter order.
+        expected = "c8195a6a5cff9506cb48094ffc9a42c60330fd1294e48f2b124bc07beba40df5"
+        canonical_order = {"location": 0.0, "scale": 1.5}
+        reverse_insertion_order = {"scale": 1.5, "location": 0.0}
+        signed_zero = {"location": -0.0, "scale": 1.5}
 
-        self.assertEqual(state.parameter_fingerprint, expected)
-        self.assertEqual(state.parameter_fingerprint, expected)
-        self.assertNotEqual(
+        self.assertEqual(
+            LogLikelihoodState.empty(
+                FamilyId.GUMBEL_RIGHT, **canonical_order
+            ).parameter_fingerprint,
             expected,
-            sha256(
-                (
-                    "veridist.log_likelihood.v1\0gumbel_right\0"
-                    + "\0".join(reversed(encoded))
-                ).encode("ascii")
-            ).hexdigest(),
         )
         self.assertEqual(
-            state.parameter_fingerprint,
             LogLikelihoodState.empty(
-                FamilyId.GUMBEL_RIGHT, location=0.0, scale=1.5
+                FamilyId.GUMBEL_RIGHT, **reverse_insertion_order
             ).parameter_fingerprint,
+            expected,
+        )
+        self.assertEqual(
+            LogLikelihoodState.empty(FamilyId.GUMBEL_RIGHT, **signed_zero).parameter_fingerprint,
+            expected,
         )
 
     def test_llr02_public_results_reject_noncanonical_fingerprint_types(self) -> None:
