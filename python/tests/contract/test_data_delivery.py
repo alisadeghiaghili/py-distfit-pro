@@ -9,6 +9,7 @@ from subprocess import TimeoutExpired, run
 from sys import executable, getsizeof
 from textwrap import dedent
 
+from tests.contract.buffer_watchdog import bounded_buffer_call
 from veridist.engine.data_source import Replayability
 from veridist.engine.delivery import (
     AdapterCapabilities,
@@ -38,15 +39,6 @@ def chunk(
         row_stop=stop,
         byte_size=byte_size,
     )
-
-
-def wait_for_waiting_producer(buffer: BoundedChunkBuffer, timeout: float = 1.0) -> None:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if buffer.waiting_producers == 1:
-            return
-        time.sleep(0.001)
-    raise AssertionError("producer did not enter backpressure before the deadline")
 
 
 def wait_for_waiting_producers(
@@ -460,42 +452,67 @@ class BoundedBufferContractTests(unittest.TestCase):
 
         buffer = BoundedChunkBuffer(chunk_bytes=3, max_inflight_bytes=6)
         with self.assertRaises(DeliveryContractError) as unaccounted:
-            buffer.put(buffered(chunk("unaccounted", 0, 0, byte_size=0)), timeout=0.1)
+            bounded_buffer_call(
+                buffer,
+                lambda: buffer.put(buffered(chunk("unaccounted", 0, 0, byte_size=0)), timeout=0.1),
+            )
         self.assertEqual(unaccounted.exception.code, "INVALID_RETAINED_BYTES")
 
         with self.assertRaises(DeliveryContractError) as caught:
-            buffer.put(buffered(chunk("oversized", 0, 1, byte_size=4)), timeout=0.1)
+            bounded_buffer_call(
+                buffer,
+                lambda: buffer.put(buffered(chunk("oversized", 0, 1, byte_size=4)), timeout=0.1),
+            )
         self.assertEqual(caught.exception.code, "CHUNK_TOO_LARGE")
         self.assertEqual(buffer.inflight_bytes, 0)
         self.assertEqual(buffer.queued_chunks, 0)
+
+    def test_ds06_fresh_buffer_has_an_exact_empty_runtime_snapshot(self) -> None:
+        buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=8)
+
+        self.assertEqual(buffer.inflight_bytes, 0)
+        self.assertEqual(buffer.queued_chunks, 0)
+        self.assertEqual(buffer.waiting_producers, 0)
+        self.assertEqual(buffer.peak_inflight_bytes, 0)
+        self.assertFalse(buffer.cancelled)
+        observation = buffer.observation
+        self.assertEqual(observation.chunk_bytes, 4)
+        self.assertEqual(observation.max_inflight_bytes, 8)
+        self.assertEqual(observation.peak_inflight_bytes, 0)
+        self.assertEqual(observation.largest_retained_chunk_bytes, 0)
+        self.assertEqual(observation.backpressure_event_count, 0)
 
     def test_ds06_producer_blocks_until_get_releases_budget(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         first = buffered(chunk("first", 0, 1, byte_size=4))
         second = buffered(chunk("second", 1, 2, byte_size=4))
-        buffer.put(first)
+        bounded_buffer_call(buffer, lambda: buffer.put(first))
         outcome: list[str] = []
 
         def produce() -> None:
             buffer.put(second, timeout=1.0)
             outcome.append("accepted")
 
-        producer = threading.Thread(target=produce, name="blocked-producer")
-        producer.start()
-        wait_for_waiting_producer(buffer)
-        self.assertTrue(producer.is_alive())
-        self.assertEqual(buffer.inflight_bytes, 4)
-        self.assertEqual(buffer.peak_inflight_bytes, 4)
-        self.assertLessEqual(buffer.peak_inflight_bytes, buffer.max_inflight_bytes)
+        producer = threading.Thread(target=produce, name="blocked-producer", daemon=True)
+        try:
+            producer.start()
+            wait_for_waiting_producers(buffer, 1)
+            self.assertTrue(producer.is_alive())
+            self.assertEqual(buffer.inflight_bytes, 4)
+            self.assertEqual(buffer.peak_inflight_bytes, 4)
+            self.assertLessEqual(buffer.peak_inflight_bytes, buffer.max_inflight_bytes)
 
-        self.assertEqual(buffer.get(timeout=0.2), first)
-        producer.join(timeout=1.0)
+            self.assertEqual(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.2)), first)
+            producer.join(timeout=0.5)
 
-        self.assertFalse(producer.is_alive())
-        self.assertEqual(outcome, ["accepted"])
-        self.assertEqual(buffer.inflight_bytes, 4)
-        self.assertEqual(buffer.get(timeout=0.2), second)
-        self.assertEqual(buffer.inflight_bytes, 0)
+            self.assertFalse(producer.is_alive())
+            self.assertEqual(outcome, ["accepted"])
+            self.assertEqual(buffer.inflight_bytes, 4)
+            self.assertEqual(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.2)), second)
+            self.assertEqual(buffer.inflight_bytes, 0)
+        finally:
+            buffer.cancel()
+            producer.join(timeout=0.05)
 
     def test_ds06_cancel_releases_queued_resources_exactly_once(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
@@ -505,7 +522,7 @@ class BoundedBufferContractTests(unittest.TestCase):
             payload=object(),
             release_callback=lambda: released.append("first"),
         )
-        buffer.put(first)
+        bounded_buffer_call(buffer, lambda: buffer.put(first))
 
         buffer.cancel()
         buffer.cancel()
@@ -519,20 +536,23 @@ class BoundedBufferContractTests(unittest.TestCase):
     def test_ds06_full_buffer_put_timeout_is_bounded(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         first = buffered(chunk("first", 0, 1, byte_size=4))
-        buffer.put(first)
+        bounded_buffer_call(buffer, lambda: buffer.put(first))
 
         with self.assertRaises(DeliveryContractError) as caught:
-            buffer.put(buffered(chunk("timeout", 1, 2, byte_size=4)), timeout=0.01)
+            bounded_buffer_call(
+                buffer,
+                lambda: buffer.put(buffered(chunk("timeout", 1, 2, byte_size=4)), timeout=0.01),
+            )
         self.assertEqual(caught.exception.code, "BUFFER_TIMEOUT")
         self.assertEqual(caught.exception.context, {"operation": "put"})
 
         self.assertEqual(buffer.inflight_bytes, 4)
         self.assertEqual(buffer.queued_chunks, 1)
-        self.assertEqual(buffer.get(timeout=0.1), first)
+        self.assertEqual(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1)), first)
 
     def test_ds06_cancel_wakes_waiter_and_stops_future_put_get(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
-        buffer.put(buffered(chunk("first", 0, 1, byte_size=4)))
+        bounded_buffer_call(buffer, lambda: buffer.put(buffered(chunk("first", 0, 1, byte_size=4))))
         outcome: list[str] = []
 
         def produce() -> None:
@@ -541,27 +561,33 @@ class BoundedBufferContractTests(unittest.TestCase):
             except DeliveryContractError as error:
                 outcome.append(error.code)
 
-        producer = threading.Thread(target=produce, name="cancelled-producer")
-        producer.start()
-        wait_for_waiting_producer(buffer)
-        buffer.cancel()
-        producer.join(timeout=1.0)
+        producer = threading.Thread(target=produce, name="cancelled-producer", daemon=True)
+        try:
+            producer.start()
+            wait_for_waiting_producers(buffer, 1)
+            buffer.cancel()
+            producer.join(timeout=0.5)
 
-        self.assertFalse(producer.is_alive())
-        self.assertEqual(outcome, ["CANCELLED"])
-        self.assertTrue(buffer.cancelled)
-        self.assertEqual(buffer.inflight_bytes, 0)
-        self.assertEqual(buffer.queued_chunks, 0)
-        with self.assertRaises(DeliveryContractError) as put_cancelled:
-            buffer.put(buffered(chunk("future", 2, 3)), timeout=0.1)
-        with self.assertRaises(DeliveryContractError) as get_cancelled:
-            buffer.get(timeout=0.1)
-        self.assertEqual(put_cancelled.exception.code, "CANCELLED")
-        self.assertEqual(get_cancelled.exception.code, "CANCELLED")
+            self.assertFalse(producer.is_alive())
+            self.assertEqual(outcome, ["CANCELLED"])
+            self.assertTrue(buffer.cancelled)
+            self.assertEqual(buffer.inflight_bytes, 0)
+            self.assertEqual(buffer.queued_chunks, 0)
+            with self.assertRaises(DeliveryContractError) as put_cancelled:
+                bounded_buffer_call(
+                    buffer, lambda: buffer.put(buffered(chunk("future", 2, 3)), timeout=0.1)
+                )
+            with self.assertRaises(DeliveryContractError) as get_cancelled:
+                bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1))
+            self.assertEqual(put_cancelled.exception.code, "CANCELLED")
+            self.assertEqual(get_cancelled.exception.code, "CANCELLED")
+        finally:
+            buffer.cancel()
+            producer.join(timeout=0.05)
 
     def test_ds06_cancel_prevents_new_reads_and_releases_rejected_read(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
-        buffer.put(buffered(chunk("first", 0, 1, byte_size=4)))
+        bounded_buffer_call(buffer, lambda: buffer.put(buffered(chunk("first", 0, 1, byte_size=4))))
         read_count = 0
         released: list[str] = []
         outcome: list[str] = []
@@ -581,20 +607,24 @@ class BoundedBufferContractTests(unittest.TestCase):
             except DeliveryContractError as error:
                 outcome.append(error.code)
 
-        producer = threading.Thread(target=produce, name="instrumented-reader")
-        producer.start()
-        wait_for_waiting_producer(buffer)
-        self.assertEqual(read_count, 1)
-        buffer.cancel()
-        producer.join(timeout=1.0)
+        producer = threading.Thread(target=produce, name="instrumented-reader", daemon=True)
+        try:
+            producer.start()
+            wait_for_waiting_producers(buffer, 1)
+            self.assertEqual(read_count, 1)
+            buffer.cancel()
+            producer.join(timeout=0.5)
 
-        self.assertFalse(producer.is_alive())
-        self.assertEqual(outcome, ["CANCELLED"])
-        self.assertEqual(released, ["read"])
-        with self.assertRaises(DeliveryContractError) as caught:
-            buffer.read_and_put(read_next, timeout=0.1)
-        self.assertEqual(caught.exception.code, "CANCELLED")
-        self.assertEqual(read_count, 1)
+            self.assertFalse(producer.is_alive())
+            self.assertEqual(outcome, ["CANCELLED"])
+            self.assertEqual(released, ["read"])
+            with self.assertRaises(DeliveryContractError) as caught:
+                buffer.read_and_put(read_next, timeout=0.1)
+            self.assertEqual(caught.exception.code, "CANCELLED")
+            self.assertEqual(read_count, 1)
+        finally:
+            buffer.cancel()
+            producer.join(timeout=0.05)
 
     def test_ds06_cancel_does_not_wait_for_external_read_callback(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
@@ -624,33 +654,39 @@ class BoundedBufferContractTests(unittest.TestCase):
             buffer.cancel()
             cancel_returned.set()
 
-        producer = threading.Thread(target=produce, name="blocked-external-reader")
-        canceller = threading.Thread(target=cancel, name="nonblocking-canceller")
-        producer.start()
-        self.assertTrue(read_started.wait(1.0))
-        canceller.start()
-        returned_while_read_blocked = cancel_returned.wait(0.2)
-        allow_read_return.set()
-        canceller.join(timeout=1.0)
-        producer.join(timeout=1.0)
+        producer = threading.Thread(target=produce, name="blocked-external-reader", daemon=True)
+        canceller = threading.Thread(target=cancel, name="nonblocking-canceller", daemon=True)
+        try:
+            producer.start()
+            self.assertTrue(read_started.wait(0.5))
+            canceller.start()
+            returned_while_read_blocked = cancel_returned.wait(0.2)
+            allow_read_return.set()
+            canceller.join(timeout=0.5)
+            producer.join(timeout=0.5)
 
-        self.assertTrue(returned_while_read_blocked)
-        self.assertFalse(canceller.is_alive())
-        self.assertFalse(producer.is_alive())
-        self.assertEqual(outcome, ["CANCELLED"])
-        self.assertEqual(released, ["read-after-cancel"])
+            self.assertTrue(returned_while_read_blocked)
+            self.assertFalse(canceller.is_alive())
+            self.assertFalse(producer.is_alive())
+            self.assertEqual(outcome, ["CANCELLED"])
+            self.assertEqual(released, ["read-after-cancel"])
+        finally:
+            allow_read_return.set()
+            buffer.cancel()
+            canceller.join(timeout=0.05)
+            producer.join(timeout=0.05)
 
     def test_ds06_empty_queue_timeout_is_bounded(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         with self.assertRaises(DeliveryContractError) as caught:
-            buffer.get(timeout=0.01)
+            bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.01))
         self.assertEqual(caught.exception.code, "BUFFER_TIMEOUT")
         self.assertEqual(caught.exception.context, {"operation": "get"})
 
     def test_ds06_capacity_release_admits_one_waiter_then_cancel_cleans_up(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         first = buffered(chunk("first", 0, 1, byte_size=4))
-        buffer.put(first)
+        bounded_buffer_call(buffer, lambda: buffer.put(first))
         start = (threading.Event(), threading.Event())
         attempted = (threading.Event(), threading.Event())
         admitted = (threading.Event(), threading.Event())
@@ -677,7 +713,9 @@ class BoundedBufferContractTests(unittest.TestCase):
             finally:
                 finished[index].set()
 
-        producers = tuple(threading.Thread(target=produce, args=(index,)) for index in range(2))
+        producers = tuple(
+            threading.Thread(target=produce, args=(index,), daemon=True) for index in range(2)
+        )
         try:
             for producer in producers:
                 producer.start()
@@ -687,7 +725,7 @@ class BoundedBufferContractTests(unittest.TestCase):
             start[1].set()
             self.assertTrue(attempted[1].wait(1.0))
             wait_for_waiting_producers(buffer, 2)
-            self.assertEqual(buffer.get(timeout=0.1), first)
+            self.assertEqual(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1)), first)
             self.assertTrue(admitted[0].wait(0.5) or admitted[1].wait(0.5))
             buffer.cancel()
             self.assertTrue(finished[0].wait(1.0))
@@ -713,7 +751,7 @@ class BoundedBufferContractTests(unittest.TestCase):
 
     def test_ds06_cancel_wakes_two_blocked_producers_without_resource_leak(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
-        buffer.put(buffered(chunk("first", 0, 1, byte_size=4)))
+        bounded_buffer_call(buffer, lambda: buffer.put(buffered(chunk("first", 0, 1, byte_size=4))))
         ready = threading.Barrier(3)
         outcomes: list[str] = []
         worker_errors: list[BaseException] = []
@@ -727,7 +765,9 @@ class BoundedBufferContractTests(unittest.TestCase):
             except BaseException as error:
                 worker_errors.append(error)
 
-        producers = tuple(threading.Thread(target=produce, args=(index,)) for index in range(2))
+        producers = tuple(
+            threading.Thread(target=produce, args=(index,), daemon=True) for index in range(2)
+        )
         try:
             for producer in producers:
                 producer.start()
@@ -806,24 +846,24 @@ class BoundedBufferContractTests(unittest.TestCase):
                     require(buffer.inflight_bytes == 0, 'initial bytes were retained')
                     require(buffer.queued_chunks == 0, 'initial queue was nonempty')
                 elif scenario.startswith('get-'):
-                    worker = threading.Thread(target=blocked, args=('get',))
+                    worker = threading.Thread(target=blocked, args=('get',), daemon=True)
                     worker.start()
-                    require(wait_entered.wait(1.0), 'get did not enter Condition.wait')
+                    require(wait_entered.wait(0.25), 'get did not enter Condition.wait')
                     if scenario == 'get-release':
-                        buffer.put(item('first', 0))
+                        buffer.put(item('first', 0), timeout=0.25)
                         expected = ['first']
                     else:
                         buffer.cancel()
                         expected = ['CANCELLED']
-                    require(done.wait(1.0), 'get worker did not finish')
-                    worker.join(1.0)
+                    require(done.wait(0.25), 'get worker did not finish')
+                    worker.join(0.05)
                     require(not worker.is_alive(), 'get worker remained alive')
                     require(result == expected, f'unexpected get result: {result!r}')
                 else:
-                    buffer.put(item('first', 0))
-                    worker = threading.Thread(target=blocked, args=('put',))
+                    buffer.put(item('first', 0), timeout=0.25)
+                    worker = threading.Thread(target=blocked, args=('put',), daemon=True)
                     worker.start()
-                    require(wait_entered.wait(1.0), 'put did not enter Condition.wait')
+                    require(wait_entered.wait(0.25), 'put did not enter Condition.wait')
                     if scenario == 'put-release':
                         require(
                             buffer.get().envelope.chunk_id == 'first',
@@ -833,8 +873,8 @@ class BoundedBufferContractTests(unittest.TestCase):
                     else:
                         buffer.cancel()
                         expected = ['CANCELLED']
-                    require(done.wait(1.0), 'put worker did not finish')
-                    worker.join(1.0)
+                    require(done.wait(0.25), 'put worker did not finish')
+                    worker.join(0.05)
                     require(not worker.is_alive(), 'put worker remained alive')
                     require(result == expected, f'unexpected put result: {result!r}')
                     if scenario == 'put-release':
@@ -845,7 +885,7 @@ class BoundedBufferContractTests(unittest.TestCase):
             finally:
                 buffer.cancel()
                 if worker is not None:
-                    worker.join(1.0)
+                    worker.join(0.05)
                     require(not worker.is_alive(), 'worker survived cancellation cleanup')
                 del buffer._condition.wait
             print('watchdog-ok')
@@ -858,7 +898,7 @@ class BoundedBufferContractTests(unittest.TestCase):
                         [executable, "-c", program, scenario],
                         capture_output=True,
                         text=True,
-                        timeout=5.0,
+                        timeout=1.5,
                         check=False,
                     )
                 except TimeoutExpired as error:
