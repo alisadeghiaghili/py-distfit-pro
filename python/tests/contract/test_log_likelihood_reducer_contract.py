@@ -345,3 +345,97 @@ class LogLikelihoodReducerContracts(unittest.TestCase):
             _validate_fingerprint("bad")
         with self.assertRaises(ValueError):
             _validate_fingerprint("g" * 64)
+
+    def test_llr02_fingerprint_matches_independent_ordered_binary64_wire_oracle(self) -> None:
+        from veridist.statistics.log_likelihood import LogLikelihoodState
+
+        values = {"location": -0.0, "scale": 1.5}
+        ordered_names = ("location", "scale")
+        encoded = tuple(
+            (0.0 if values[name] == 0.0 else values[name]).hex() for name in ordered_names
+        )
+        payload = "veridist.log_likelihood.v1\0gumbel_right\0" + "\0".join(encoded)
+        expected = sha256(payload.encode("ascii")).hexdigest()
+        state = LogLikelihoodState.empty(FamilyId.GUMBEL_RIGHT, **values)
+
+        self.assertEqual(state.parameter_fingerprint, expected)
+        self.assertEqual(state.parameter_fingerprint, expected)
+        self.assertNotEqual(
+            expected,
+            sha256(
+                (
+                    "veridist.log_likelihood.v1\0gumbel_right\0"
+                    + "\0".join(reversed(encoded))
+                ).encode("ascii")
+            ).hexdigest(),
+        )
+        self.assertEqual(
+            state.parameter_fingerprint,
+            LogLikelihoodState.empty(
+                FamilyId.GUMBEL_RIGHT, location=0.0, scale=1.5
+            ).parameter_fingerprint,
+        )
+
+    def test_llr02_public_results_reject_noncanonical_fingerprint_types(self) -> None:
+        from veridist.statistics.log_likelihood import LogLikelihoodSuccess
+
+        valid = "a" * 64
+
+        class StringSubclass(str):
+            pass
+
+        type_errors = (StringSubclass(valid), "a" * 63, "a" * 65, b"a" * 64, None)
+        for fingerprint in type_errors:
+            with self.subTest(fingerprint=fingerprint), self.assertRaisesRegex(
+                TypeError, "^parameter_fingerprint must be a SHA-256 hex string$"
+            ):
+                LogLikelihoodSuccess(FamilyId.NORMAL, fingerprint, 0, 0.0)  # type: ignore[arg-type]
+        for fingerprint in ("A" * 64, "g" * 64):
+            with self.subTest(fingerprint=fingerprint), self.assertRaisesRegex(
+                ValueError, "^parameter_fingerprint must be lowercase hexadecimal$"
+            ):
+                LogLikelihoodSuccess(FamilyId.NORMAL, fingerprint, 0, 0.0)
+
+    def test_llr04_first_scalar_failure_stops_the_input_tail_exactly(self) -> None:
+        from veridist.statistics.log_density import LogDensityErrorCode
+        from veridist.statistics.log_likelihood import (
+            LogLikelihoodErrorCode,
+            LogLikelihoodFailure,
+            reduce_log_likelihood_chunks,
+        )
+
+        consumed: list[float] = []
+
+        def observations() -> object:
+            for value in (1.0, 0.0, 7.0):
+                consumed.append(value)
+                yield value
+
+        result = reduce_log_likelihood_chunks(
+            FamilyId.GAMMA,
+            (observations(),),
+            shape=1.0,
+            scale=1.0,
+        )
+        self.assertIsInstance(result, LogLikelihoodFailure)
+        assert isinstance(result, LogLikelihoodFailure)
+        self.assertIs(result.code, LogLikelihoodErrorCode.SCALAR_EVALUATION_FAILURE)
+        self.assertIs(result.scalar_error_code, LogDensityErrorCode.SUPPORT_VIOLATION)
+        self.assertEqual(result.processed_count, 1)
+        self.assertEqual(consumed, [1.0, 0.0])
+
+    def test_llr05_invalid_setup_never_consumes_a_generator(self) -> None:
+        from veridist.statistics.log_likelihood import reduce_log_likelihood_chunks
+
+        consumed: list[str] = []
+
+        def chunks() -> object:
+            consumed.append("outer")
+            yield (0.0,)
+
+        with self.assertRaisesRegex(TypeError, "^family must be a FamilyId$"):
+            reduce_log_likelihood_chunks("normal", chunks(), mu=0.0, sigma=1.0)  # type: ignore[arg-type]
+        self.assertEqual(consumed, [])
+        with self.assertRaisesRegex(ValueError, "^sigma must be positive$"):
+            reduce_log_likelihood_chunks(FamilyId.NORMAL, chunks(), mu=0.0, sigma=0.0)
+        self.assertEqual(consumed, [])
