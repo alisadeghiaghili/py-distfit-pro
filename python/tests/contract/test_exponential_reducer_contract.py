@@ -294,6 +294,18 @@ class ExponentialReducerContracts(unittest.TestCase):
                 with self.assertRaises((TypeError, ValueError)):
                     ExponentialFitFailure(*arguments)  # type: ignore[arg-type]
 
+    def test_exp14_zero_time_failure_facts_require_builtin_finite_floats(self) -> None:
+        legal = (
+            (ExponentialFitFailureCode.EMPTY_SAMPLE, 0, 0),
+            (ExponentialFitFailureCode.UNBOUNDED_LIKELIHOOD, 1, 1),
+        )
+        for code, observations, events in legal:
+            with self.subTest(code=code):
+                self.assertIsInstance(ExponentialFitFailure(code, observations, events, 0.0).total_time, float)
+                for value in (0, False, Decimal("0")):
+                    with self.assertRaises(TypeError):
+                        ExponentialFitFailure(code, observations, events, value)  # type: ignore[arg-type]
+
     def test_exp14_failure_fact_validator_is_total_over_the_closed_code_set(self) -> None:
         self.assertEqual(
             set(exponential_module._FAILURE_FACT_VALIDATORS),
