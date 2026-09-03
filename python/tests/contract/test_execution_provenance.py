@@ -10,6 +10,7 @@ import unittest
 from dataclasses import FrozenInstanceError, fields, replace
 from types import MappingProxyType
 
+from tests.contract.buffer_watchdog import bounded_buffer_call
 from veridist import __version__
 from veridist.engine.data_source import (
     DataSourceMetadata,
@@ -235,17 +236,21 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
 
         first = item("first", 0, 4)
         second = item("second", 1, 4)
-        buffer.put(first)
-        producer = threading.Thread(target=lambda: buffer.put(second, timeout=1.0))
-        producer.start()
-        deadline = time.monotonic() + 1.0
-        while buffer.waiting_producers == 0 and time.monotonic() < deadline:
-            time.sleep(0.001)
-        self.assertEqual(buffer.waiting_producers, 1)
-        buffer.get().release()
-        producer.join(timeout=1.0)
-        self.assertFalse(producer.is_alive())
-        buffer.get().release()
+        bounded_buffer_call(buffer, lambda: buffer.put(first))
+        producer = threading.Thread(target=lambda: buffer.put(second, timeout=1.0), daemon=True)
+        try:
+            producer.start()
+            deadline = time.monotonic() + 1.0
+            while buffer.waiting_producers == 0 and time.monotonic() < deadline:
+                threading.Event().wait(0.001)
+            self.assertEqual(buffer.waiting_producers, 1)
+            bounded_buffer_call(buffer, lambda: buffer.get()).release()
+            producer.join(timeout=0.5)
+            self.assertFalse(producer.is_alive())
+            bounded_buffer_call(buffer, lambda: buffer.get()).release()
+        finally:
+            buffer.cancel()
+            producer.join(timeout=0.05)
 
         observation = buffer.observation
         self.assertEqual(observation.peak_inflight_bytes, 4)
@@ -684,11 +689,14 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
         enforcer = PassEnforcer(max_passes=2)
         list(enforcer.begin_pass([1]))
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
-        buffer.put(
-            BufferedChunk(
-                envelope=ChunkEnvelope(sentinel, sentinel, 0, 0, 1, 4),
-                payload={"raw": sentinel},
-            )
+        bounded_buffer_call(
+            buffer,
+            lambda: buffer.put(
+                BufferedChunk(
+                    envelope=ChunkEnvelope(sentinel, sentinel, 0, 0, 1, 4),
+                    payload={"raw": sentinel},
+                )
+            ),
         )
         observation = snapshot_execution_observation(
             plan=plan,
@@ -749,7 +757,7 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
         self.assertNotIn(b"payload", encoded)
         self.assertEqual(json.loads(encoded)["checkpoint"]["initial_generation"], 7)
         self.assertEqual(json.loads(encoded)["execution"]["required_passes"], 1)
-        buffer.get().release()
+        bounded_buffer_call(buffer, lambda: buffer.get()).release()
 
     def test_ds12_serializer_rejects_legacy_open_mappings(self) -> None:
         plan = ExecutionPlan(
@@ -944,10 +952,13 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
         enforcer = PassEnforcer(max_passes=2)
         list(enforcer.begin_pass(["one"]))
         buffer = BoundedChunkBuffer(chunk_bytes=8, max_inflight_bytes=16)
-        buffer.put(
-            BufferedChunk(
-                envelope=ChunkEnvelope("private", "chunk", 0, 0, 1, 8), payload=object()
-            )
+        bounded_buffer_call(
+            buffer,
+            lambda: buffer.put(
+                BufferedChunk(
+                    envelope=ChunkEnvelope("private", "chunk", 0, 0, 1, 8), payload=object()
+                )
+            ),
         )
         snapshot = snapshot_execution_observation(
             plan=plan,
@@ -1006,7 +1017,7 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
             failure_record_from_error(error, FailureStage.CANCELLATION),
             FailureRecord(FailureCode.CANCELLED, FailureStage.CANCELLATION),
         )
-        buffer.get().release()
+        bounded_buffer_call(buffer, lambda: buffer.get()).release()
 
     def test_ds12_minimal_variant_omits_unavailable_optional_facts_exactly(self) -> None:
         metadata = replace(
