@@ -298,6 +298,136 @@ class DeliveryValidationContractTests(unittest.TestCase):
         self.assertEqual(validator.next_offset, 0)
         self.assertEqual(validator.accepted_chunks, 0)
 
+    def test_ds05_rejected_accepts_preserve_every_counter_and_context(self) -> None:
+        validator = DeliveryValidator("dataset:delivery-001")
+        validator.accept(chunk("accepted", 0, 2, sequence_number=0))
+        before = (
+            validator.next_offset,
+            validator.next_sequence,
+            validator.accepted_rows,
+            validator.accepted_chunks,
+        )
+        cases = (
+            (
+                "duplicate",
+                chunk("duplicate", 2, 3, sequence_number=0),
+                "DUPLICATE_CHUNK",
+                {
+                    "expected_offset": 2,
+                    "expected_sequence": 1,
+                    "sequence_number": 0,
+                    "row_start": 2,
+                    "row_stop": 3,
+                },
+            ),
+            (
+                "sequence-gap",
+                chunk("sequence-gap", 2, 3, sequence_number=2),
+                "OUT_OF_ORDER_CHUNK",
+                {
+                    "expected_offset": 2,
+                    "expected_sequence": 1,
+                    "sequence_number": 2,
+                    "row_start": 2,
+                    "row_stop": 3,
+                },
+            ),
+            (
+                "row-gap",
+                chunk("row-gap", 3, 4, sequence_number=1),
+                "MISSING_CHUNK",
+                {
+                    "expected_offset": 2,
+                    "expected_sequence": 1,
+                    "sequence_number": 1,
+                    "row_start": 3,
+                    "row_stop": 4,
+                },
+            ),
+            (
+                "overlap",
+                chunk("overlap", 1, 3, sequence_number=1),
+                "OUT_OF_ORDER_CHUNK",
+                {
+                    "expected_offset": 2,
+                    "expected_sequence": 1,
+                    "sequence_number": 1,
+                    "row_start": 1,
+                    "row_stop": 3,
+                },
+            ),
+            (
+                "source",
+                ChunkEnvelope("other-source", "foreign", 1, 2, 3, 1),
+                "SOURCE_MISMATCH",
+                {
+                    "stage": "delivery_validation",
+                    "expected_offset": 2,
+                    "expected_sequence": 1,
+                    "sequence_number": 1,
+                    "row_start": 2,
+                    "row_stop": 3,
+                },
+            ),
+        )
+        for name, envelope, code, context in cases:
+            with self.subTest(name=name):
+                with self.assertRaises(DeliveryContractError) as caught:
+                    validator.accept(envelope)
+                self.assertEqual(caught.exception.code, code)
+                self.assertEqual(caught.exception.context, context)
+                self.assertEqual(
+                    (
+                        validator.next_offset,
+                        validator.next_sequence,
+                        validator.accepted_rows,
+                        validator.accepted_chunks,
+                    ),
+                    before,
+                )
+        validator.accept(chunk("recovery", 2, 3, sequence_number=1))
+        self.assertEqual(
+            (
+                validator.next_offset,
+                validator.next_sequence,
+                validator.accepted_rows,
+                validator.accepted_chunks,
+            ),
+            (3, 2, 3, 2),
+        )
+
+    def test_ds05_finish_mismatch_matrix_has_exact_terminal_contexts(self) -> None:
+        validator = DeliveryValidator("dataset:delivery-001")
+        validator.accept(chunk("first", 0, 2, sequence_number=0))
+        cases = (
+            (4, None, "MISSING_CHUNK", {"expected_offset": 2, "expected_row_stop": 4}),
+            (1, None, "OUT_OF_ORDER_CHUNK", {"expected_offset": 1, "row_stop": 2}),
+            (
+                2,
+                2,
+                "MISSING_CHUNK",
+                {"expected_sequence": 1, "expected_chunk_count": 2},
+            ),
+            (
+                2,
+                0,
+                "OUT_OF_ORDER_CHUNK",
+                {"expected_sequence": 0, "sequence_number": 1},
+            ),
+        )
+        for row_stop, chunks, code, context in cases:
+            with self.subTest(row_stop=row_stop, chunks=chunks):
+                with self.assertRaises(DeliveryContractError) as caught:
+                    validator.finish(
+                        expected_row_stop=row_stop, expected_chunk_count=chunks
+                    )
+                self.assertEqual(caught.exception.code, code)
+                self.assertEqual(caught.exception.context, context)
+        with self.assertRaises(ValueError):
+            validator.finish(expected_row_stop=-1)
+        with self.assertRaises(ValueError):
+            validator.finish(expected_row_stop=2, expected_chunk_count=-1)
+
 
 class BoundedBufferContractTests(unittest.TestCase):
     """DS-06: byte budgets, real backpressure and cancellation are observable."""
