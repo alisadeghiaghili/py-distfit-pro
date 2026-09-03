@@ -21,6 +21,8 @@ The schema declaration below is executable Python. It names the only accepted
 header pair and intentionally keeps machine-readable identifiers left to right.
 
 ```python
+from veridist import CsvLifetimeSchema
+
 schema = CsvLifetimeSchema("time", "event_observed")
 ```
 

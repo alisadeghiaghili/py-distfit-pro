@@ -1,18 +1,82 @@
+
 msgid ""
 msgstr ""
 "Project-Id-Version: veridist 0.0.0.dev0\n"
+"Report-Msgid-Bugs-To: alisadeghiaghili@gmail.com\n"
+"POT-Creation-Date: 2026-09-01 21:24+0330\n"
+"PO-Revision-Date: 2026-09-01 21:55+0330\n"
+"Last-Translator: Ali Sadeghi Aghili <alisadeghiaghili@gmail.com>\n"
 "Language: fa\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Language-Team: Persian documentation <alisadeghiaghili@gmail.com>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
 
+#: ../../../py-distfit-pro/python/docs/source/api.md:2
+#: 80ba3d5a4d1840c3bfcf90fb0a3b30e4
 msgid "CSV exponential API"
 msgstr "رابط برنامه‌نویسی نمایی CSV"
 
-msgid "`fit_exponential_csv(path, *, schema, source_id, limits)` is the public source entry point. `CsvLifetimeSchema(\"time\", \"event_observed\")` selects the only accepted header; `PublicSourceId` is an opaque identifier safe for returned provenance; and `CsvLifetimeLimits` supplies positive byte budgets. The result is always an `ExponentialSourceFitResult`: a finite rate-only estimate, a typed statistical non-estimate, or a typed execution failure."
-msgstr "`fit_exponential_csv(path, *, schema, source_id, limits)` نقطهٔ ورود عمومی منبع است. `CsvLifetimeSchema(\"time\", \"event_observed\")` تنها سرستون پذیرفته‌شده را انتخاب می‌کند؛ `PublicSourceId` شناسه‌ای مبهم و امن برای منشأ بازگردانده‌شده است؛ و `CsvLifetimeLimits` بودجه‌های مثبت بر حسب بایت را می‌دهد. نتیجه همیشه یک `ExponentialSourceFitResult` است: برآورد متناهی فقط برای نرخ، عدم‌برآورد آماری نوع‌دار، یا شکست اجرایی نوع‌دار."
+#: ../../../py-distfit-pro/python/docs/source/api.md:4
+#: a805ace4a33f4d74b2773c79b8e2d634
+msgid ""
+"`fit_exponential_csv(path, *, schema, source_id, limits)` is the public "
+"source entry point. `CsvLifetimeSchema(\"time\", \"event_observed\")` "
+"selects the only accepted header; `PublicSourceId` is an opaque "
+"identifier safe for returned provenance; and `CsvLifetimeLimits` supplies"
+" positive byte budgets. The result is always an "
+"`ExponentialSourceFitResult`: a finite rate-only estimate, a typed "
+"statistical non-estimate, or a typed execution failure."
+msgstr ""
+"`fit_exponential_csv(path, *, schema, source_id, limits)` نقطهٔ ورود "
+"عمومی منبع است. `CsvLifetimeSchema(\"time\", \"event_observed\")` تنها "
+"سرستون پذیرفته‌شده را انتخاب می‌کند؛ `PublicSourceId` شناسه‌ای مبهم و امن"
+" برای منشأ بازگردانده‌شده است؛ و `CsvLifetimeLimits` بودجه‌های مثبت بر "
+"حسب بایت را می‌دهد. نتیجه همیشه یک `ExponentialSourceFitResult` است: "
+"برآورد متناهی فقط برای نرخ، عدم‌برآورد آماری نوع‌دار، یا شکست اجرایی "
+"نوع‌دار."
 
-msgid "Times must be finite and non-negative. Event token `1` denotes an exact event; token `0` denotes independent right censoring. The CSV contract is deliberately strict rather than a permissive spreadsheet reader: wrong encoding, headers, tokens, fields, budgets, or source access produce typed failures."
-msgstr "زمان‌ها باید متناهی و نامنفی باشند. توکن رخداد `1` رخداد دقیق و توکن `0` سانسور مستقل از راست را نشان می‌دهد. قرارداد CSV عامدانه سخت‌گیرانه است، نه خوانندهٔ سهل‌گیر صفحه‌گسترده: کدگذاری، سرستون، توکن، فیلد، بودجه یا دسترسی نادرست به منبع شکست‌های نوع‌دار تولید می‌کند."
+#: ../../../py-distfit-pro/python/docs/source/api.md:11
+#: 1833a5c123e242f6b9de30e121f3a23b
+msgid ""
+"Times must be finite and non-negative. Event token `1` denotes an exact "
+"event; token `0` denotes independent right censoring. The CSV contract is"
+" deliberately strict rather than a permissive spreadsheet reader: wrong "
+"encoding, headers, tokens, fields, budgets, or source access produce "
+"typed failures."
+msgstr ""
+"زمان‌ها باید متناهی و نامنفی باشند. توکن رخداد `1` رخداد دقیق و توکن `0` "
+"سانسور مستقل از راست را نشان می‌دهد. قرارداد CSV عامدانه سخت‌گیرانه است، "
+"نه خوانندهٔ سهل‌گیر صفحه‌گسترده: کدگذاری، سرستون، توکن، فیلد، بودجه یا "
+"دسترسی نادرست به منبع شکست‌های نوع‌دار تولید می‌کند."
 
-msgid "The vertical fixes `location=0`, has no confidence interval or goodness-of-fit claim, and supplies no weights, covariates, truncation, left/interval censoring, free location, model selection, retry, checkpointing, or cancellation."
-msgstr "این قابلیت `location=0` را ثابت می‌کند، هیچ ادعایی دربارهٔ فاصلهٔ اطمینان یا نیکویی برازش ندارد و وزن، متغیر کمکی، برش، سانسور چپ/فاصله‌ای، مکان آزاد، انتخاب مدل، تلاش‌مجدد، checkpoint یا لغو ارائه نمی‌کند."
+#: ../../../py-distfit-pro/python/docs/source/api.md:16
+#: 1478a9ccaff744f2a753a40cb5ecfca0
+msgid ""
+"The vertical fixes `location=0`, has no confidence interval or goodness-"
+"of-fit claim, and supplies no weights, covariates, truncation, "
+"left/interval censoring, free location, model selection, retry, "
+"checkpointing, or cancellation."
+msgstr ""
+"این قابلیت `location=0` را ثابت می‌کند، هیچ ادعایی دربارهٔ فاصلهٔ اطمینان"
+" یا نیکویی برازش ندارد و وزن، متغیر کمکی، برش، سانسور چپ/فاصله‌ای، مکان "
+"آزاد، انتخاب مدل، تلاش‌مجدد، checkpoint یا لغو ارائه نمی‌کند."
+
+#: ../../../py-distfit-pro/python/docs/source/api.md:20
+#: 4d989cbd91c84534b9514957d2feaf0f
+msgid "Evaluated scalar primitives"
+msgstr "بدوی‌های اسکالرِ ارزیابی‌شده"
+
+#: ../../../py-distfit-pro/python/docs/source/api.md:22
+#: 30115293c8af496789227b02d4463447
+msgid ""
+"`veridist.families.registry` exports immutable `FAMILY_REGISTRY` metadata"
+" and `FamilyId` for five evaluated families. "
+"`veridist.statistics.log_density` exports scalar `evaluate_log_density`; "
+"`veridist.statistics.log_likelihood` exports `LogLikelihoodState` and "
+"`reduce_log_likelihood_chunks`. These are separate, finite scalar "
+"contracts: they are not generic fitting, inference, goodness-of-fit, "
+"ranking, array, or censoring APIs."
+msgstr "`veridist.families.registry` فرادادهٔ تغییرناپذیر `FAMILY_REGISTRY` و `FamilyId` را برای پنج خانوادهٔ ارزیابی‌شده صادر می‌کند. `veridist.statistics.log_density` تابع اسکالر `evaluate_log_density` و `veridist.statistics.log_likelihood` مقادیر `LogLikelihoodState` و `reduce_log_likelihood_chunks` را صادر می‌کنند. این‌ها قراردادهای مجزای اسکالرِ متناهی‌اند و API عمومی برازش، استنباط، نیکویی برازش، رتبه‌بندی، آرایه یا سانسور نیستند."

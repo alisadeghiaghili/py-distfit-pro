@@ -1,36 +1,107 @@
+
 msgid ""
 msgstr ""
 "Project-Id-Version: veridist 0.0.0.dev0\n"
+"Report-Msgid-Bugs-To: alisadeghiaghili@gmail.com\n"
+"POT-Creation-Date: 2026-09-01 21:24+0330\n"
+"PO-Revision-Date: 2026-09-01 21:55+0330\n"
+"Last-Translator: Ali Sadeghi Aghili <alisadeghiaghili@gmail.com>\n"
 "Language: fa\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Language-Team: Persian documentation <alisadeghiaghili@gmail.com>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
 
+#: ../../../py-distfit-pro/python/docs/source/index.md:2
+#: cb537ba9f9f142b59df27bdb8e378b7b
 msgid "Veridist documentation"
 msgstr "مستندات وریدیست"
 
-msgid "Evidence-first distribution fitting."
-msgstr "برازش توزیع با اولویت شواهد."
+#: ../../../py-distfit-pro/python/docs/source/index.md:4
+#: b1fddf2826ed4a2fbc11fad3ed29d638
+msgid "Evidence-first, deliberately narrow distribution primitives."
+msgstr "اجزای پایهٔ توزیع با اولویت شواهد و دامنهٔ عمداً محدود."
 
+#: ../../../py-distfit-pro/python/docs/source/index.md:6
+#: 9814c9aa49bf427f895e987889c33855
 msgid "First CSV vertical"
 msgstr "نخستین قابلیت CSV"
 
-msgid "The first public vertical fits a fixed-location exponential lifetime model from a strict UTF-8 CSV source. Its canonical parameter is a positive rate; the reported mean is derived as its reciprocal."
-msgstr "نخستین قابلیت عمومی، مدل نمایی زمان‌عمر با مکان ثابت را از یک منبع CSV سخت‌گیرانه با UTF-8 برازش می‌دهد. پارامتر مرجع آن نرخ مثبت است و میانگین گزارش‌شده از معکوس آن به دست می‌آید."
+#: ../../../py-distfit-pro/python/docs/source/index.md:8
+#: 974ef3222be24fc59e77a5b997da1471
+msgid ""
+"The first public vertical fits a fixed-location exponential lifetime "
+"model from a strict UTF-8 CSV source. Its canonical parameter is a "
+"positive rate; the reported mean is derived as its reciprocal."
+msgstr ""
+"نخستین قابلیت عمومی، مدل نمایی زمان‌عمر با مکان ثابت را از یک منبع CSV "
+"سخت‌گیرانه با UTF-8 برازش می‌دهد. پارامتر مرجع آن نرخ مثبت است و میانگین "
+"گزارش‌شده از معکوس آن به دست می‌آید."
 
+#: ../../../py-distfit-pro/python/docs/source/index.md:12
+#: 10fc80a5e3384ff694eb2dd747bc88c0
 msgid "Limits"
 msgstr "محدودیت‌ها"
 
-msgid "The CSV schema is exactly `time,event_observed`; event `1` is exact and `0` is independent right censoring. The adapter makes one iterator pass and retains at most its declared logical payload budget. `inference=not_provided` means no confidence interval, goodness-of-fit result, truncation, weights, covariates, or free location parameter is supplied."
-msgstr "شمای CSV دقیقاً `time,event_observed` است؛ رخداد `1` دقیق و `0` سانسور مستقل از راست است. آداپتور یک گذر از iterator دارد و حداکثر بودجهٔ منطقی اعلام‌شدهٔ payload را نگه می‌دارد. `inference=not_provided` یعنی فاصلهٔ اطمینان، نتیجهٔ نیکویی برازش، برش، وزن، متغیر کمکی یا پارامتر مکان آزاد عرضه نمی‌شود."
+#: ../../../py-distfit-pro/python/docs/source/index.md:14
+#: 1c3f255525d44f659fe222b386471f21
+msgid ""
+"The CSV schema is exactly `time,event_observed`; event `1` is exact and "
+"`0` is independent right censoring. The adapter makes one iterator pass "
+"and retains at most its declared logical payload budget. "
+"`inference=not_provided` means no confidence interval, goodness-of-fit "
+"result, truncation, weights, covariates, or free location parameter is "
+"supplied."
+msgstr ""
+"شمای CSV دقیقاً `time,event_observed` است؛ رخداد `1` دقیق و `0` سانسور "
+"مستقل از راست است. آداپتور یک گذر از iterator دارد و حداکثر بودجهٔ منطقی "
+"اعلام‌شدهٔ payload را نگه می‌دارد. `inference=not_provided` یعنی فاصلهٔ "
+"اطمینان، نتیجهٔ نیکویی برازش، برش، وزن، متغیر کمکی یا پارامتر مکان آزاد "
+"عرضه نمی‌شود."
 
+#: ../../../py-distfit-pro/python/docs/source/index.md:20
+#: 55660965401b473f94253f22d61684cc
 msgid "Executable example"
 msgstr "مثال اجرایی"
 
-msgid "The example below has one canonical executable source and reports only stable machine facts. Use an opaque public source identifier; file paths are not part of the returned provenance."
-msgstr "مثال زیر یک منبع اجرایی مرجع دارد و فقط واقعیت‌های ماشینی پایدار را گزارش می‌کند. از شناسهٔ عمومیِ مبهمِ منبع استفاده کنید؛ مسیر فایل بخشی از منشأ بازگردانده‌شده نیست."
+#: ../../../py-distfit-pro/python/docs/source/index.md:22
+#: 5b677a524a32446f99f69a1879109c6d
+msgid ""
+"The example below has one canonical executable source and reports only "
+"stable machine facts. Use an opaque public source identifier; file paths "
+"are not part of the returned provenance."
+msgstr ""
+"مثال زیر یک منبع اجرایی مرجع دارد و فقط واقعیت‌های ماشینی پایدار را گزارش"
+" می‌کند. از شناسهٔ عمومیِ مبهمِ منبع استفاده کنید؛ مسیر فایل بخشی از منشأ"
+" بازگردانده‌شده نیست."
 
-msgid "Translations for this vertical are owner-reviewed provisional text; no external native-speaker review is claimed."
-msgstr "ترجمه‌های این قابلیت متن موقتی بازبینی‌شده توسط مالک پروژه‌اند؛ هیچ ادعایی دربارهٔ بازبینی بیرونی توسط گویشور بومی وجود ندارد."
+#: ../../../py-distfit-pro/python/docs/source/index.md:26
+#: 57e4a484a7c34870b89f4eba99a5a98e
+msgid ""
+"Translations for this vertical are owner-reviewed provisional text; no "
+"external native-speaker review is claimed."
+msgstr ""
+"ترجمه‌های این قابلیت متن موقتی بازبینی‌شده توسط مالک پروژه‌اند؛ هیچ "
+"ادعایی دربارهٔ بازبینی بیرونی توسط گویشور بومی وجود ندارد."
 
+#: ../../../py-distfit-pro/python/docs/source/index.md:29
+#: 5d78177bb3c043b68ef4ddf1951377b4
+msgid "Five evaluated scalar families"
+msgstr "پنج خانوادهٔ اسکالرِ ارزیابی‌شده"
+
+#: ../../../py-distfit-pro/python/docs/source/index.md:31
+#: 45310ee685004bfd9ba6b06e5555e86d
+msgid ""
+"The public kernel also has an immutable five-family registry, finite "
+"scalar log-density evaluation, and an exact-state streaming log-"
+"likelihood reducer. These are distinct from the CSV exponential MLE: they"
+" do not provide generic fitting, inference, goodness-of-fit, ranking, "
+"arrays, or censoring support."
+msgstr "هستهٔ عمومی همچنین رجیستری تغییرناپذیر پنج‌خانواده‌ای، ارزیابی چگالی لگاریتمی اسکالرِ متناهی و کاهندهٔ درست‌نمایی لگاریتمی جریانی با حالت دقیق دارد. این‌ها از MLE نمایی CSV جدا هستند: برازش عمومی، استنباط، نیکویی برازش، رتبه‌بندی، آرایه‌ها یا پشتیبانی از سانسور را فراهم نمی‌کنند."
+
+#: ../../../py-distfit-pro/python/docs/source/index.md:36
+#: 00a24412b2a54f208c18eaa92e87a5cf
 msgid "Canonical executable example"
 msgstr "مثال اجرایی مرجع"

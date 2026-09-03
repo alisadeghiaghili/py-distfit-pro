@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "target_namespace": "veridist",
   "legacy_package": "distfit_pro",
   "entries": [
@@ -14,7 +14,8 @@
         "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",
         "path": "distfit_pro/core/diagnostics.py",
         "blob": "f6ed9d6fb567b1cbd58e8b77d71a4acb22673412",
-        "sha256": "d94f4f7a710e23068092bf73243b0ad46cdb0ef7b58d0394918aeb57d67a7fd0"
+        "sha256": "d94f4f7a710e23068092bf73243b0ad46cdb0ef7b58d0394918aeb57d67a7fd0",
+        "line_ranges": [{"path": "distfit_pro/core/diagnostics.py", "start_line": 1, "end_line": 450}]
       },
       "license": {"spdx": "MIT", "basis": "LICENSE"},
       "evidence": {"scenario_ids": ["DS-10"], "test_ids": ["DS-10"], "reference_ids": ["ADR-0016"]},
@@ -33,7 +34,8 @@
         "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",
         "path": "distfit_pro/fitting/fitter.py",
         "blob": "8228c607a9df4cfc8f5edb2062594d6ad12ce5b5",
-        "sha256": "0ec5360f95f6b812fe49e91ba050912cf0de75c878d66b1a784ec8c52028f562"
+        "sha256": "0ec5360f95f6b812fe49e91ba050912cf0de75c878d66b1a784ec8c52028f562",
+        "line_ranges": [{"path": "distfit_pro/fitting/fitter.py", "start_line": 1, "end_line": 495}]
       },
       "license": {"spdx": "MIT", "basis": "LICENSE"},
       "evidence": {
@@ -60,13 +62,50 @@
         "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",
         "path": "distfit_pro/locales/__init__.py",
         "blob": "6d719e34317dac4319c3c126c5f2109b2cf50f53",
-        "sha256": "058a8f256102925ad3c0e575a2b37811977467cdf2b39003c85daf321fc924a8"
+        "sha256": "058a8f256102925ad3c0e575a2b37811977467cdf2b39003c85daf321fc924a8",
+        "line_ranges": [{"path": "distfit_pro/locales/__init__.py", "start_line": 1, "end_line": 616}]
       },
       "license": {"spdx": "MIT", "basis": "LICENSE"},
       "evidence": {"scenario_ids": ["I18N-01", "I18N-07"], "test_ids": ["I18N-01", "I18N-07"], "reference_ids": ["ADR-0011", "ADR-0013", "ADR-0016"]},
       "reviews": {"license": "reviewed", "statistical": "not_applicable", "scale": "not_applicable", "i18n": "review_pending"},
       "isolation": {"runtime_import": false, "runtime_dependency": false, "dynamic_fallback": false, "package_content": false, "oracle": false},
       "limits": ["Translation candidate only; no package content, compatibility shim, or behavioural authority."]
+    },
+    {
+      "id": "LM-004",
+      "component": "evaluated-family-registry-scenarios",
+      "component_kind": "family-metadata-and-alias-scenarios",
+      "target": {"path": "python/src/veridist/families/registry.py", "public_surface": false, "release": "unplanned"},
+      "status": "review_pending",
+      "disposition": "modify_port",
+      "source": {
+        "commit": "6b021995b25dab81e3fdb9c18410cf974363848a",
+        "path": "distfit_pro/core/distributions.py",
+        "blob": "609989c5abe54574cad37ea6553e1f138df15046",
+        "sha256": "abb81aee554cccadf3d26bb0a017342ec105fb8ffee8dcc034a9ba4d0af4b4fd",
+        "line_ranges": [
+          {"path": "distfit_pro/core/distributions.py", "start_line": 34, "end_line": 69},
+          {"path": "distfit_pro/core/distributions.py", "start_line": 153, "end_line": 195},
+          {"path": "distfit_pro/core/distributions.py", "start_line": 245, "end_line": 283},
+          {"path": "distfit_pro/core/distributions.py", "start_line": 286, "end_line": 327},
+          {"path": "distfit_pro/core/distributions.py", "start_line": 367, "end_line": 403},
+          {"path": "distfit_pro/core/distributions.py", "start_line": 1047, "end_line": 1101}
+        ]
+      },
+      "license": {"spdx": "MIT", "basis": "LICENSE"},
+      "evidence": {
+        "scenario_ids": ["FAM-REG-01", "FAM-REG-02", "FAM-PAR-01", "FAM-PAR-02", "FAM-ISO-01"],
+        "test_ids": ["FAM-REG-01", "FAM-REG-02", "FAM-REG-03", "FAM-PAR-01", "FAM-PAR-02", "FAM-ISO-01"],
+        "reference_ids": ["ADR-0016", "ADR-0019", "legacy-distributions-lines-34-69,153-195,245-283,286-327,367-403,1047-1101"]
+      },
+      "reviews": {"license": "reviewed", "statistical": "review_pending", "scale": "not_applicable", "i18n": "not_applicable"},
+      "isolation": {"runtime_import": false, "runtime_dependency": false, "dynamic_fallback": false, "package_content": false, "oracle": false},
+      "limits": [
+        "Frozen source inspected at Normal lines 34-69, Gamma 153-195, Weibull 245-283, Lognormal 286-327, Gumbel 367-403, and registry 1047-1101.",
+        "Useful only as naming, parameterization, and scenario-mining evidence; independent ADR-0019 and RED contracts are behavioural authority.",
+        "Rejected production patterns: mutable fitted state, inconsistent alpha/a aliases and metadata, catch-all alias normalization, separator alias collision risk, and SciPy wrapper delegation.",
+        "No legacy runtime import, result oracle, fallback, API compatibility, localized string, or fitted object is permitted."
+      ]
     }
   ]
 }

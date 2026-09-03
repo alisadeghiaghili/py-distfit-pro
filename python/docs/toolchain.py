@@ -12,6 +12,15 @@ from typing import Any
 SUPPORTED_DIRECTIONS = {"en": "ltr", "fa": "rtl", "de": "ltr"}
 
 
+def _is_machine_literal(value: str) -> bool:
+    """Return whether a gettext message is an intentionally stable API token."""
+
+    return bool(re.fullmatch(r"`[^`\r\n]+`(?:,\s*`[^`\r\n]+`)*", value)) or value in {
+        r"\operatorname{LL}",
+        r"\operatorname{LL} = \operatorname{round}_{binary64}\left(\sum_i \log f(x_i)\right)",
+    }
+
+
 def direction_for(locale: str) -> str:
     """Return the declared writing direction; reject undeclared fallback locales."""
 
@@ -117,7 +126,7 @@ def validate_parity(docs_root: Path) -> dict[str, Any]:
             translation = catalog_entries.get(source, "")
             if not translation.strip():
                 missing.setdefault(locale, []).append(message_id)
-            elif translation.strip() == source.strip():
+            elif translation.strip() == source.strip() and not _is_machine_literal(source):
                 fallbacks.setdefault(locale, []).append(message_id)
 
     return {

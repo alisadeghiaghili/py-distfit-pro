@@ -10,6 +10,7 @@ import unittest
 from dataclasses import FrozenInstanceError, fields, replace
 from types import MappingProxyType
 
+from tests.contract.buffer_watchdog import bounded_buffer_call
 from veridist import __version__
 from veridist.engine.data_source import (
     DataSourceMetadata,
@@ -235,17 +236,21 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
 
         first = item("first", 0, 4)
         second = item("second", 1, 4)
-        buffer.put(first)
-        producer = threading.Thread(target=lambda: buffer.put(second, timeout=1.0))
-        producer.start()
-        deadline = time.monotonic() + 1.0
-        while buffer.waiting_producers == 0 and time.monotonic() < deadline:
-            time.sleep(0.001)
-        self.assertEqual(buffer.waiting_producers, 1)
-        buffer.get().release()
-        producer.join(timeout=1.0)
-        self.assertFalse(producer.is_alive())
-        buffer.get().release()
+        bounded_buffer_call(buffer, lambda: buffer.put(first))
+        producer = threading.Thread(target=lambda: buffer.put(second, timeout=1.0), daemon=True)
+        try:
+            producer.start()
+            deadline = time.monotonic() + 1.0
+            while buffer.waiting_producers == 0 and time.monotonic() < deadline:
+                threading.Event().wait(0.001)
+            self.assertEqual(buffer.waiting_producers, 1)
+            bounded_buffer_call(buffer, lambda: buffer.get()).release()
+            producer.join(timeout=0.5)
+            self.assertFalse(producer.is_alive())
+            bounded_buffer_call(buffer, lambda: buffer.get()).release()
+        finally:
+            buffer.cancel()
+            producer.join(timeout=0.05)
 
         observation = buffer.observation
         self.assertEqual(observation.peak_inflight_bytes, 4)
@@ -684,11 +689,14 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
         enforcer = PassEnforcer(max_passes=2)
         list(enforcer.begin_pass([1]))
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
-        buffer.put(
-            BufferedChunk(
-                envelope=ChunkEnvelope(sentinel, sentinel, 0, 0, 1, 4),
-                payload={"raw": sentinel},
-            )
+        bounded_buffer_call(
+            buffer,
+            lambda: buffer.put(
+                BufferedChunk(
+                    envelope=ChunkEnvelope(sentinel, sentinel, 0, 0, 1, 4),
+                    payload={"raw": sentinel},
+                )
+            ),
         )
         observation = snapshot_execution_observation(
             plan=plan,
@@ -749,7 +757,7 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
         self.assertNotIn(b"payload", encoded)
         self.assertEqual(json.loads(encoded)["checkpoint"]["initial_generation"], 7)
         self.assertEqual(json.loads(encoded)["execution"]["required_passes"], 1)
-        buffer.get().release()
+        bounded_buffer_call(buffer, lambda: buffer.get()).release()
 
     def test_ds12_serializer_rejects_legacy_open_mappings(self) -> None:
         plan = ExecutionPlan(
@@ -764,6 +772,330 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
             to_canonical_json_bytes(plan.provenance)  # type: ignore[arg-type]
         with self.assertRaises(TypeError):
             to_canonical_json_bytes(enforcer.provenance)  # type: ignore[arg-type]
+
+    def test_ds12_canonical_reports_have_exact_closed_public_projections(self) -> None:
+        """Every outcome and metadata variant has one independently specified wire form."""
+
+        checkpoint = CheckpointUsed(
+            resumed=True,
+            checkpoint_schema_version="checkpoint-v3",
+            accumulator_schema_version="sum-v2",
+            initial_generation=4,
+            final_generation=7,
+            retry_count=2,
+            commit_count=3,
+            store_kind=CheckpointStoreKind.IN_MEMORY_TEST_DOUBLE,
+            store_version="store-v2",
+        )
+        metadata = replace(
+            provenance(disclosure=SourceHash(SourceHashAlgorithm.SHA256, SHA_B)),
+            execution=ExecutionObservation(
+                adapter=AdapterProvenance(AdapterKind.CSV, "adapter-v7"),
+                engine_version="engine-v9",
+                replayability=Replayability.SINGLE_PASS,
+                required_passes=2,
+                passes=PassObservation(max_passes=3, actual_pass_count=2),
+                buffer=BufferObservation(128, 192, 128, 96, 5),
+                spool=SpoolObservation(
+                    4096,
+                    SpoolRetention.DELETE_ON_SUCCESS,
+                    SpoolCleanupStatus.PENDING,
+                ),
+            ),
+            rng=RngProvenance(RngPolicy.EXPLICIT_SEED, "pcg64", 17),
+            approximation=ApproximateComputation("sketch-v2", "relative-v3"),
+            checkpoint=checkpoint,
+        )
+        coverage = KnownCoverage(
+            KnownExtent(10, 16),
+            (RowRange(10, 12), RowRange(14, 16)),
+            accepted_chunk_count=3,
+            empty_chunk_count=1,
+        )
+        outcomes = (
+            (
+                CompleteOutcome(KnownCoverage(KnownExtent(10, 16), (RowRange(10, 16),), 3, 1)),
+                "complete",
+                True,
+                None,
+                {
+                    "accepted_chunk_count": 3,
+                    "empty_chunk_count": 1,
+                    "extent": [10, 16],
+                    "kind": "known",
+                    "missing_ranges": [],
+                    "missing_row_count": 0,
+                    "processed_ranges": [[10, 16]],
+                    "processed_row_count": 6,
+                },
+            ),
+            (
+                PartialOutcome(
+                    coverage,
+                    FailureRecord(FailureCode.CANCELLED, FailureStage.DELIVERY),
+                ),
+                "partial",
+                False,
+                {"code": "CANCELLED", "stage": "delivery"},
+                {
+                    "accepted_chunk_count": 3,
+                    "empty_chunk_count": 1,
+                    "extent": [10, 16],
+                    "kind": "known",
+                    "missing_ranges": [[12, 14]],
+                    "missing_row_count": 2,
+                    "processed_ranges": [[10, 12], [14, 16]],
+                    "processed_row_count": 4,
+                },
+            ),
+            (
+                FailedOutcome(
+                    UnknownMissingRanges((RowRange(10, 12),), 2, 0),
+                    FailureRecord(FailureCode.RANGE_MISMATCH, FailureStage.CHECKPOINT),
+                ),
+                "failed",
+                False,
+                {"code": "RANGE_MISMATCH", "stage": "checkpoint"},
+                {
+                    "accepted_chunk_count": 2,
+                    "empty_chunk_count": 0,
+                    "kind": "unknown_missing_ranges",
+                    "processed_ranges": [[10, 12]],
+                    "processed_row_count": 2,
+                    "reason": "MISSING_RANGE_UNKNOWN",
+                },
+            ),
+        )
+        common = {
+            "approximation": {
+                "error_contract_id": "relative-v3",
+                "kind": "approximate",
+                "method_id": "sketch-v2",
+            },
+            "checkpoint": {
+                "accumulator_schema_version": "sum-v2",
+                "checkpoint_schema_version": "checkpoint-v3",
+                "commit_count": 3,
+                "final_generation": 7,
+                "initial_generation": 4,
+                "kind": "used",
+                "resumed": True,
+                "retry_count": 2,
+                "store_kind": "in_memory_test_double",
+                "store_version": "store-v2",
+            },
+            "estimator": {
+                "estimator_id": "mle",
+                "family_id": "exponential",
+                "settings_sha256": SHA_A,
+                "version": "1",
+            },
+            "execution": {
+                "adapter": {"kind": "csv", "version": "adapter-v7"},
+                "buffer": {
+                    "backpressure_event_count": 5,
+                    "chunk_bytes": 128,
+                    "largest_retained_chunk_bytes": 96,
+                    "max_inflight_bytes": 192,
+                    "peak_inflight_bytes": 128,
+                },
+                "engine_version": "engine-v9",
+                "passes": {"actual_pass_count": 2, "max_passes": 3},
+                "replayability": "single_pass",
+                "required_passes": 2,
+                "spool": {
+                    "cleanup_status": "pending",
+                    "disk_budget_bytes": 4096,
+                    "kind": "used",
+                    "retention": "delete_on_success",
+                },
+            },
+            "rng": {"algorithm_id": "pcg64", "policy": "explicit_seed", "seed": 17},
+            "run_id": "run_0123456789abcdef0123456789abcdef",
+            "schema_version": "1",
+            "source": {
+                "disclosure": {"algorithm": "sha256", "kind": "hash", "value": SHA_B},
+                "mutation_status": "verified_unchanged",
+                "public_source_id": "src_0123456789abcdef0123456789abcdef",
+                "schema_version": "schema-v1",
+            },
+        }
+        for outcome, status, complete, failure, coverage_value in outcomes:
+            with self.subTest(status=status):
+                expected = {**common, "complete": complete, "status": status}
+                expected["coverage"] = coverage_value
+                if failure is not None:
+                    expected["failure"] = failure
+                encoded = to_canonical_json_bytes(ExecutionReport(outcome, metadata))
+                self.assertEqual(json.loads(encoded), expected)
+                self.assertEqual(
+                    encoded,
+                    json.dumps(
+                        expected,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8"),
+                )
+
+    def test_ds12_bridge_projections_have_exact_safe_fact_sets(self) -> None:
+        class Source:
+            metadata = DataSourceMetadata(
+                source_id="private-source",
+                schema_version="private-schema",
+                provenance_schema_version="1",
+                replayability=Replayability.REPLAYABLE,
+                redaction_reason="policy",
+            )
+
+        plan = plan_passes(Source(), required_passes=1)
+        enforcer = PassEnforcer(max_passes=2)
+        list(enforcer.begin_pass(["one"]))
+        buffer = BoundedChunkBuffer(chunk_bytes=8, max_inflight_bytes=16)
+        bounded_buffer_call(
+            buffer,
+            lambda: buffer.put(
+                BufferedChunk(
+                    envelope=ChunkEnvelope("private", "chunk", 0, 0, 1, 8), payload=object()
+                )
+            ),
+        )
+        snapshot = snapshot_execution_observation(
+            plan=plan,
+            pass_enforcer=enforcer,
+            buffer=buffer,
+            adapter=AdapterProvenance(AdapterKind.CSV, "adapter-v1"),
+            spool=SpoolNotUsed(),
+        )
+        self.assertEqual(
+            snapshot,
+            ExecutionObservation(
+                adapter=AdapterProvenance(AdapterKind.CSV, "adapter-v1"),
+                engine_version=__version__,
+                replayability=Replayability.REPLAYABLE,
+                required_passes=1,
+                passes=PassObservation(max_passes=2, actual_pass_count=1),
+                buffer=BufferObservation(8, 16, 8, 8, 0),
+                spool=SpoolNotUsed(),
+            ),
+        )
+        resume = PublicResumeMetadata(
+            format_version=4,
+            source_id="private-source",
+            source_schema="private-schema",
+            reducer_id="private-reducer",
+            accumulator_schema="private-accumulator",
+            plan_digest=SHA_A,
+            cursor=9,
+            committed_ranges=((0, 9),),
+            generation=11,
+        )
+        checkpoint = checkpoint_observation_from_resume(
+            resume,
+            accumulator_schema_version="sum-v3",
+            final_generation=13,
+            retry_count=2,
+            commit_count=2,
+            store_version="store-v4",
+        )
+        self.assertEqual(
+            checkpoint,
+            CheckpointUsed(
+                resumed=True,
+                checkpoint_schema_version="4",
+                accumulator_schema_version="sum-v3",
+                initial_generation=11,
+                final_generation=13,
+                retry_count=2,
+                commit_count=2,
+                store_kind=CheckpointStoreKind.IN_MEMORY_TEST_DOUBLE,
+                store_version="store-v4",
+            ),
+        )
+        error = EngineContractError(FailureCode.CANCELLED, {"private": "ignored"})
+        self.assertEqual(
+            failure_record_from_error(error, FailureStage.CANCELLATION),
+            FailureRecord(FailureCode.CANCELLED, FailureStage.CANCELLATION),
+        )
+        bounded_buffer_call(buffer, lambda: buffer.get()).release()
+
+    def test_ds12_minimal_variant_omits_unavailable_optional_facts_exactly(self) -> None:
+        metadata = replace(
+            provenance(disclosure=SourceRedaction(SourceRedactionReason.USER_REQUEST)),
+            source=replace(
+                provenance().source,
+                disclosure=SourceRedaction(SourceRedactionReason.USER_REQUEST),
+                mutation_status=SourceMutationStatus.UNAVAILABLE,
+            ),
+            execution=replace(execution_observation(), spool=SpoolNotUsed()),
+            rng=RngProvenance(RngPolicy.EXTERNAL_GENERATOR, "system-rng", None),
+            approximation=ExactComputation("closed-form-v2"),
+            checkpoint=CheckpointNotUsed(),
+        )
+        encoded = to_canonical_json_bytes(
+            ExecutionReport(
+                CompleteOutcome(
+                    KnownCoverage(KnownExtent(2, 5), (RowRange(2, 5),), 1, 0)
+                ),
+                metadata,
+            )
+        )
+        expected = {
+            "approximation": {"kind": "exact", "method_id": "closed-form-v2"},
+            "checkpoint": {"kind": "not_used"},
+            "complete": True,
+            "coverage": {
+                "accepted_chunk_count": 1,
+                "empty_chunk_count": 0,
+                "extent": [2, 5],
+                "kind": "known",
+                "missing_ranges": [],
+                "missing_row_count": 0,
+                "processed_ranges": [[2, 5]],
+                "processed_row_count": 3,
+            },
+            "estimator": {
+                "estimator_id": "mle",
+                "family_id": "exponential",
+                "settings_sha256": SHA_A,
+                "version": "1",
+            },
+            "execution": {
+                "adapter": {"kind": "csv", "version": "1.2.3"},
+                "buffer": {
+                    "backpressure_event_count": 1,
+                    "chunk_bytes": 1024,
+                    "largest_retained_chunk_bytes": 512,
+                    "max_inflight_bytes": 2048,
+                    "peak_inflight_bytes": 1024,
+                },
+                "engine_version": __version__,
+                "passes": {"actual_pass_count": 1, "max_passes": 2},
+                "replayability": "replayable",
+                "required_passes": 1,
+                "spool": {"kind": "not_used"},
+            },
+            "rng": {"algorithm_id": "system-rng", "policy": "external_generator"},
+            "run_id": "run_0123456789abcdef0123456789abcdef",
+            "schema_version": "1",
+            "source": {
+                "disclosure": {"kind": "redacted", "reason": "user_request"},
+                "mutation_status": "unavailable",
+                "public_source_id": "src_0123456789abcdef0123456789abcdef",
+                "schema_version": "schema-v1",
+            },
+            "status": "complete",
+        }
+        self.assertEqual(json.loads(encoded), expected)
+        self.assertEqual(
+            encoded,
+            json.dumps(
+                expected,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8"),
+        )
 
 
 if __name__ == "__main__":

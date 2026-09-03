@@ -39,8 +39,10 @@ LTR isolation, and pass a browser screenshot gate before a rendering claim.
 ## Evidence
 
 The checked-in ledger is schema-validated and semantically checked by a
-stdlib-only tool.  Its hashes are computed from files at the recorded
-`origin/main` legacy revision; hash mismatch is stale evidence, not a warning.
+stdlib-only tool. Every entry requires an extant source commit, exact
+`commit:path` blob identity, SHA-256, and closed ordered in-bounds line ranges
+for that same path; unavailable history is a failure, never a fallback to the
+working tree. Hash mismatch is stale evidence, not a warning.
 The isolation tests inspect AST import forms and package artifacts so a simple
 string workaround cannot bypass the rule.
 

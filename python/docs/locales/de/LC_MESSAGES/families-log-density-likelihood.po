@@ -1,0 +1,84 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: veridist 0.0.0.dev0\n"
+"Report-Msgid-Bugs-To: alisadeghiaghili@gmail.com\n"
+"PO-Revision-Date: 2026-09-01 21:55+0330\n"
+"Last-Translator: Ali Sadeghi Aghili <alisadeghiaghili@gmail.com>\n"
+"Language: de\n"
+"Language-Team: German documentation <alisadeghiaghili@gmail.com>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Evaluated families, scalar log density, and streaming log likelihood"
+msgstr "Ausgewertete Familien, skalare Log-Dichte und gestreamte Log-Likelihood"
+
+msgid "Closed five-family registry"
+msgstr "Geschlossenes Register mit fünf Familien"
+
+msgid "`FAMILY_REGISTRY` is immutable metadata for exactly five evaluated families: `normal`, `gamma`, `weibull_min`, `lognormal`, and `gumbel_right`. It fixes canonical names, aliases, parameter names, validation roles, and the currently available scalar `logpdf` operation. It is neither a generic distribution registry nor a fitting, inference, goodness-of-fit, or ranking interface."
+msgstr "`FAMILY_REGISTRY` enthält unveränderliche Metadaten für genau fünf ausgewertete Familien: `normal`, `gamma`, `weibull_min`, `lognormal` und `gumbel_right`. Es legt kanonische Namen, Aliasse, Parameternamen, Validierungsrollen und die derzeit verfügbare skalare Operation `logpdf` fest. Es ist weder ein allgemeines Verteilungsregister noch eine Schnittstelle für Anpassung, Inferenz, Anpassungsgüte oder Ranking."
+
+msgid "For the contract-level API surface, see <a class=\"veridist-api-url\" href=\"api.html#veridist-api\">veridist.statistics.log_density</a>."
+msgstr "Für die API-Vertragsoberfläche siehe <a class=\"veridist-api-url\" href=\"api.html#veridist-api\">veridist.statistics.log_density</a>."
+
+msgid "Family"
+msgstr "Familie"
+
+msgid "Canonical parameters"
+msgstr "Kanonische Parameter"
+
+msgid "`normal`"
+msgstr "`normal`"
+
+msgid "`mu`, `sigma > 0`"
+msgstr "`mu`, `sigma > 0`"
+
+msgid "`gamma`"
+msgstr "`gamma`"
+
+msgid "`shape > 0`, `scale > 0`"
+msgstr "`shape > 0`, `scale > 0`"
+
+msgid "`weibull_min`"
+msgstr "`weibull_min`"
+
+msgid "`lognormal`"
+msgstr "`lognormal`"
+
+msgid "`mu_log`, `sigma_log > 0`"
+msgstr "`mu_log`, `sigma_log > 0`"
+
+msgid "`gumbel_right`"
+msgstr "`gumbel_right`"
+
+msgid "`location`, `scale > 0`"
+msgstr "`location`, `scale > 0`"
+
+msgid "Scalar log-density evaluation"
+msgstr "Auswertung skalarer Log-Dichten"
+
+msgid "`evaluate_log_density` evaluates one built-in finite scalar observation after canonical parameter validation. A successful result contains a finite binary64 log-density. Data-domain failures are closed values: `nonfinite_observation`, `support_violation`, `nonfinite_log_density`, or `numerical_overflow`. Programmer misuse of a family identity or parameter set raises rather than being converted into a data result. This is not an array API, a CDF/PPF API, censoring likelihood, fit, inference, goodness-of-fit test, or model ranking."
+msgstr "`evaluate_log_density` wertet nach der kanonischen Parametervalidierung eine integrierte endliche skalare Beobachtung aus. Ein erfolgreiches Ergebnis enthält eine endliche binary64-Log-Dichte. Fehler der Datendomäne sind die abgeschlossenen Werte `nonfinite_observation`, `support_violation`, `nonfinite_log_density` oder `numerical_overflow`. Ein Programmierfehler bei Familienidentität oder Parametersatz löst eine Ausnahme aus, statt in ein Datenergebnis umgewandelt zu werden. Dies ist keine Array-API, CDF/PPF-API, Likelihood für Zensierung, Anpassungs-, Inferenz-, Anpassungsgüte- oder Modellranking-API."
+
+msgid "Exact-state streaming log likelihood"
+msgstr "Gestreamte Log-Likelihood mit exaktem Zustand"
+
+msgid "`reduce_log_likelihood_chunks` consumes an iterable of ragged observation chunks once. It evaluates each scalar through the same closed evaluator and accumulates each successful binary64 result as an exact integer number of subnormal units. The final sum is rounded to binary64 once, at finalization; it is not a chunk-wise floating-point sum."
+msgstr "`reduce_log_likelihood_chunks` verbraucht ein Iterable ungleich großer Beobachtungs-Chunks genau einmal. Es wertet jeden Skalar über denselben abgeschlossenen Auswerter aus und akkumuliert jedes erfolgreiche binary64-Ergebnis als exakte ganzzahlige Anzahl subnormaler Einheiten. Die Endsumme wird erst bei der Finalisierung einmal auf binary64 gerundet; sie ist keine blockweise Gleitkommasumme."
+
+msgid "\\operatorname{LL} = \\operatorname{round}_{binary64}\\left(\\sum_i \\log f(x_i)\\right)"
+msgstr "\\operatorname{LL} = \\operatorname{round}_{binary64}\\left(\\sum_i \\log f(x_i)\\right)"
+
+msgid "The immutable `LogLikelihoodState` supports compatible exact-state merging. One state has an explicit unsigned-64 observation limit (`2^64 - 1`); its maximum absolute exact integer total has a documented 2162-bit bound. A scalar failure stops reduction and reports only the number of successful observations before it. An empty chunk sequence succeeds with count zero and total `0.0`."
+msgstr "Der unveränderliche `LogLikelihoodState` unterstützt kompatibles Zusammenführen exakter Zustände. Ein Zustand hat eine explizite Beobachtungsgrenze von unsigned-64 (`2^64 - 1`); für seinen maximalen absoluten exakten Ganzzahlwert ist eine 2162-Bit-Grenze dokumentiert. Ein Skalarfehler beendet die Reduktion und meldet nur die Zahl erfolgreicher Beobachtungen davor. Eine leere Chunk-Folge ist mit Anzahl null und Summe `0.0` erfolgreich."
+
+msgid "Evidence and limits"
+msgstr "Evidenz und Grenzen"
+
+msgid "`LLR-06` retains generated-stream evidence for normal-zero scalar reduction at 10k/100k/1m observations and three chunk sizes. It records one outer iterator acquisition, every yielded observation, bitwise final-total agreement with an independent exact-unit oracle, and the 2162-bit algorithmic bound. Elapsed time and `tracemalloc` values are descriptive only."
+msgstr "`LLR-06` bewahrt Evidenz aus generierten Strömen für die skalare Reduktion einer Normalverteilung mit Nullmittelwert bei 10k/100k/1m Beobachtungen und drei Chunk-Größen auf. Sie erfasst genau ein Anfordern des äußeren Iterators, jede gelieferte Beobachtung, bitgenaue Übereinstimmung der Endsumme mit einem unabhängigen Orakel exakter Einheiten sowie die algorithmische 2162-Bit-Grenze. Verstrichene Zeit und `tracemalloc`-Werte sind nur beschreibend."
+
+msgid "This evidence is scoped to the tested scalar normal stream and exact reducer. It does not establish fitting, inference, goodness-of-fit, ranking, arrays, censoring, generic out-of-core processing, throughput, process-memory/RSS bounds, another data adapter, or cross-platform performance."
+msgstr "Diese Evidenz ist auf den getesteten skalaren Normalstrom und den exakten Reduzierer beschränkt. Sie belegt weder Anpassung, Inferenz, Anpassungsgüte, Ranking, Arrays, Zensierung, allgemeine Out-of-Core-Verarbeitung, Durchsatz, Grenzen für Prozessspeicher/RSS, einen anderen Datenadapter noch plattformübergreifende Leistung."
