@@ -1008,6 +1008,84 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
         )
         buffer.get().release()
 
+    def test_ds12_minimal_variant_omits_unavailable_optional_facts_exactly(self) -> None:
+        metadata = replace(
+            provenance(disclosure=SourceRedaction(SourceRedactionReason.USER_REQUEST)),
+            source=replace(
+                provenance().source,
+                disclosure=SourceRedaction(SourceRedactionReason.USER_REQUEST),
+                mutation_status=SourceMutationStatus.UNAVAILABLE,
+            ),
+            execution=replace(execution_observation(), spool=SpoolNotUsed()),
+            rng=RngProvenance(RngPolicy.EXTERNAL_GENERATOR, "system-rng", None),
+            approximation=ExactComputation("closed-form-v2"),
+            checkpoint=CheckpointNotUsed(),
+        )
+        encoded = to_canonical_json_bytes(
+            ExecutionReport(
+                CompleteOutcome(
+                    KnownCoverage(KnownExtent(2, 5), (RowRange(2, 5),), 1, 0)
+                ),
+                metadata,
+            )
+        )
+        expected = {
+            "approximation": {"kind": "exact", "method_id": "closed-form-v2"},
+            "checkpoint": {"kind": "not_used"},
+            "complete": True,
+            "coverage": {
+                "accepted_chunk_count": 1,
+                "empty_chunk_count": 0,
+                "extent": [2, 5],
+                "kind": "known",
+                "missing_ranges": [],
+                "missing_row_count": 0,
+                "processed_ranges": [[2, 5]],
+                "processed_row_count": 3,
+            },
+            "estimator": {
+                "estimator_id": "mle",
+                "family_id": "exponential",
+                "settings_sha256": SHA_A,
+                "version": "1",
+            },
+            "execution": {
+                "adapter": {"kind": "csv", "version": "1.2.3"},
+                "buffer": {
+                    "backpressure_event_count": 1,
+                    "chunk_bytes": 1024,
+                    "largest_retained_chunk_bytes": 512,
+                    "max_inflight_bytes": 2048,
+                    "peak_inflight_bytes": 1024,
+                },
+                "engine_version": __version__,
+                "passes": {"actual_pass_count": 1, "max_passes": 2},
+                "replayability": "replayable",
+                "required_passes": 1,
+                "spool": {"kind": "not_used"},
+            },
+            "rng": {"algorithm_id": "system-rng", "policy": "external_generator"},
+            "run_id": "run_0123456789abcdef0123456789abcdef",
+            "schema_version": "1",
+            "source": {
+                "disclosure": {"kind": "redacted", "reason": "user_request"},
+                "mutation_status": "unavailable",
+                "public_source_id": "src_0123456789abcdef0123456789abcdef",
+                "schema_version": "schema-v1",
+            },
+            "status": "complete",
+        }
+        self.assertEqual(json.loads(encoded), expected)
+        self.assertEqual(
+            encoded,
+            json.dumps(
+                expected,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
