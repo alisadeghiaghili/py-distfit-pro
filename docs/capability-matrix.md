@@ -11,8 +11,9 @@ It does not measure public reducer state and is not a process-memory,
 throughput, out-of-core, fitting, or cross-platform scalar-equivalence claim.
 
 This matrix records callable behavior on the current development branch. It is
-not a release announcement: the package version remains `0.0.0.dev0` and the
-remote pull-request workflow has not yet verified this branch.
+not a release announcement: the package version remains `0.0.0.dev0`.  The
+binding 0.5 claim boundary and pre-tag gates are defined by ADR-0020; no cell
+is release-ready until that candidate-specific evidence is complete.
 
 | Family | Estimator and parameterization | Accepted data semantics | Result | Inference | Scale boundary | Status/evidence |
 | --- | --- | --- | --- | --- | --- | --- |

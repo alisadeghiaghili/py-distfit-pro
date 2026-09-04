@@ -4,6 +4,12 @@ This is a planning ledger, not a release checklist for `distfit_pro`. v1 uses
 the `veridist` namespace. Legacy assets count only after an explicit,
 evidence-backed disposition and validation under the v1 contracts.
 
+ADR-0020 is the narrower binding contract for a real `veridist` 0.5 release.
+It keeps the version at `0.0.0.dev0` until its release-safety, active-lease
+bound, cleanup, measured million-row, portability, localization, quality,
+artifact, and audit gates pass.  It does not claim v1 readiness or translated
+ADR parity.
+
 ## Evidence already obtained
 
 - The reviewed legacy package demonstrated the value of explicit failure,
