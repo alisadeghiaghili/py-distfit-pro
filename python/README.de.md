@@ -24,6 +24,17 @@ Die hinterlegte Evidenz belegt begrenzte interne Payload nur für die gemessene
 Matrix aus 10k/100k/1m Zeilen und 32KiB/64KiB/128KiB; daraus folgt keine
 allgemeine Big-Data- oder Hochdurchsatzfähigkeit.
 
+`IterableDataSource` ist der wiederverwendbare öffentliche Stream-Adapter für
+aufruferseitige Chunk-Iterables. Seine unveränderlichen Metadaten erklären
+Einmaligkeit oder Wiederholbarkeit ausdrücklich: Eine zweite Akquisition einer
+Einmalquelle schlägt mit einem typisierten Pass-Budget-Fehler fehl; eine
+wiederholbare Quelle benötigt eine Iterator-Factory. `BoundedChunkBuffer`
+berechnet Bytes für eingereihte und vom Consumer gehaltene Chunks bis
+`BufferedChunk.release()`; empfangene Chunks müssen, üblicherweise in
+`finally`, freigegeben werden. Der einzige ausgelieferte Datei-Adapter bleibt
+der strikte CSV-Lebensdauer-Adapter. Dies ergänzt weder allgemeines CSV noch
+Parquet-, Arrow-, Dataframe-, Datenbank- oder breite Out-of-Core-Adapter.
+
 Die separate skalare Oberfläche bietet unveränderliche `FAMILY_REGISTRY`-
 Metadaten für Normal-, Gamma-, Weibull-Minimum-, Lognormal- und Rechts-Gumbel-
 Familien, die skalare `evaluate_log_density` und die exakte Zustandsreduktion

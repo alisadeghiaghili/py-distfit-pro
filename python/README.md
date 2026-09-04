@@ -21,6 +21,16 @@ Retained evidence establishes bounded internal payload only for the measured
 10k/100k/1m by 32KiB/64KiB/128KiB matrix; it does not establish a general
 big-data or high-throughput capability.
 
+`IterableDataSource` is the reusable public stream adapter for caller-owned
+chunk iterables. Its immutable metadata explicitly declares one-pass or
+replayable acquisition: a single-pass source fails with a typed pass-budget
+error if acquired twice, while a replayable source requires an iterator
+factory. `BoundedChunkBuffer` charges queued and consumer-held chunks until
+`BufferedChunk.release()`; callers must release received chunks, normally in
+`finally`. The only shipped file adapter remains the strict CSV lifetime
+adapter—this does not add generic CSV, Parquet, Arrow, dataframe, database,
+or broad out-of-core adapters.
+
 The separate scalar surface exposes immutable `FAMILY_REGISTRY` metadata for
 normal, gamma, Weibull-minimum, lognormal, and right-Gumbel; scalar
 `evaluate_log_density`; and exact-state `reduce_log_likelihood_chunks`.

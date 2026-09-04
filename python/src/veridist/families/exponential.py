@@ -10,6 +10,7 @@ from types import MappingProxyType
 from typing import Final
 
 from veridist.domain.lifetimes import LifetimeObservation
+from veridist.engine.streaming import StreamSource, iter_stream
 from veridist.statistics.exponential import (
     ExponentialReductionState,
     _ReductionOverflow,
@@ -188,11 +189,13 @@ def fit_exponential(observations: Iterable[LifetimeObservation]) -> ExponentialF
     return fit_exponential_chunks((observations,))
 
 
-def fit_exponential_chunks(chunks: Iterable[Iterable[LifetimeObservation]]) -> ExponentialFit:
+def fit_exponential_chunks(
+    chunks: StreamSource[Iterable[LifetimeObservation]] | Iterable[Iterable[LifetimeObservation]],
+) -> ExponentialFit:
     """Fit from ragged chunks without retaining raw observations or chunk payloads."""
 
     try:
-        state = reduce_exponential_chunks(chunks)
+        state = reduce_exponential_chunks(iter_stream(chunks))
     except _ReductionOverflow as error:
         return ExponentialFitFailure(
             ExponentialFitFailureCode.NUMERICAL_OVERFLOW,

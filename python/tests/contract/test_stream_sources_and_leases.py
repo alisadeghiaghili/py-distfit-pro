@@ -37,11 +37,13 @@ def chunk(identifier: str, sequence: int, callback=None) -> BufferedChunk:
 class StreamSourceContractTests(unittest.TestCase):
     def test_generic_source_is_consumed_by_current_streaming_reducers(self) -> None:
         likelihood_source = IterableDataSource(((0.0, 1.0),), metadata())
-        likelihood = reduce_log_likelihood_chunks(FamilyId.NORMAL, likelihood_source, mu=0.0, sigma=1.0)
+        likelihood = reduce_log_likelihood_chunks(
+            FamilyId.NORMAL, likelihood_source, mu=0.0, sigma=1.0
+        )
         self.assertIsInstance(likelihood, LogLikelihoodSuccess)
         self.assertEqual(likelihood.observation_count, 2)
 
-        exponential_source = IterableDataSource(((ExactLifetime.from_float(2.0),),), metadata())
+        exponential_source = IterableDataSource(((ExactLifetime(2.0),),), metadata())
         exponential = fit_exponential_chunks(exponential_source)
         self.assertIsInstance(exponential, ExponentialFitSuccess)
         self.assertEqual(exponential.rate, 0.5)
@@ -76,7 +78,9 @@ class ActiveLeaseBufferTests(unittest.TestCase):
         buffer.put(chunk("first", 0))
         received = buffer.get()
         completed = threading.Event()
-        producer = threading.Thread(target=lambda: (buffer.put(chunk("second", 1)), completed.set()))
+        producer = threading.Thread(
+            target=lambda: (buffer.put(chunk("second", 1)), completed.set())
+        )
         producer.start()
         deadline = time.monotonic() + 1.0
         while buffer.waiting_producers == 0 and time.monotonic() < deadline:
@@ -111,4 +115,3 @@ class ActiveLeaseBufferTests(unittest.TestCase):
         self.assertTrue(second.released)
         self.assertTrue(buffer.cancelled)
         self.assertEqual(buffer.inflight_bytes, 0)
-

@@ -503,12 +503,14 @@ class BoundedBufferContractTests(unittest.TestCase):
             self.assertLessEqual(buffer.peak_inflight_bytes, buffer.max_inflight_bytes)
 
             self.assertEqual(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.2)), first)
+            first.release()
             producer.join(timeout=0.5)
 
             self.assertFalse(producer.is_alive())
             self.assertEqual(outcome, ["accepted"])
             self.assertEqual(buffer.inflight_bytes, 4)
             self.assertEqual(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.2)), second)
+            second.release()
             self.assertEqual(buffer.inflight_bytes, 0)
         finally:
             buffer.cancel()
@@ -726,6 +728,7 @@ class BoundedBufferContractTests(unittest.TestCase):
             self.assertTrue(attempted[1].wait(1.0))
             wait_for_waiting_producers(buffer, 2)
             self.assertEqual(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1)), first)
+            first.release()
             self.assertTrue(admitted[0].wait(0.5) or admitted[1].wait(0.5))
             buffer.cancel()
             self.assertTrue(finished[0].wait(1.0))
@@ -865,10 +868,12 @@ class BoundedBufferContractTests(unittest.TestCase):
                     worker.start()
                     require(wait_entered.wait(0.25), 'put did not enter Condition.wait')
                     if scenario == 'put-release':
+                        first = buffer.get()
                         require(
-                            buffer.get().envelope.chunk_id == 'first',
+                            first.envelope.chunk_id == 'first',
                             'initial chunk was not returned',
                         )
+                        first.release()
                         expected = []
                     else:
                         buffer.cancel()

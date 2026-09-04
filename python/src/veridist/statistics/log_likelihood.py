@@ -11,6 +11,7 @@ from hashlib import sha256
 from math import isfinite
 from typing import Final, TypeAlias
 
+from veridist.engine.streaming import StreamSource, iter_stream
 from veridist.families.registry import FAMILY_REGISTRY, FamilyId
 from veridist.statistics.log_density import (
     LogDensityErrorCode,
@@ -248,7 +249,10 @@ class _ExactAccumulator:
 
 
 def reduce_log_likelihood_chunks(
-    family: FamilyId, chunks: Iterable[Iterable[object]], /, **parameters: object
+    family: FamilyId,
+    chunks: StreamSource[Iterable[object]] | Iterable[Iterable[object]],
+    /,
+    **parameters: object,
 ) -> LogLikelihoodResult:
     """Reduce ragged chunks in one pass, without materializing source or chunks.
 
@@ -260,9 +264,7 @@ def reduce_log_likelihood_chunks(
     validated = _validate_family_and_parameters(family, parameters)
     identity, fingerprint = _identity_and_fingerprint(family, validated)
     accumulator = _ExactAccumulator()
-    if not isinstance(chunks, Iterable):
-        raise TypeError("chunks must be an iterable of observation iterables")
-    for chunk in chunks:
+    for chunk in iter_stream(chunks):
         if not isinstance(chunk, Iterable):
             raise TypeError("each chunk must be an iterable of observations")
         for observation in chunk:

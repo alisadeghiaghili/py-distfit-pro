@@ -19,7 +19,10 @@ class PublicCsvApiTests(unittest.TestCase):
             "CsvLifetimeLimits",
             "CsvLifetimeSchema",
             "ExponentialSourceFitResult",
+            "IterableDataSource",
             "PublicSourceId",
+            "StreamSource",
+            "StreamSourceError",
             "fit_exponential_csv",
         }
         self.assertEqual(set(veridist.__all__), expected)
