@@ -30,6 +30,10 @@ def _load_legacy_release_safety_checker() -> ModuleType:
     return module
 
 
+def _workflow_with_step(step: str) -> str:
+    return f"jobs:\n  check:\n    steps:\n      - {step}\n"
+
+
 class VeridistWorkflowContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -270,14 +274,19 @@ class VeridistWorkflowContractTests(unittest.TestCase):
             "secret reference": (
                 "jobs:\n  check:\n    env:\n      TOKEN: ${{ secrets.PYPI_TOKEN }}\n"
             ),
-            "pypi action": "steps:\n  - uses: pypa/gh-action-pypi-publish@release/v1\n",
-            "twine command": "steps:\n  - run: python -m twine upload dist/*\n",
-            "uv command": "steps:\n  - run: uv publish\n",
-            "hatch command": "steps:\n  - run: hatch publish\n",
-            "poetry command": "steps:\n  - run: poetry publish\n",
-            "flit command": "steps:\n  - run: flit publish\n",
-            "generic publish command": "steps:\n  - run: release-client publish\n",
-            "generic upload action": "steps:\n  - uses: owner/upload-to-pypi@v1\n",
+            "pypi action": _workflow_with_step(
+                "uses: pypa/gh-action-pypi-publish@release/v1"
+            ),
+            "twine command": _workflow_with_step("run: python -m twine upload dist/*"),
+            "uv command": _workflow_with_step("run: uv publish"),
+            "hatch command": _workflow_with_step("run: hatch publish"),
+            "poetry command": _workflow_with_step("run: poetry publish"),
+            "flit command": _workflow_with_step("run: flit publish"),
+            "generic publish command": _workflow_with_step("run: release-client publish"),
+            "echo command-chain bypass": _workflow_with_step(
+                "run: echo harmless && python -m twine upload dist/*"
+            ),
+            "generic upload action": _workflow_with_step("uses: owner/upload-to-pypi@v1"),
         }
         for name, workflow in unsafe_workflows.items():
             with self.subTest(name=name):
@@ -286,11 +295,9 @@ class VeridistWorkflowContractTests(unittest.TestCase):
     def test_legacy_release_safety_ignores_comments_echoes_and_harmless_environment(self) -> None:
         checker = _load_legacy_release_safety_checker()
         safe_workflows = {
-            "comments": "# twine upload dist/*\n# pypa/gh-action-pypi-publish\n",
-            "echo": "jobs:\n  check:\n    steps:\n      - run: echo 'do not publish artifacts'\n",
-            "artifact action": (
-                "jobs:\n  check:\n    steps:\n      - uses: actions/upload-artifact@v4\n"
-            ),
+            "comments": "on: push\n# twine upload dist/*\n# pypa/gh-action-pypi-publish\n",
+            "echo": _workflow_with_step("run: echo 'do not publish artifacts'"),
+            "artifact action": _workflow_with_step("uses: actions/upload-artifact@v4"),
             "preview environment": "jobs:\n  docs:\n    environment: docs-preview\n",
         }
         for name, workflow in safe_workflows.items():

@@ -23,7 +23,7 @@ and measurable gates that must pass before the version changes from
 
 The legacy `.github/workflows/ci.yml` must neither subscribe to GitHub release
 events nor contain a publication job, publication action, upload command, or
-PyPI environment.  It may validate legacy code only.  No GitHub release may
+release-credential environment.  It may validate legacy code only.  No GitHub release may
 publish `distfit_pro` from this repository.
 
 No publishing workflow is authorized by this ADR.  Publication remains
@@ -119,7 +119,7 @@ explicitly deferred to later milestones or v1.  They are not backfilled into
 
 The release-safety RED contract reads the legacy workflow and fails on a
 release trigger; publication-like job; `id-token: write` or `packages: write`;
-deployment environment; secret reference; or known and generic publication
+release-credential environment; secret reference; or known and generic publication
 actions/commands.  Its unsafe fixtures cover PyPI action, Twine, uv, Hatch,
 Poetry, Flit, and generic publish/upload forms.  The corresponding green
 change removes the legacy release trigger and publisher.  This proves only

@@ -72,8 +72,10 @@ as a statement about uninspected current files.
   `max(8 ULP, 2e-14 relative, 2e-14 absolute)`; the sweep is not a mutation
   score or a generalized numerical guarantee. This evidence is limited to
   scalar log-density correctness; it is not fitting, inference, censoring,
-  array, or large-data evidence. Remote CI for this unmerged candidate remains
-  unverified.
+  array, or large-data evidence.  At exact candidate `31a015f`, the remote
+  Linux CI and configured pinned-browser gates passed; mutation run
+  `33804554520` is retained separately below.  Those PR milestone runs are
+  neither a tag/release proof nor Windows/portable performance evidence.
 - ADR-0017's first callable cell is implemented on the development branch: a
   fixed-location, rate-only exponential MLE for exact and independently
   right-censored lifetimes. It returns a finite point estimate or a typed
@@ -95,9 +97,10 @@ as a statement about uninspected current files.
   exponential vertical, not a broad distribution-fitting release.
 - Local Sphinx gettext, EN/FA/DE HTML and English linkcheck complete with
   warnings fatal. Exact real POT/catalog parity, translated rendered semantics,
-  locale direction and canonical examples pass. The corresponding PR #31
-  remote CI evidence is verified; subsequent family-kernel changes still need
-  their own remote CI evidence before merge.
+  locale direction and canonical examples pass.  In addition to the historical
+  PR #31 evidence, exact candidate `31a015f` has passing remote Linux CI for
+  its family-kernel changes.  This is execution evidence for configured gates,
+  not a release documentation or visual-review claim.
 - The narrow `I18N-RTL-EXP-01` opt-in browser contract passes locally with Edge 151 and exactly two
   nonempty Persian HTML screenshots; computed RTL/right alignment and
   LTR/isolate facts pass for success and failure reports. Exact Playwright
@@ -111,9 +114,10 @@ as a statement about uninspected current files.
   locale plus the existing report success/failure gate; no documentation
   screenshots are retained locally, while the CI policy retains only the two
   report screenshots. The pages use a local static math asset rather than a
-  network MathJax fetch. Remote pinned-Chromium evidence for the subsequent
-  family-kernel documentation commits, PDF rendering, network-font rendering,
-  and pixel-baseline comparison remain unverified and are not claimed.
+  network MathJax fetch.  Exact candidate `31a015f` has remote pinned-browser
+  execution evidence for its configured gate.  PDF rendering, network-font
+  rendering, retained independent visual review, and pixel-baseline comparison
+  remain unverified and are not claimed.
 - Eight scratch-only manual patches were each killed by one targeted unittest:
   `fit_exponential` materialized `tuple(observations)` / `test_exp14_memory_growth_is_bounded_for_unique_generated_observations`;
   `merge` used the raw two totals / `test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions`;
