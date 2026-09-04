@@ -5,15 +5,29 @@ from __future__ import annotations
 import re
 import tomllib
 import unittest
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from types import ModuleType
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "v1-ci.yml"
 LEGACY_WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "ci.yml"
+LEGACY_RELEASE_SAFETY_PATH = (
+    REPOSITORY_ROOT / "python" / "tools" / "check_legacy_release_safety.py"
+)
 PYPROJECT_PATH = REPOSITORY_ROOT / "python" / "pyproject.toml"
 BROWSER_TEST_PATH = (
     REPOSITORY_ROOT / "python" / "tests" / "browser" / "test_exponential_report_rtl.py"
 )
+
+
+def _load_legacy_release_safety_checker() -> ModuleType:
+    spec = spec_from_file_location("legacy_release_safety", LEGACY_RELEASE_SAFETY_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("legacy release safety checker is not loadable")
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class VeridistWorkflowContractTests(unittest.TestCase):
@@ -234,12 +248,32 @@ class VeridistWorkflowContractTests(unittest.TestCase):
 
     def test_legacy_workflow_cannot_trigger_or_publish_a_release(self) -> None:
         """Legacy CI may validate legacy code but must never publish an artifact."""
+        self.assertTrue(LEGACY_RELEASE_SAFETY_PATH.is_file())
+        checker = _load_legacy_release_safety_checker()
         legacy_workflow = LEGACY_WORKFLOW_PATH.read_text(encoding="utf-8")
+        self.assertEqual(checker.find_violations(legacy_workflow), ())
 
-        self.assertNotRegex(legacy_workflow, r"(?m)^  release:")
-        self.assertNotRegex(legacy_workflow, r"(?m)^  publish:")
-        self.assertNotIn("gh-action-pypi-publish", legacy_workflow)
-        self.assertNotIn("twine upload", legacy_workflow)
+    def test_legacy_release_safety_rejects_every_publication_capability(self) -> None:
+        checker = _load_legacy_release_safety_checker()
+        unsafe_workflows = {
+            "release trigger": "on:\n  release:\n    types: [published]\n",
+            "publication job": "jobs:\n  publish-wheel:\n    runs-on: ubuntu-latest\n",
+            "release job": "jobs:\n  release:\n    runs-on: ubuntu-latest\n",
+            "trusted publishing permission": "permissions:\n  id-token: write\n",
+            "package write permission": "permissions:\n  packages: write\n",
+            "deployment environment": "jobs:\n  check:\n    environment: pypi\n",
+            "secret reference": "jobs:\n  check:\n    env:\n      TOKEN: ${{ secrets.PYPI_TOKEN }}\n",
+            "pypi action": "steps:\n  - uses: pypa/gh-action-pypi-publish@release/v1\n",
+            "twine command": "steps:\n  - run: python -m twine upload dist/*\n",
+            "uv command": "steps:\n  - run: uv publish\n",
+            "hatch command": "steps:\n  - run: hatch publish\n",
+            "poetry command": "steps:\n  - run: poetry publish\n",
+            "flit command": "steps:\n  - run: flit publish\n",
+            "generic upload action": "steps:\n  - uses: owner/upload-to-pypi@v1\n",
+        }
+        for name, workflow in unsafe_workflows.items():
+            with self.subTest(name=name):
+                self.assertTrue(checker.find_violations(workflow))
 
 
 if __name__ == "__main__":
