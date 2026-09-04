@@ -256,12 +256,17 @@ class VeridistWorkflowContractTests(unittest.TestCase):
     def test_legacy_release_safety_rejects_every_publication_capability(self) -> None:
         checker = _load_legacy_release_safety_checker()
         unsafe_workflows = {
-            "release trigger": "on:\n  release:\n    types: [published]\n",
+            "release trigger mapping": "on:\n  release:\n    types: [published]\n",
+            "release trigger list": "on: [push, release]\n",
+            "quoted release trigger": "on:\n  'release': [published]\n",
             "publication job": "jobs:\n  publish-wheel:\n    runs-on: ubuntu-latest\n",
             "release job": "jobs:\n  release:\n    runs-on: ubuntu-latest\n",
             "trusted publishing permission": "permissions:\n  id-token: write\n",
             "package write permission": "permissions:\n  packages: write\n",
-            "deployment environment": "jobs:\n  check:\n    environment: pypi\n",
+            "nested job permission": (
+                "jobs:\n  check:\n    permissions:\n      packages: write\n"
+            ),
+            "deployment environment": "jobs:\n  check:\n    environment:\n      name: pypi\n",
             "secret reference": (
                 "jobs:\n  check:\n    env:\n      TOKEN: ${{ secrets.PYPI_TOKEN }}\n"
             ),
@@ -277,6 +282,20 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         for name, workflow in unsafe_workflows.items():
             with self.subTest(name=name):
                 self.assertTrue(checker.find_violations(workflow))
+
+    def test_legacy_release_safety_ignores_comments_echoes_and_harmless_environment(self) -> None:
+        checker = _load_legacy_release_safety_checker()
+        safe_workflows = {
+            "comments": "# twine upload dist/*\n# pypa/gh-action-pypi-publish\n",
+            "echo": "jobs:\n  check:\n    steps:\n      - run: echo 'do not publish artifacts'\n",
+            "artifact action": (
+                "jobs:\n  check:\n    steps:\n      - uses: actions/upload-artifact@v4\n"
+            ),
+            "preview environment": "jobs:\n  docs:\n    environment: docs-preview\n",
+        }
+        for name, workflow in safe_workflows.items():
+            with self.subTest(name=name):
+                self.assertEqual(checker.find_violations(workflow), ())
 
 
 if __name__ == "__main__":
