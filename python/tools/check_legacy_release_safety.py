@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import yaml
@@ -19,6 +20,17 @@ _JOB_KEYS = {
 }
 _FORBIDDEN_JOB_KEYS = frozenset(
     {"uses", "secrets", "environment", "permissions", "container", "services"}
+)
+_SECRET_EXPRESSION = re.compile(r"(?i)\bsecrets\s*(?:\.|\[)")
+_APPROVED_ACTIONS = frozenset({"actions/checkout@v4", "actions/setup-python@v5"})
+_APPROVED_RUN_SHA256 = frozenset(
+    {
+        "b3a953c025bc5de29e8d6e6f640dc51c2a8352f88ceb72c11df70dfa4627c33e",
+        "8d9b8aa7a497a8a5be0112e49ddebd3a4031ca70f67a37eb7beb420615233423",
+        "1a4b784d5261462dc46d2b14ac1b29e8c8988d7c066818b091e72c00490ad799",
+        "92423a744a3db8b5dd9d22b9861c50faa7b2122583bdb19172bb4a8bfa6ff93d",
+        "6c3aed6819e5a743ca17c67aff7946dfb82018f71a9abed003a37d81e4df67fb",
+    }
 )
 
 
@@ -39,10 +51,19 @@ def _load_manifest(path: Path | None = None) -> dict[str, object] | None:
     if path is None:
         path = _MANIFEST_PATH
     try:
-        manifest = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        manifest = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
+    except (OSError, ValueError):
         return None
     return manifest if isinstance(manifest, dict) else None
+
+
+def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
 
 
 def _semantic_inventory(document: dict[str, object]) -> tuple[list[str], dict[str, str]]:
@@ -67,8 +88,7 @@ def _semantic_inventory(document: dict[str, object]) -> tuple[list[str], dict[st
 
 def _contains_secret(value: object) -> bool:
     if isinstance(value, str):
-        lowered = value.casefold()
-        return "secrets." in lowered or "secrets[" in lowered
+        return _SECRET_EXPRESSION.search(value) is not None
     if isinstance(value, dict):
         return any(
             "secret" in str(key).casefold() or _contains_secret(child)
@@ -126,6 +146,25 @@ def find_violations(workflow: str) -> tuple[str, ...]:
     violations = list(_structural_violations(document))
     if _contains_secret(document):
         violations.append("secret capability")
+    actions, step_sha256 = _semantic_inventory(document)
+    if not set(actions).issubset(_APPROVED_ACTIONS):
+        violations.append("unapproved action")
+    jobs = document.get("jobs")
+    if isinstance(jobs, dict):
+        for job_id, job in jobs.items():
+            if not isinstance(job, dict) or not isinstance(job.get("steps"), list):
+                continue
+            for index, step in enumerate(job["steps"]):
+                if isinstance(step, dict) and isinstance(step.get("run"), str):
+                    digest = hashlib.sha256(step["run"].encode("utf-8")).hexdigest()
+                    if digest not in _APPROVED_RUN_SHA256:
+                        violations.append("unapproved run block")
+                if (
+                    isinstance(step, dict)
+                    and "env" in step
+                    and (job_id, index) != ("legacy-scope", 2)
+                ):
+                    violations.append("unapproved step environment")
     manifest = _load_manifest()
     if manifest is None:
         return tuple([*violations, "missing or invalid legacy manifest"])
@@ -136,13 +175,16 @@ def find_violations(workflow: str) -> tuple[str, ...]:
         "approved_actions",
         "step_sha256",
     }
-    if frozenset(manifest) != expected_manifest_keys or manifest.get("schema_version") != 2:
+    if (
+        frozenset(manifest) != expected_manifest_keys
+        or type(manifest.get("schema_version")) is not int
+        or manifest.get("schema_version") != 2
+    ):
         violations.append("unsupported legacy manifest schema")
     if manifest.get("workflow_sha256") != _canonical_sha256(document):
         violations.append("legacy workflow fingerprint differs from manifest")
     if manifest.get("job_ids") != sorted(_JOB_KEYS):
         violations.append("legacy manifest job inventory differs")
-    actions, step_sha256 = _semantic_inventory(document)
     if (
         not isinstance(manifest.get("approved_actions"), list)
         or manifest.get("approved_actions") != actions
