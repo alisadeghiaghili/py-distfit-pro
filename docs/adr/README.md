@@ -36,6 +36,7 @@ needed.
 | 0019 | Evaluated-family kernel and parameter contracts | Proposed |
 | 0020 | Veridist 0.5 release contract and fail-closed publication | Accepted |
 | 0021 | Exact-state streaming log-likelihood reduction | Accepted |
+| 0022 | Public stream sources and lease-accounted delivery bounds | Accepted |
 
 ## Dependency notes
 
