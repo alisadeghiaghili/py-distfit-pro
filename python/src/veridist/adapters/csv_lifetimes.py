@@ -223,6 +223,7 @@ class CsvLifetimeAdapter:
     source_id: PublicSourceId
     limits: CsvLifetimeLimits
     opener: CsvBinarySource | None = None
+    _estimated_fixed_bytes: int = field(init=False, repr=False, compare=False)
     _passes: PassEnforcer = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -240,6 +241,17 @@ class CsvLifetimeAdapter:
             if not callable(getattr(self.opener, "identity", None)):
                 raise TypeError("opener must define identity")
         object.__setattr__(self, "_passes", PassEnforcer(max_passes=1))
+        empty_envelope = ChunkEnvelope(
+            source_id=self.source_id.value,
+            chunk_id=_chunk_id(self.source_id, 0, 0),
+            sequence_number=0,
+            row_start=0,
+            row_stop=0,
+            byte_size=1,
+        )
+        fixed = retained_object_graph_bytes(CsvLifetimeChunk(empty_envelope, (), 1))
+        fixed += sys.getsizeof(self.limits.chunk_bytes) + 256
+        object.__setattr__(self, "_estimated_fixed_bytes", fixed)
 
     @property
     def metadata(self) -> DataSourceMetadata:
@@ -432,31 +444,16 @@ class CsvLifetimeAdapter:
         # CPython's published object-size seam (empty tuple plus one element),
         # so no O(k) prefix tuple is ever constructed merely to estimate it.
         # The final emitted chunk is still measured exactly below.
-        empty_envelope = ChunkEnvelope(
-            source_id=self.source_id.value,
-            chunk_id=_chunk_id(self.source_id, start, start),
-            sequence_number=sequence,
-            row_start=start,
-            row_stop=start,
-            byte_size=1,
-        )
-        fixed = retained_object_graph_bytes(CsvLifetimeChunk(empty_envelope, (), 1))
         tuple_slot_bytes = sys.getsizeof((None,)) - sys.getsizeof(())
-        # The final measured byte-size is retained by both chunk and envelope
-        # as one shared integer object.  Its upper bound is the declared limit.
-        byte_size_field_bytes = sys.getsizeof(self.limits.chunk_bytes)
         # Object ownership is exact at emission, while this pre-emission tally
         # intentionally avoids an O(k) graph walk.  Different chunk-id values
         # can have small interpreter-specific graph overhead, so reserve a
         # fixed conservative guard.  Without it an otherwise valid chunk can
         # cross the public byte cap only after emission.
-        conservative_guard_bytes = 256
         return (
-            fixed
+            self._estimated_fixed_bytes
             + tuple_slot_bytes * count
             + observation_bytes
-            + byte_size_field_bytes
-            + conservative_guard_bytes
         )
 
     def _parse_row(self, row: list[str], record_offset: int) -> LifetimeObservation:
