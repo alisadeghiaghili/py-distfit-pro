@@ -1,6 +1,10 @@
 {
   "approved_actions": [
     "actions/checkout@v4",
+    "actions/checkout@v4",
+    "actions/checkout@v4",
+    "actions/setup-python@v5",
+    "actions/setup-python@v5",
     "actions/setup-python@v5"
   ],
   "job_ids": [
@@ -8,6 +12,19 @@
     "legacy-scope",
     "legacy-test"
   ],
-  "schema_version": 1,
+  "schema_version": 2,
+  "step_sha256": {
+    "legacy-gate:0": "dd0465395fff2eaf34fe466af3f46904442331f18fbcb4d67ae136cd3ae05d18",
+    "legacy-gate:1": "a8305f4be097991fa2cca734149b7590f18682241336b3ee30ba6ace303164b5",
+    "legacy-gate:2": "fbadf34d85f41e18af2a0d75a556a085cf52cf685f96160564da00405f53b165",
+    "legacy-scope:0": "c0783997f07b40cfcb52ec4e9d2df902ea1447652acaf650a612895920476ccd",
+    "legacy-scope:1": "a8305f4be097991fa2cca734149b7590f18682241336b3ee30ba6ace303164b5",
+    "legacy-scope:2": "26a673e876ac838b002e44b45132e640b9a07e784a98db977a22a9b2bf95a246",
+    "legacy-test:0": "dd0465395fff2eaf34fe466af3f46904442331f18fbcb4d67ae136cd3ae05d18",
+    "legacy-test:1": "d625a576c2b0615ebbb0b859b2950d547cc34d613b81978ab73f30c98cc85a97",
+    "legacy-test:2": "b0036de87124f1d9696b2561cc019dd98a05738885df5532a41836def42fee9e",
+    "legacy-test:3": "09091881769f0157cfd5abf830dec08040da9bad81b4d21987cc8da548d4344a",
+    "legacy-test:4": "204bfe4f9a8988cc1a26617acc13b088dbb8c86fa26105ca64df186c98ee5eab"
+  },
   "workflow_sha256": "c1d4c09b84a790d4bc4d5636e5f12afd750479f86a57b9a6b8516e32c0c651c9"
 }

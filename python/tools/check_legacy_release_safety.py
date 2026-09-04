@@ -35,12 +35,48 @@ def _canonical_sha256(document: dict[str, object]) -> str:
     return hashlib.sha256(canonical.encode("ascii")).hexdigest()
 
 
-def _load_manifest(path: Path = _MANIFEST_PATH) -> dict[str, object] | None:
+def _load_manifest(path: Path | None = None) -> dict[str, object] | None:
+    if path is None:
+        path = _MANIFEST_PATH
     try:
         manifest = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
     return manifest if isinstance(manifest, dict) else None
+
+
+def _semantic_inventory(document: dict[str, object]) -> tuple[list[str], dict[str, str]]:
+    jobs = document.get("jobs")
+    if not isinstance(jobs, dict):
+        return [], {}
+    actions: list[str] = []
+    step_sha256: dict[str, str] = {}
+    for job_id in sorted(jobs):
+        job = jobs[job_id]
+        if not isinstance(job, dict) or not isinstance(job.get("steps"), list):
+            continue
+        for index, step in enumerate(job["steps"]):
+            if not isinstance(step, dict):
+                continue
+            step_sha256[f"{job_id}:{index}"] = _canonical_sha256(step)
+            action = step.get("uses")
+            if isinstance(action, str):
+                actions.append(action)
+    return sorted(actions), step_sha256
+
+
+def _contains_secret(value: object) -> bool:
+    if isinstance(value, str):
+        lowered = value.casefold()
+        return "secrets." in lowered or "secrets[" in lowered
+    if isinstance(value, dict):
+        return any(
+            "secret" in str(key).casefold() or _contains_secret(child)
+            for key, child in value.items()
+        )
+    if isinstance(value, list):
+        return any(_contains_secret(child) for child in value)
+    return False
 
 
 def _structural_violations(document: dict[str, object]) -> tuple[str, ...]:
@@ -88,17 +124,35 @@ def find_violations(workflow: str) -> tuple[str, ...]:
     if document is None:
         return ("invalid YAML",)
     violations = list(_structural_violations(document))
+    if _contains_secret(document):
+        violations.append("secret capability")
     manifest = _load_manifest()
     if manifest is None:
         return tuple([*violations, "missing or invalid legacy manifest"])
-    if manifest.get("schema_version") != 1:
+    expected_manifest_keys = {
+        "schema_version",
+        "workflow_sha256",
+        "job_ids",
+        "approved_actions",
+        "step_sha256",
+    }
+    if frozenset(manifest) != expected_manifest_keys or manifest.get("schema_version") != 2:
         violations.append("unsupported legacy manifest schema")
     if manifest.get("workflow_sha256") != _canonical_sha256(document):
         violations.append("legacy workflow fingerprint differs from manifest")
     if manifest.get("job_ids") != sorted(_JOB_KEYS):
         violations.append("legacy manifest job inventory differs")
-    if manifest.get("approved_actions") != ["actions/checkout@v4", "actions/setup-python@v5"]:
+    actions, step_sha256 = _semantic_inventory(document)
+    if (
+        not isinstance(manifest.get("approved_actions"), list)
+        or manifest.get("approved_actions") != actions
+    ):
         violations.append("legacy manifest action inventory differs")
+    if (
+        not isinstance(manifest.get("step_sha256"), dict)
+        or manifest.get("step_sha256") != step_sha256
+    ):
+        violations.append("legacy manifest step inventory differs")
     return tuple(dict.fromkeys(violations))
 
 
