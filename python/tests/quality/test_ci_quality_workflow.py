@@ -354,6 +354,16 @@ class VeridistWorkflowContractTests(unittest.TestCase):
                 "fetch-depth: 0\n          env:\n            TOKEN: safe-looking",
                 1,
             ),
+            "spaced bracket secret": baseline.replace(
+                "EVENT_NAME: ${{ github.event_name }}",
+                "EVENT_NAME: ${{ secrets [ 'PYPI_TOKEN' ] }}",
+                1,
+            ),
+            "spaced dot secret": baseline.replace(
+                "EVENT_NAME: ${{ github.event_name }}",
+                "EVENT_NAME: ${{ secrets .TOKEN }}",
+                1,
+            ),
         }
         manifest = json.loads(LEGACY_RELEASE_MANIFEST_PATH.read_text(encoding="utf-8"))
         self.assertIn("step_sha256", manifest)
@@ -362,10 +372,30 @@ class VeridistWorkflowContractTests(unittest.TestCase):
                 document = checker._load_document(workflow)
                 self.assertIsNotNone(document)
                 manifest["workflow_sha256"] = checker._canonical_sha256(document)
+                manifest["approved_actions"], manifest["step_sha256"] = checker._semantic_inventory(
+                    document
+                )
                 path = Path(directory) / "manifest.json"
                 path.write_text(json.dumps(manifest), encoding="utf-8")
                 with mock.patch.object(checker, "_MANIFEST_PATH", path):
                     self.assertTrue(checker.find_violations(workflow))
+        self.assertFalse(checker._contains_secret("prose says secrets are unavailable"))
+
+    def test_legacy_manifest_rejects_noninteger_schema_and_duplicate_keys(self) -> None:
+        checker = _load_legacy_release_safety_checker()
+        workflow = LEGACY_WORKFLOW_PATH.read_text(encoding="utf-8")
+        manifest = json.loads(LEGACY_RELEASE_MANIFEST_PATH.read_text(encoding="utf-8"))
+        for value in (True, 2.0, "2"):
+            with self.subTest(schema_version=value), tempfile.TemporaryDirectory() as directory:
+                manifest["schema_version"] = value
+                path = Path(directory) / "manifest.json"
+                path.write_text(json.dumps(manifest), encoding="utf-8")
+                with mock.patch.object(checker, "_MANIFEST_PATH", path):
+                    self.assertTrue(checker.find_violations(workflow))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "manifest.json"
+            path.write_text('{"schema_version": 2, "schema_version": 2}', encoding="utf-8")
+            self.assertIsNone(checker._load_manifest(path))
 
 
 if __name__ == "__main__":
