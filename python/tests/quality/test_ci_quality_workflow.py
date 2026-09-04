@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import re
+import json
+import tempfile
 import tomllib
 import unittest
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from types import ModuleType
+from unittest import mock
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "v1-ci.yml"
@@ -325,6 +328,44 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         for name, workflow in unsafe_workflows.items():
             with self.subTest(name=name):
                 self.assertTrue(checker.find_violations(workflow))
+
+    def test_legacy_manifest_semantics_survive_a_regenerated_workflow_digest(self) -> None:
+        checker = _load_legacy_release_safety_checker()
+        baseline = LEGACY_WORKFLOW_PATH.read_text(encoding="utf-8")
+        variants = {
+            "publisher action": baseline.replace("actions/checkout@v4", "evil/publish@v1", 1),
+            "bracket secret": baseline.replace(
+                "EVENT_NAME: ${{ github.event_name }}",
+                "EVENT_NAME: ${{ secrets['PYPI_TOKEN'] }}",
+                1,
+            ),
+            "dot secret": baseline.replace(
+                "EVENT_NAME: ${{ github.event_name }}",
+                "EVENT_NAME: ${{ secrets.PYPI_TOKEN }}",
+                1,
+            ),
+            "publisher command": baseline.replace(
+                "python python/tools/ci_scope.py legacy-gate",
+                "poetry publish",
+                1,
+            ),
+            "unexpected step environment": baseline.replace(
+                "fetch-depth: 0",
+                "fetch-depth: 0\n          env:\n            TOKEN: safe-looking",
+                1,
+            ),
+        }
+        manifest = json.loads(LEGACY_RELEASE_MANIFEST_PATH.read_text(encoding="utf-8"))
+        self.assertIn("step_sha256", manifest)
+        for name, workflow in variants.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                document = checker._load_document(workflow)
+                self.assertIsNotNone(document)
+                manifest["workflow_sha256"] = checker._canonical_sha256(document)
+                path = Path(directory) / "manifest.json"
+                path.write_text(json.dumps(manifest), encoding="utf-8")
+                with mock.patch.object(checker, "_MANIFEST_PATH", path):
+                    self.assertTrue(checker.find_violations(workflow))
 
 
 if __name__ == "__main__":
