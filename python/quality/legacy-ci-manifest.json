@@ -1,0 +1,13 @@
+{
+  "approved_actions": [
+    "actions/checkout@v4",
+    "actions/setup-python@v5"
+  ],
+  "job_ids": [
+    "legacy-gate",
+    "legacy-scope",
+    "legacy-test"
+  ],
+  "schema_version": 1,
+  "workflow_sha256": "c1d4c09b84a790d4bc4d5636e5f12afd750479f86a57b9a6b8516e32c0c651c9"
+}

