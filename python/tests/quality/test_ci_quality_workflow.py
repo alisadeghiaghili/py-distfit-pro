@@ -351,7 +351,10 @@ class VeridistWorkflowContractTests(unittest.TestCase):
             ),
             "unexpected step environment": baseline.replace(
                 "      - uses: actions/setup-python@v5\n        with:",
-                "      - uses: actions/setup-python@v5\n        env:\n          TOKEN: safe-looking\n        with:",
+                (
+                    "      - uses: actions/setup-python@v5\n        env:\n"
+                    "          TOKEN: safe-looking\n        with:"
+                ),
                 1,
             ),
             "unexpected with payload": baseline.replace(

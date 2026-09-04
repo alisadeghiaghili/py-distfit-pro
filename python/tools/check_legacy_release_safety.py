@@ -32,6 +32,13 @@ _APPROVED_RUN_SHA256 = frozenset(
         "6c3aed6819e5a743ca17c67aff7946dfb82018f71a9abed003a37d81e4df67fb",
     }
 )
+_APPROVED_WITH_SHA256 = frozenset(
+    {
+        "183d260e8b678c373a566ae833d8d36277a19f369c38897d04524715cf579002",
+        "936963ee6f7504ff953519faacf98865febff4eb6cd471ca903ca35188633e9f",
+        "16105d964abbe3f77f9498112614313cdab360afb7c7176c20b93d1a064d55e9",
+    }
+)
 
 
 def _load_document(workflow: str) -> dict[str, object] | None:
@@ -162,9 +169,12 @@ def find_violations(workflow: str) -> tuple[str, ...]:
                 if (
                     isinstance(step, dict)
                     and "env" in step
-                    and (job_id, index) != ("legacy-scope", 2)
+                    and (job_id, index) not in {("legacy-scope", 2), ("legacy-gate", 2)}
                 ):
                     violations.append("unapproved step environment")
+                if isinstance(step, dict) and "with" in step:
+                    if _canonical_sha256(step["with"]) not in _APPROVED_WITH_SHA256:
+                        violations.append("unapproved step inputs")
     manifest = _load_manifest()
     if manifest is None:
         return tuple([*violations, "missing or invalid legacy manifest"])
