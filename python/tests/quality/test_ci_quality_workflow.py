@@ -9,6 +9,7 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "v1-ci.yml"
+LEGACY_WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "ci.yml"
 PYPROJECT_PATH = REPOSITORY_ROOT / "python" / "pyproject.toml"
 BROWSER_TEST_PATH = (
     REPOSITORY_ROOT / "python" / "tests" / "browser" / "test_exponential_report_rtl.py"
@@ -230,6 +231,15 @@ class VeridistWorkflowContractTests(unittest.TestCase):
 
         gate_start = self.workflow.index("  veridist-gate:")
         self.assertNotIn("working-directory:", self.workflow[gate_start:])
+
+    def test_legacy_workflow_cannot_trigger_or_publish_a_release(self) -> None:
+        """Legacy CI may validate legacy code but must never publish an artifact."""
+        legacy_workflow = LEGACY_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+        self.assertNotRegex(legacy_workflow, r"(?m)^  release:")
+        self.assertNotRegex(legacy_workflow, r"(?m)^  publish:")
+        self.assertNotIn("gh-action-pypi-publish", legacy_workflow)
+        self.assertNotIn("twine upload", legacy_workflow)
 
 
 if __name__ == "__main__":
