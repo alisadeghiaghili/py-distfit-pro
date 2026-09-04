@@ -52,6 +52,8 @@ The public package surface exposes only `fit_exponential_csv`,
 result. It has no legacy runtime import. The retained scale artifact is limited
 to the strict CSV/exponential matrix; it does not establish generic big-data,
 portable RSS, throughput, retry/checkpoint, cancellation, or other-adapter
-support. The formal mutation infrastructure and its versioned GitHub Linux
-workflow are implemented, but no remote execution has yet been retained and no
-score is claimed.
+support. On immutable candidate `31a015f`, GitHub Actions run `33804554520`
+retained a mutation baseline pass for the binding scope: 2,217 generated,
+1,776 killed, 441 survived, zero unresolved, and score
+`0.801082543978349`.  This is milestone-quality evidence only; it does not
+prove the 0.5 release gates, scale portability, or broader statistical claims.

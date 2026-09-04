@@ -35,7 +35,7 @@ needed.
 | 0018 | CSV lifetime adapter and one-pass exponential orchestrator | Proposed; a narrow implemented vertical with retained evidence, but formal mutation and complete multilingual rendered-documentation gates remain open |
 | 0019 | Evaluated-family kernel and parameter contracts | Proposed |
 | 0020 | Veridist 0.5 release contract and fail-closed publication | Accepted |
-| 0021 | Exact-state streaming log-likelihood reduction | Proposed |
+| 0021 | Exact-state streaming log-likelihood reduction | Accepted |
 
 ## Dependency notes
 

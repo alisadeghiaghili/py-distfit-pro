@@ -262,13 +262,16 @@ class VeridistWorkflowContractTests(unittest.TestCase):
             "trusted publishing permission": "permissions:\n  id-token: write\n",
             "package write permission": "permissions:\n  packages: write\n",
             "deployment environment": "jobs:\n  check:\n    environment: pypi\n",
-            "secret reference": "jobs:\n  check:\n    env:\n      TOKEN: ${{ secrets.PYPI_TOKEN }}\n",
+            "secret reference": (
+                "jobs:\n  check:\n    env:\n      TOKEN: ${{ secrets.PYPI_TOKEN }}\n"
+            ),
             "pypi action": "steps:\n  - uses: pypa/gh-action-pypi-publish@release/v1\n",
             "twine command": "steps:\n  - run: python -m twine upload dist/*\n",
             "uv command": "steps:\n  - run: uv publish\n",
             "hatch command": "steps:\n  - run: hatch publish\n",
             "poetry command": "steps:\n  - run: poetry publish\n",
             "flit command": "steps:\n  - run: flit publish\n",
+            "generic publish command": "steps:\n  - run: release-client publish\n",
             "generic upload action": "steps:\n  - uses: owner/upload-to-pypi@v1\n",
         }
         for name, workflow in unsafe_workflows.items():
