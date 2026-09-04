@@ -246,6 +246,43 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_scale08a_runner_default_uses_retained_artifact_worker_count(self) -> None:
+        class InlineExecutor:
+            def __init__(self, *, max_workers: int) -> None:
+                self.max_workers = max_workers
+
+            def __enter__(self) -> InlineExecutor:
+                return self
+
+            def __exit__(self, *unused: object) -> None:
+                return None
+
+            def map(self, function: object, values: object) -> object:
+                assert callable(function)
+                return [function(value) for value in values]  # type: ignore[union-attr]
+
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "artifact.json"
+            command = [
+                str(RUNNER),
+                "--output",
+                str(output),
+                "--rows",
+                "10",
+                "--chunk-bytes",
+                "2048,4096,8192",
+            ]
+            cell = {"observed": {"accepted_chunk_count": 1}}
+            with (
+                patch.object(RUNNER_MODULE, "_clean_checkout_sha", return_value="a" * 40),
+                patch.object(RUNNER_MODULE, "_cell_request", return_value=cell),
+                patch.object(RUNNER_MODULE, "ProcessPoolExecutor", InlineExecutor),
+                patch.object(sys, "argv", command),
+            ):
+                self.assertEqual(RUNNER_MODULE.main(), 0)
+            artifact = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(artifact["run"]["measurement_workers"], 3)
+
     def test_scale09_runner_smoke_is_concurrent_safe(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             outputs = [Path(temporary) / f"artifact-{index}.json" for index in range(2)]

@@ -167,7 +167,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--rows", default="10000,100000,1000000")
     parser.add_argument("--chunk-bytes", default="32768,65536,131072")
-    parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--workers", type=int, default=3)
     parser.add_argument(
         "--temporary-root",
         type=Path,
