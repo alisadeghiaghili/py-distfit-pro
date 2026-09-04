@@ -362,6 +362,16 @@ class VeridistWorkflowContractTests(unittest.TestCase):
                 "fetch-depth: 0\n          TOKEN: safe-looking",
                 1,
             ),
+            "changed allowed environment": baseline.replace(
+                "EVENT_NAME: ${{ github.event_name }}",
+                "EVENT_NAME: ${{ github.event_name }}\n          EXTRA: value",
+                1,
+            ),
+            "allowed with payload transplanted to another step": baseline.replace(
+                "with:\n          python-version: \"3.11\"",
+                "with:\n          fetch-depth: 0",
+                1,
+            ),
             "spaced bracket secret": baseline.replace(
                 "EVENT_NAME: ${{ github.event_name }}",
                 "EVENT_NAME: ${{ secrets [ 'PYPI_TOKEN' ] }}",
@@ -373,12 +383,15 @@ class VeridistWorkflowContractTests(unittest.TestCase):
                 1,
             ),
         }
-        manifest = json.loads(LEGACY_RELEASE_MANIFEST_PATH.read_text(encoding="utf-8"))
-        self.assertIn("step_sha256", manifest)
+        baseline_manifest = json.loads(
+            LEGACY_RELEASE_MANIFEST_PATH.read_text(encoding="utf-8")
+        )
+        self.assertIn("step_sha256", baseline_manifest)
         for name, workflow in variants.items():
             with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
                 document = checker._load_document(workflow)
                 self.assertIsNotNone(document)
+                manifest = dict(baseline_manifest)
                 manifest["workflow_sha256"] = checker._canonical_sha256(document)
                 manifest["approved_actions"], manifest["step_sha256"] = checker._semantic_inventory(
                     document
