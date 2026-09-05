@@ -43,6 +43,14 @@ class IterableDataSource(Generic[T]):
     ) -> None:
         if type(metadata) is not DataSourceMetadata:
             raise TypeError("metadata must be DataSourceMetadata")
+        if metadata.replayability is Replayability.CHECKPOINT_REPLAYABLE:
+            raise StreamSourceError(
+                FailureCode.CHECKPOINT_REQUIRED,
+                {
+                    "replayability": metadata.replayability.value,
+                    "operation": "iterable_data_source",
+                },
+            )
         if metadata.replayability is Replayability.SINGLE_PASS:
             if callable(chunks):
                 raise TypeError("single-pass sources require an iterable, not an iterator factory")

@@ -62,6 +62,43 @@ class StreamSourceContractTests(unittest.TestCase):
         self.assertEqual(tuple(source.iter_chunks()), ((0.0,),))
         self.assertEqual(tuple(source.iter_chunks()), ((0.0,),))
 
+    def test_checkpoint_replayable_source_is_rejected_until_checkpoint_semantics_exist(
+        self,
+    ) -> None:
+        with self.assertRaises(StreamSourceError) as caught:
+            IterableDataSource(
+                lambda: iter(((0.0,),)),
+                metadata(Replayability.CHECKPOINT_REPLAYABLE),
+            )
+        self.assertIs(caught.exception.code, FailureCode.CHECKPOINT_REQUIRED)
+        self.assertEqual(
+            caught.exception.context,
+            {
+                "replayability": "checkpoint_replayable",
+                "operation": "iterable_data_source",
+            },
+        )
+
+    def test_public_generic_source_workflow_uses_top_level_exports(self) -> None:
+        import veridist
+
+        source_metadata = veridist.DataSourceMetadata(
+            source_id="public-stream",
+            schema_version="1",
+            provenance_schema_version="1",
+            replayability=veridist.Replayability.SINGLE_PASS,
+            redaction_reason="test",
+        )
+        source = veridist.IterableDataSource(((0.0, 1.0),), source_metadata)
+        result = veridist.reduce_log_likelihood_chunks(
+            veridist.FamilyId.NORMAL,
+            source,
+            mu=0.0,
+            sigma=1.0,
+        )
+        self.assertIsInstance(result, LogLikelihoodSuccess)
+        self.assertEqual(result.observation_count, 2)
+
 
 class ActiveLeaseBufferTests(unittest.TestCase):
     def test_released_chunk_is_rejected_without_mutating_buffer_then_cancel_remains_safe(

@@ -17,11 +17,13 @@ Expose a small stdlib-only `IterableDataSource` for a caller-owned iterable
 and a `StreamSource` protocol for adapters.  A source always has immutable
 `DataSourceMetadata`; its replayability declaration controls acquisition.
 `SINGLE_PASS` sources can be acquired once and a further acquisition raises
-the existing typed `PASS_BUDGET_EXCEEDED` failure.  `REPLAYABLE` and
-`CHECKPOINT_REPLAYABLE` sources require an explicit iterator factory, so the
-library never infers replayability from an arbitrary iterable.  The strict
-CSV lifetime adapter remains the only shipped file adapter and declares
-`SINGLE_PASS`.
+the existing typed `PASS_BUDGET_EXCEEDED` failure. `REPLAYABLE` sources
+require an explicit iterator factory, so the library never infers
+replayability from an arbitrary iterable. `CHECKPOINT_REPLAYABLE` is
+deliberately rejected by `IterableDataSource` with typed `CHECKPOINT_REQUIRED`
+until a checkpoint-aware adapter and its resume metadata are implemented; it
+must not be presented as unrestricted replay. The strict CSV lifetime adapter
+remains the only shipped file adapter and declares `SINGLE_PASS`.
 
 Existing reducers keep accepting legacy nested iterables.  They also accept a
 `StreamSource`, acquired through the common helper, so the generic source is
@@ -45,6 +47,7 @@ throughput, or broad out-of-core support.
 
 - a generic source is consumed by both current reducers;
 - single-pass acquisition has a typed failure;
+- checkpoint-replay declarations fail closed with `CHECKPOINT_REQUIRED` until checkpoint-aware acquisition exists;
 - active consumer leases remain charged;
 - a blocked producer proceeds only after release;
 - cancellation invokes all queued callbacks and has a deterministic first-error policy.

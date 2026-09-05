@@ -80,3 +80,11 @@ msgid ""
 "contracts: they are not generic fitting, inference, goodness-of-fit, "
 "ranking, array, or censoring APIs."
 msgstr "`veridist.families.registry` فرادادهٔ تغییرناپذیر `FAMILY_REGISTRY` و `FamilyId` را برای پنج خانوادهٔ ارزیابی‌شده صادر می‌کند. `veridist.statistics.log_density` تابع اسکالر `evaluate_log_density` و `veridist.statistics.log_likelihood` مقادیر `LogLikelihoodState` و `reduce_log_likelihood_chunks` را صادر می‌کنند. این‌ها قراردادهای مجزای اسکالرِ متناهی‌اند و API عمومی برازش، استنباط، نیکویی برازش، رتبه‌بندی، آرایه یا سانسور نیستند."
+
+#: DOC-MSG-API-STREAM-TITLE
+msgid "Generic stream source API"
+msgstr "رابط API منبع جریان عمومی"
+
+#: DOC-MSG-API-STREAM-BODY
+msgid "`DataSourceMetadata`, `Replayability`, `IterableDataSource`, `FamilyId`, and `reduce_log_likelihood_chunks` are public so a caller can construct and consume a generic in-memory or caller-owned stream. A `SINGLE_PASS` source receives an iterable and is acquired once; `REPLAYABLE` requires a zero-argument iterator factory. `CHECKPOINT_REPLAYABLE` is not yet implemented by this adapter and fails immediately with typed `CHECKPOINT_REQUIRED`; do not treat it as a promise of checkpoint recovery."
+msgstr "`DataSourceMetadata`، `Replayability`، `IterableDataSource`، `FamilyId` و `reduce_log_likelihood_chunks` عمومی هستند تا فراخواننده بتواند یک جریان عمومی درون‌حافظه‌ای یا متعلق به خود را بسازد و مصرف کند. منبع `SINGLE_PASS` یک iterable می‌گیرد و فقط یک‌بار دریافت می‌شود؛ `REPLAYABLE` به یک iterator factory بدون آرگومان نیاز دارد. `CHECKPOINT_REPLAYABLE` هنوز توسط این adapter پیاده‌سازی نشده و بلافاصله با `CHECKPOINT_REQUIRED` نوع‌دار شکست می‌خورد؛ آن را وعدهٔ بازیابی checkpoint تلقی نکنید."

@@ -18,12 +18,16 @@ class PublicCsvApiTests(unittest.TestCase):
             "__version__",
             "CsvLifetimeLimits",
             "CsvLifetimeSchema",
+            "DataSourceMetadata",
             "ExponentialSourceFitResult",
+            "FamilyId",
             "IterableDataSource",
             "PublicSourceId",
+            "Replayability",
             "StreamSource",
             "StreamSourceError",
             "fit_exponential_csv",
+            "reduce_log_likelihood_chunks",
         }
         self.assertEqual(set(veridist.__all__), expected)
         signature = inspect.signature(veridist.fit_exponential_csv)
