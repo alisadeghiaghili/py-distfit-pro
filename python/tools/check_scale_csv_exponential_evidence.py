@@ -18,7 +18,8 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"
+LEGACY_SCHEMA_VERSION = "1"
 FULL_ROWS = (10_000, 100_000, 1_000_000)
 FULL_BUDGETS = (32_768, 65_536, 131_072)
 SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -32,7 +33,9 @@ ARTIFACT_KEYS = {
     "operation_evidence",
     "artifact_sha256",
 }
-RUN_KEYS = {"git_sha", "git_dirty", "utc_started", "python", "platform", "measurement_workers"}
+RUN_KEYS_V1 = {"git_sha", "git_dirty", "utc_started", "python", "platform", "measurement_workers"}
+RUN_KEYS_V2 = {*RUN_KEYS_V1, "timing"}
+TIMING_KEYS = {"clock", "preflight"}
 PYTHON_KEYS = {"implementation", "version"}
 GENERATOR_KEYS = {"formula_version", "temporary_root"}
 CELL_KEYS = {
@@ -180,14 +183,16 @@ def validate(
     if not _exact_keys(value, ARTIFACT_KEYS, "artifact", errors):
         return errors
     assert isinstance(value, dict)
-    if value["schema_version"] != SCHEMA_VERSION:
+    schema_version = value["schema_version"]
+    if schema_version not in {LEGACY_SCHEMA_VERSION, SCHEMA_VERSION}:
         errors.append("unsupported schema version")
     if not isinstance(value["artifact_sha256"], str) or value["artifact_sha256"] != _digest(value):
         errors.append("artifact digest mismatch")
     if _contains_path(value):
         errors.append("path leaked into evidence artifact")
     run = value["run"]
-    if not _exact_keys(run, RUN_KEYS, "run", errors):
+    expected_run_keys = RUN_KEYS_V2 if schema_version == SCHEMA_VERSION else RUN_KEYS_V1
+    if not _exact_keys(run, expected_run_keys, "run", errors):
         return errors
     assert isinstance(run, dict)
     actual_sha = run["git_sha"]
@@ -215,6 +220,13 @@ def validate(
         errors.append("measurement workers must be positive")
     if not smoke and run["measurement_workers"] != 3:
         errors.append("retained artifact measurement workers must equal 3")
+    if schema_version == SCHEMA_VERSION:
+        timing = run["timing"]
+        if not _exact_keys(timing, TIMING_KEYS, "run timing", errors):
+            return errors
+        assert isinstance(timing, dict)
+        if timing["clock"] != "time.time_ns" or timing["preflight"] != "paired-wall-monotonic-v1":
+            errors.append("run timing provenance is invalid")
     generator = value["generator"]
     if not _exact_keys(generator, GENERATOR_KEYS, "generator", errors):
         return errors

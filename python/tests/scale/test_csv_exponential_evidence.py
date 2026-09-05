@@ -282,6 +282,11 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
                 self.assertEqual(RUNNER_MODULE.main(), 0)
             artifact = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(artifact["run"]["measurement_workers"], 3)
+            self.assertEqual(artifact["schema_version"], "2")
+            self.assertEqual(
+                artifact["run"]["timing"],
+                {"clock": "time.time_ns", "preflight": "paired-wall-monotonic-v1"},
+            )
 
     def test_scale09_runner_smoke_is_concurrent_safe(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -333,6 +338,8 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
                 "10",
                 "--chunk-bytes",
                 "2048,4096,8192",
+                "--workers",
+                "1",
             ]
             with (
                 patch.object(
@@ -407,6 +414,34 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("accepted_chunk_count must be positive", result.stderr)
+
+    def test_scale16_elapsed_clock_pair_rejects_cross_domain_disagreement(self) -> None:
+        self.assertEqual(
+            RUNNER_MODULE._paired_elapsed_seconds(1_000, 1_100, 8_000, 8_100),
+            0.0000001,
+        )
+        with self.assertRaisesRegex(RuntimeError, "clocks disagree"):
+            RUNNER_MODULE._paired_elapsed_seconds(
+                1_000,
+                1_000_000_000,
+                8_000,
+                72_008_000_000_000,
+            )
+
+    def test_scale17_v2_rejects_missing_timing_provenance(self) -> None:
+        artifact = _smoke_artifact()
+        artifact["schema_version"] = "2"
+        artifact["run"]["timing"] = {
+            "clock": "time.time_ns",
+            "preflight": "paired-wall-monotonic-v1",
+        }
+        _seal(artifact)
+        self.assertEqual(self._check(artifact).returncode, 0)
+        del artifact["run"]["timing"]
+        _seal(artifact)
+        result = self._check(artifact)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("run schema keys invalid", result.stderr)
 
 
 if __name__ == "__main__":

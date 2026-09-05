@@ -23,6 +23,14 @@ from veridist.families.exponential import ExponentialFitSuccess
 
 SCHEMA = CsvLifetimeSchema("time", "event_observed")
 
+# Windows virtualized clocks can disagree after a worker migrates between
+# timing domains.  Evidence must fail closed rather than preserve an elapsed
+# value that cannot be tied to a trustworthy clock.
+ELAPSED_CLOCK = "time.time_ns"
+ELAPSED_PREFLIGHT = "paired-wall-monotonic-v1"
+_CLOCK_ABSOLUTE_TOLERANCE_NS = 100_000_000
+_CLOCK_RELATIVE_TOLERANCE = 0.05
+
 
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -82,6 +90,47 @@ def _parse_budgets(value: str) -> list[int]:
     return budgets
 
 
+def _paired_elapsed_seconds(
+    wall_started_ns: int,
+    wall_finished_ns: int,
+    monotonic_started_ns: int,
+    monotonic_finished_ns: int,
+) -> float:
+    """Return a wall duration only when an independent monotonic clock agrees.
+
+    ``time.time_ns`` is the persisted wall-clock measurement.  The paired
+    monotonic duration is not reported as a performance metric; it is a local
+    provenance check that prevents a known bad timer domain from producing a
+    deceptively precise retained value.
+    """
+
+    wall_elapsed = wall_finished_ns - wall_started_ns
+    monotonic_elapsed = monotonic_finished_ns - monotonic_started_ns
+    if wall_elapsed < 0 or monotonic_elapsed < 0:
+        raise RuntimeError("elapsed clock moved backwards")
+    tolerance = max(
+        _CLOCK_ABSOLUTE_TOLERANCE_NS,
+        int(max(wall_elapsed, monotonic_elapsed) * _CLOCK_RELATIVE_TOLERANCE),
+    )
+    if abs(wall_elapsed - monotonic_elapsed) > tolerance:
+        raise RuntimeError("elapsed clocks disagree; refusing timing evidence")
+    return wall_elapsed / 1_000_000_000
+
+
+def _preflight_elapsed_clock() -> None:
+    """Cheap per-worker guard before a scale cell is measured."""
+
+    wall_started = time.time_ns()
+    monotonic_started = time.perf_counter_ns()
+    time.sleep(0.01)
+    _paired_elapsed_seconds(
+        wall_started,
+        time.time_ns(),
+        monotonic_started,
+        time.perf_counter_ns(),
+    )
+
+
 def _cell(
     path: Path,
     *,
@@ -90,9 +139,11 @@ def _cell(
     expected_events: int,
     expected_total: Decimal,
 ) -> dict[str, object]:
+    _preflight_elapsed_clock()
     before_rss = _rss_bytes()
     tracemalloc.start()
-    started = time.perf_counter()
+    wall_started = time.time_ns()
+    monotonic_started = time.perf_counter_ns()
     result = fit_exponential_csv(
         path,
         schema=SCHEMA,
@@ -101,7 +152,12 @@ def _cell(
         ),
         limits=CsvLifetimeLimits(chunk_bytes, chunk_bytes),
     )
-    elapsed = time.perf_counter() - started
+    elapsed = _paired_elapsed_seconds(
+        wall_started,
+        time.time_ns(),
+        monotonic_started,
+        time.perf_counter_ns(),
+    )
     _, trace_peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
     after_rss = _rss_bytes()
@@ -208,7 +264,7 @@ def main() -> int:
             cells.extend(row_cells)
             chunks_by_row[row_count] = int(row_cells[0]["observed"]["accepted_chunk_count"])
     value: dict[str, object] = {
-        "schema_version": "1",
+        "schema_version": "2",
         "run": {
             "git_sha": preflight_sha,
             "git_dirty": False,
@@ -219,6 +275,7 @@ def main() -> int:
             },
             "platform": platform.platform(),
             "measurement_workers": args.workers,
+            "timing": {"clock": ELAPSED_CLOCK, "preflight": ELAPSED_PREFLIGHT},
         },
         "generator": {"formula_version": "1", "temporary_root": "redacted"},
         "cells": cells,
