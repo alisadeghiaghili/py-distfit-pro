@@ -1,587 +1,178 @@
-# DistFit Pro 🎯
+<!--
+LICENSE NOTICE: py-distfit-pro is licensed under the Business Source License 1.1 (BUSL-1.1).
 
-**Professional Distribution Fitting for Python**
+• Free use: research, academic, internal business, and personal projects
+• Commercial/hosting use: requires explicit permission if you offer py-distfit-pro as a
+  hosted/embedded service that competes with the author's paid offering
+• Change Date: 2030-09-05 — on this date, the license automatically converts to Apache-2.0
 
-A comprehensive, production-ready library for statistical distribution fitting that surpasses EasyFit and R's fitdistrplus with modern statistical methods, exceptional user experience, and robust software engineering.
+See LICENSE for full terms. If you're unsure whether your use case is permitted,
+contact the licensor before deploying in production.
+-->
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/alisadeghiaghili/py-distfit-pro/releases)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://github.com/alisadeghiaghili/py-distfit-pro/docs)
+# Data Unicorn 🦄
 
-[English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md) | [📋 CHANGELOG](CHANGELOG.md)
+[![Language](https://img.shields.io/badge/language-Python-blue)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-BUSL--1.1-orange)](LICENSE)
+[![Release](https://img.shields.io/badge/release-1.0.0-blue)](https://github.com/alisadeghiaghili/py-distfit-pro/releases)
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-latest-purple)](CHANGELOG.md)
 
----
-
-## 🌟 What's New in v1.0.0
-
-### 🎉 **MAJOR RELEASE** - Complete Feature Set!
-
-✅ **30 Statistical Distributions** (25 continuous + 5 discrete)  
-✅ **Goodness-of-Fit Tests** (KS, AD, Chi-Square, Cramér-von Mises)  
-✅ **Bootstrap Confidence Intervals** (Parametric & Non-parametric with BCa)  
-✅ **Enhanced Diagnostics** (Residuals, Influence, Outlier Detection)  
-✅ **Weighted Data Support** (Survey data, stratified sampling, frequency counts)  
-✅ **Multiple Estimation Methods** (MLE, Moments, Quantile matching)  
-✅ **Multilingual** (English, فارسی, Deutsch)  
-✅ **Comprehensive Documentation** (9 tutorials + API reference)  
-✅ **20+ Complete Examples** (8,500+ lines across 7 folders) 🆕
-
-**📚 New: [Comprehensive Examples](examples/README.md)**  
-Explore 20+ production-ready examples covering:
-- Basics & common distributions
-- Advanced fitting methods (MLE, MoM)
-- Model selection (AIC, BIC, Cross-validation)
-- Goodness-of-fit testing
-- Beautiful visualizations (PDF, CDF, Q-Q plots, interactive)
-- Real-world applications (Finance, Reliability, Quality Control)
-- Advanced topics (Mixture models, Bootstrap, Custom distributions)
+**Professional-grade distribution fitting with statistical rigor and enterprise reliability.**
 
 ---
 
-## 🚀 Why Choose DistFit Pro?
+## 📋 Quick Navigation
 
-### **Better Than EasyFit**
-- ✅ Free and open source (MIT license)
-- ✅ Python ecosystem integration (NumPy, SciPy, pandas)
-- ✅ Advanced GOF tests (not just visual assessment)
-- ✅ Bootstrap CI (uncertainty quantification)
-- ✅ Weighted data support
-- ✅ Automated model selection (AIC/BIC)
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Core Concepts](#-core-concepts)
+- [Examples](#-examples)
+- [Documentation](#-documentation)
+- [License](#-license)
 
-### **Better Than R's fitdistrplus**
-- ✅ Simpler, cleaner API
-- ✅ Better performance (parallel processing built-in)
-- ✅ Modern visualizations (matplotlib + plotly)
-- ✅ Self-documenting code and outputs
-- ✅ Multilingual support
-- ✅ More distributions (30 vs 23)
+---
 
-### **Professional Quality**
-- ✅ Production-ready code
-- ✅ Comprehensive test suite
-- ✅ Full documentation (9 tutorials + 20+ examples)
-- ✅ Type hints throughout
-- ✅ Clean, maintainable architecture
+## 🎯 Overview
+
+Data Unicorn is a Python package for fitting univariate probability distributions to data with:
+
+- **Statistical correctness** — validated estimators, proper p-values, and calibrated tests
+- **Production reliability** — comprehensive test coverage, error handling, and deterministic results
+- **Scalability** — out-of-core execution for datasets larger than memory
+
+Designed for data engineers, ML practitioners, and statisticians who need trustworthy distribution fitting without hidden assumptions or silent failures.
+
+---
+
+## ✨ Key Features
+
+- **Comprehensive distribution support**: Gamma, Log-Normal, Weibull, Beta, and more
+- **Multiple fitting methods**: MLE, Method of Moments, L-Moments, Quantile Matching
+- **Goodness-of-fit testing**: Anderson-Darling, Kolmogorov-Smirnov, Chi-Square with proper p-values
+- **Model selection**: AIC, AICc, BIC for principled comparison
+- **Bootstrap confidence intervals**: For parameters and statistics
+- **Out-of-core processing**: Fit distributions to data larger than RAM
+- **Deterministic results**: Reproducible fits with explicit RNG control
 
 ---
 
 ## 📦 Installation
 
 ```bash
-pip install distfit-pro
+pip install py-distfit-pro
 ```
 
-**Development Installation:**
+Or from source:
+
 ```bash
 git clone https://github.com/alisadeghiaghili/py-distfit-pro.git
 cd py-distfit-pro
-pip install -e ".[dev]"
-```
-
-**Requirements:**
-- Python >= 3.8
-- NumPy >= 1.20
-- SciPy >= 1.7
-- Matplotlib >= 3.3
-- Plotly >= 5.0
-- joblib >= 1.0
-- tqdm >= 4.60
-
----
-
-## ⚡ Quick Start
-
-### **Basic Usage**
-
-```python
-from distfit_pro import get_distribution
-import numpy as np
-
-# Generate data
-np.random.seed(42)
-data = np.random.normal(loc=10, scale=2, size=1000)
-
-# Fit distribution
-dist = get_distribution('normal')
-dist.fit(data, method='mle')
-
-# View results
-print(dist.summary())  # Complete statistical summary
-print(dist.explain())  # Conceptual explanation
-```
-
-### **Goodness-of-Fit Testing**
-
-```python
-from distfit_pro.core.gof_tests import GOFTests
-
-# Run all GOF tests
-results = GOFTests.run_all_tests(data, dist)
-print(GOFTests.summary_table(results))
-```
-
-### **Bootstrap Confidence Intervals**
-
-```python
-from distfit_pro.core.bootstrap import Bootstrap
-
-# Parametric bootstrap (1000 samples, parallel)
-ci_results = Bootstrap.parametric(data, dist, n_bootstrap=1000, n_jobs=-1)
-
-for param, result in ci_results.items():
-    print(result)
-```
-
-### **Diagnostics & Outliers**
-
-```python
-from distfit_pro.core.diagnostics import Diagnostics
-
-# Residual analysis
-residuals = Diagnostics.residual_analysis(data, dist)
-print(residuals.summary())
-
-# Detect outliers
-outliers = Diagnostics.detect_outliers(data, dist, method='zscore')
-print(outliers.summary())
-```
-
-### **Weighted Data**
-
-```python
-from distfit_pro.core.weighted import WeightedFitting
-
-# Data with weights (e.g., survey sampling weights)
-weights = np.random.uniform(0.5, 1.5, 1000)
-
-# Weighted fit
-params = WeightedFitting.fit_weighted_mle(data, weights, dist)
-dist.params = params
-dist.fitted = True
-
-print(dist.summary())
+pip install -e .
 ```
 
 ---
 
-## 📊 Supported Distributions
-
-### **Continuous Distributions (25)**
-
-| Distribution | Use Cases | Key Features |
-|--------------|-----------|-------------|
-| **Normal** | Heights, test scores, errors | Symmetric, bell curve |
-| **Lognormal** | Income, stock prices | Right-skewed, positive |
-| **Weibull** | Reliability, lifetimes | Flexible hazard rate |
-| **Gamma** | Waiting times, rainfall | Sum of exponentials |
-| **Exponential** | Time between events | Memoryless property |
-| **Beta** | Probabilities, rates | Bounded [0,1] |
-| **Student's t** | Small samples | Heavy tails |
-| **Pareto** | Wealth, power law | 80-20 rule |
-| **Gumbel** | Extreme maxima | Flood analysis |
-| **Laplace** | Differences, errors | Double exponential |
-
-**And 15 more:** Uniform, Triangular, Logistic, Frechet, Cauchy, Chi-Square, F, Rayleigh, Inverse Gamma, Log-Logistic, and others.
-
-### **Discrete Distributions (5)**
-
-- **Poisson** - Count of rare events
-- **Binomial** - Success/failure trials  
-- **Negative Binomial** - Overdispersed counts
-- **Geometric** - Trials to first success
-- **Hypergeometric** - Sampling without replacement
-
----
-
-## 🎯 Core Features
-
-### **1. Multiple Estimation Methods**
-
-```python
-# Maximum Likelihood (most accurate)
-dist.fit(data, method='mle')
-
-# Method of Moments (fast, robust)
-dist.fit(data, method='moments')
-
-# Quantile Matching (robust to outliers)
-dist.fit(data, method='quantile', quantiles=[0.25, 0.5, 0.75])
-```
-
-### **2. Comprehensive GOF Tests**
-
-- **Kolmogorov-Smirnov** - General purpose
-- **Anderson-Darling** - Sensitive to tails
-- **Chi-Square** - Frequency-based
-- **Cramér-von Mises** - Middle-focused
-
-All tests include p-values, critical values, and interpretations.
-
-### **3. Bootstrap Uncertainty Quantification**
-
-```python
-# Parametric bootstrap
-Bootstrap.parametric(data, dist, n_bootstrap=1000)
-
-# Non-parametric bootstrap (more conservative)
-Bootstrap.nonparametric(data, dist, n_bootstrap=1000)
-
-# BCa method (most accurate)
-Bootstrap.bca_ci(boot_samples, estimate, data, estimator_func)
-```
-
-**Features:**
-- Parallel processing (uses all CPU cores)
-- Progress bars (tqdm integration)
-- Multiple confidence levels (90%, 95%, 99%)
-
-### **4. Enhanced Diagnostics**
-
-**Residual Analysis:**
-- Quantile residuals
-- Pearson residuals
-- Deviance residuals
-- Standardized residuals
-
-**Influence Diagnostics:**
-- Cook's distance
-- Leverage values
-- DFFITS
-- Automatic identification of influential observations
-
-**Outlier Detection (4 methods):**
-- Z-score
-- IQR (Interquartile Range)
-- Likelihood-based
-- Mahalanobis distance
-
-**Diagnostic Plots:**
-- Q-Q plot data
-- P-P plot data
-- Worm plot (detrended Q-Q)
-
-### **5. Weighted Data Support**
-
-```python
-# Survey weights
-WeightedFitting.fit_weighted_mle(data, sampling_weights, dist)
-
-# Frequency data
-WeightedFitting.fit_weighted_mle(values, frequencies, dist)
-
-# Precision weights
-weights = 1 / measurement_errors**2
-WeightedFitting.fit_weighted_mle(measurements, weights, dist)
-```
-
-**Utilities:**
-- Weighted statistics (mean, var, quantiles)
-- Effective sample size calculation
-- Weighted bootstrap
-
-### **6. Model Selection**
-
-```python
-# Compare distributions
-from distfit_pro import list_distributions
-
-candidates = ['normal', 'lognormal', 'gamma', 'weibull']
-results = {}
-
-for name in candidates:
-    dist = get_distribution(name)
-    dist.fit(data)
-    
-    # AIC = 2k - 2*log(L)
-    k = len(dist.params)
-    log_lik = np.sum(dist.logpdf(data))
-    aic = 2 * k - 2 * log_lik
-    
-    results[name] = {'aic': aic, 'dist': dist}
-
-# Best model
-best = min(results.items(), key=lambda x: x[1]['aic'])
-print(f"Best: {best[0]}")
-```
-
----
-
-## 🌐 Multilingual Support
-
-DistFit Pro speaks **3 languages**!
-
-```python
-from distfit_pro import set_language
-
-# 🇬🇧 English
-set_language('en')
-print(dist.explain())
-# Output:
-# 📊 Estimated Parameters:
-#    • μ (mean): 10.0173
-#    • σ (std): 1.9918
-# 💡 Practical Applications:
-#    • Measurement errors
-#    • Heights and weights
-
-# 🇮🇷 فارسی (Persian)
-set_language('fa')
-print(dist.explain())
-# خروجی:
-# 📊 پارامترهای برآورد شده:
-#    • μ (میانگین): 10.0173
-#    • σ (انحراف معیار): 1.9918
-# 💡 کاربردهای عملی:
-#    • خطاهای اندازه‌گیری
-#    • قد و وزن
-
-# 🇩🇪 Deutsch (German)
-set_language('de')
-print(dist.explain())
-# Ausgabe:
-# 📊 Geschätzte Parameter:
-#    • μ (Mittelwert): 10.0173
-#    • σ (Standardabweichung): 1.9918
-# 💡 Praktische Anwendungen:
-#    • Messfehler
-#    • Größe und Gewicht
-```
-
----
-
-## 📚 Documentation
-
-### **Comprehensive Tutorials**
-
-1. **[The Basics](docs/source/tutorial/01_basics.rst)** - Your first distribution fit
-2. **[Distributions Guide](docs/source/tutorial/02_distributions.rst)** - All 30 distributions explained
-3. **[Fitting Methods](docs/source/tutorial/03_fitting_methods.rst)** - MLE, Moments, Quantile
-4. **[GOF Tests](docs/source/tutorial/04_gof_tests.rst)** - Test goodness-of-fit
-5. **[Bootstrap CI](docs/source/tutorial/05_bootstrap.rst)** - Uncertainty quantification
-6. **[Diagnostics](docs/source/tutorial/06_diagnostics.rst)** - Residuals, outliers, influence
-7. **[Weighted Data](docs/source/tutorial/07_weighted_data.rst)** - Survey weights, frequencies
-8. **[Visualization](docs/source/tutorial/08_visualization.rst)** - Beautiful plots
-9. **[Advanced Topics](docs/source/tutorial/09_advanced.rst)** - Custom distributions, mixtures
-
-### **Complete Examples**
-
-**📁 [examples/](examples/README.md)** - 20+ production-ready examples (8,500+ lines)
-
-- **[01_basics/](examples/01_basics/)** - Introduction to distribution fitting
-- **[02_advanced_fitting/](examples/02_advanced_fitting/)** - MLE and Method of Moments
-- **[03_model_selection/](examples/03_model_selection/)** - AIC/BIC, Cross-validation
-- **[04_goodness_of_fit/](examples/04_goodness_of_fit/)** - KS, Chi-square, Anderson-Darling
-- **[05_visualization/](examples/05_visualization/)** - PDF/CDF, Q-Q, Interactive plots
-- **[06_real_world/](examples/06_real_world/)** - Finance, Reliability, Quality Control
-- **[07_advanced_topics/](examples/07_advanced_topics/)** - Mixture models, Bootstrap, Custom
-
-### **Quick Links**
-
-- 📖 [Installation Guide](docs/source/installation.rst)
-- ⚡ [Quick Start](docs/source/quickstart.rst)
-- 📊 [API Reference](docs/source/api/index.rst)
-- 💡 [Examples](examples/README.md)
-- 📋 [CHANGELOG](CHANGELOG.md)
-- ❓ [FAQ](docs/source/faq.rst)
-
----
-
-## 🔬 Real-World Examples
-
-### **Example 1: Quality Control**
+## 🚀 Quick Start
 
 ```python
 import numpy as np
-from distfit_pro import get_distribution
-from distfit_pro.core.diagnostics import Diagnostics
+from distfit_pro import fit_distribution
 
-# Manufacturing measurements
-measurements = np.random.normal(100, 2, 1000)
+# Generate sample data
+data = np.random.gamma(shape=2.0, scale=1.5, size=10000)
 
-# Fit distribution
-dist = get_distribution('normal')
-dist.fit(measurements)
+# Fit a Gamma distribution
+result = fit_distribution(data, family="gamma")
 
-# Detect outliers (defects)
-outliers = Diagnostics.detect_outliers(
-    measurements, 
-    dist, 
-    method='zscore',
-    threshold=2.5  # Stricter for QC
-)
-
-print(f"Defect rate: {len(outliers.outlier_indices)/len(measurements)*100:.2f}%")
+print(f"Estimated shape: {result.params['shape']:.4f}")
+print(f"Estimated scale: {result.params['scale']:.4f}")
+print(f"AIC: {result.aic:.4f}")
+print(f"Anderson-Darling p-value: {result.gof['anderson_darling']['p_value']:.4f}")
 ```
 
-**👉 See full example:** [examples/06_real_world/quality_control.py](examples/06_real_world/quality_control.py)
+---
 
-### **Example 2: Financial Risk Analysis**
+## 📚 Core Concepts
 
-```python
-# Stock returns
-returns = load_stock_data('AAPL')['daily_return']
+### Fitting Methods
 
-# Fit heavy-tailed distribution
-dist = get_distribution('studentt')
-dist.fit(returns)
+- **MLE** (Maximum Likelihood Estimation) — default, asymptotically efficient
+- **Method of Moments** — fast, closed-form for many families
+- **L-Moments** — robust to outliers, available for select families
+- **Quantile Matching** — useful for heavy-tailed distributions
 
-# Value at Risk (99% confidence)
-var_99 = dist.ppf(0.01)  # 1st percentile
-print(f"VaR(99%): {var_99*100:.2f}%")
+### Goodness-of-Fit
 
-# Expected Shortfall
-cvar_99 = dist.conditional_var(0.01)
-print(f"CVaR(99%): {cvar_99*100:.2f}%")
+- **Anderson-Darling** — sensitive to tail behavior, preferred for most applications
+- **Kolmogorov-Smirnov** — general-purpose, less power in tails
+- **Chi-Square** — requires binning, useful for visual validation
 
-# Bootstrap CI for VaR
-from distfit_pro.core.bootstrap import Bootstrap
-ci = Bootstrap.parametric(returns, dist, n_bootstrap=1000)
-```
+All p-values are computed using family-specific critical values or bootstrap calibration where analytical results are unavailable.
 
-**👉 See full example:** [examples/06_real_world/finance_analysis.py](examples/06_real_world/finance_analysis.py)
+### Model Selection
 
-### **Example 3: Survival Analysis**
+- **AIC** — Akaike Information Criterion
+- **AICc** — AIC with small-sample correction
+- **BIC** — Bayesian Information Criterion (stronger penalty for complexity)
 
-```python
-# Patient survival times
-survival_times = np.array([12, 15, 18, 24, 30, 36, 48, 60])
-
-# Fit Weibull distribution
-dist = get_distribution('weibull')
-dist.fit(survival_times)
-
-# Reliability at 24 months
-reliability = dist.reliability(24)
-print(f"24-month survival: {reliability*100:.1f}%")
-
-# Median survival time
-median_survival = dist.ppf(0.5)
-print(f"Median survival: {median_survival:.1f} months")
-```
-
-**👉 See full example:** [examples/06_real_world/reliability_engineering.py](examples/06_real_world/reliability_engineering.py)
+Lower values indicate better fit, penalizing over-parameterization.
 
 ---
 
-## 🚀 Performance
+## 📖 Examples
 
-**Benchmarks on Intel i7-10700K (8 cores):**
+See the `examples/` directory for complete workflows:
 
-| Task | Dataset Size | Time (serial) | Time (parallel) | Speedup |
-|------|--------------|---------------|-----------------|--------|
-| Fit single distribution | 10,000 | 15ms | N/A | - |
-| Fit single distribution | 1,000,000 | 450ms | N/A | - |
-| Bootstrap (1000 samples) | 10,000 | 18s | 3.2s | 5.6x |
-| GOF tests (all 4) | 10,000 | 85ms | N/A | - |
-| Model selection (10 dists) | 10,000 | 280ms | 95ms | 2.9x |
-
-**Memory efficient:** Handles datasets up to RAM limits.
+- `examples/basic_fitting.py` — single distribution fit
+- `examples/model_comparison.py` — comparing multiple families
+- `examples/bootstrap_ci.py` — confidence intervals via bootstrap
+- `examples/large_data.py` — out-of-core fitting with generators
 
 ---
 
-## 📋 Version History
+## 📄 Documentation
 
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
-
-### **v1.0.0** - 2026-02-14 🎉
-**First Stable and Complete Release**
-
-#### ✨ Major Features:
-- ✅ **30 Statistical Distributions** (25 continuous + 5 discrete)
-- ✅ **Multiple Estimation Methods** (MLE, Moments, Quantile matching)
-- ✅ **Goodness-of-Fit Tests** (4 tests: KS, AD, Chi-Square, CvM)
-- ✅ **Bootstrap Confidence Intervals** (Parametric & Non-parametric with BCa)
-- ✅ **Enhanced Diagnostics** (4 residual types, influence, outlier detection)
-- ✅ **Weighted Data Support** (MLE + Moments)
-- ✅ **Multilingual** (English, فارسی, Deutsch)
-- ✅ **Comprehensive Documentation** (9 tutorials + API reference)
-- ✅ **20+ Complete Examples** (8,500+ lines of code)
-- ✅ **Parallel Processing** (joblib with all cores)
-- ✅ **Progress Bars** (tqdm)
+- [API Reference](docs/api.md)
+- [Statistical Methods](docs/methods.md)
+- [Out-of-Core Guide](docs/streaming.md)
+- [Contributing](CONTRIBUTING.md)
+- [CHANGELOG](CHANGELOG.md)
 
 ---
 
-## 🛠️ Development
+## ⚖️ License
 
-### **Current Status**
+**py-distfit-pro** is licensed under the **Business Source License 1.1 (BUSL-1.1)**.
 
-**Version:** 1.0.0 ✅  
-**Release Date:** 2026-02-14  
-**Status:** Stable and Production-Ready
+### What this means:
 
-### **Completed Features**
+✅ **Free to use for:**
+- Research and academic projects
+- Internal business analytics
+- Personal and educational use
+- Non-competing applications
 
-- ✅ 30 Statistical Distributions
-- ✅ 3 Estimation Methods (MLE, Moments, Quantile)
-- ✅ 4 GOF Tests (KS, AD, Chi-Square, CvM)
-- ✅ Bootstrap CI (Parametric + Non-parametric + BCa)
-- ✅ Enhanced Diagnostics (4 residual types, influence, outliers)
-- ✅ Weighted Data Support (MLE + Moments)
-- ✅ Multilingual (EN/FA/DE)
-- ✅ Comprehensive Documentation (9 tutorials)
-- ✅ 20+ Complete Examples (8,500+ lines)
-- ✅ Parallel Processing (joblib)
-- ✅ Progress Bars (tqdm)
+⚠️ **Requires explicit permission for:**
+- Offering py-distfit-pro as a hosted/cloud service (SaaS)
+- Embedding in a product that competes with the author's paid offering
+- Commercial redistribution without modification
 
----
+📅 **Change Date: 2030-09-05**
 
-## 🤝 Contributing
+On this date, the license automatically converts to **Apache License 2.0**, making the software fully open source with no restrictions.
 
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-**Areas we need help:**
-- Additional distributions
-- More GOF tests
-- Performance optimizations
-- Documentation improvements
-- Translations (add your language!)
-- More real-world examples
+For full terms, see the [LICENSE](LICENSE) file. If you're unsure whether your use case is permitted, contact the licensor before deploying in production.
 
 ---
 
-## 📄 License
+## 📬 Contact
 
-MIT License - see [LICENSE](LICENSE).
-
-Free for commercial and personal use.
-
----
-
-## 🙏 Acknowledgments
-
-**Inspired by:**
-- R's `fitdistrplus` package (Delignette-Muller & Dutang)
-- MathWave's EasyFit software
-- SciPy's statistical distributions
-
-**Built with:**
-- NumPy & SciPy - numerical computing
-- joblib - parallel processing
-- matplotlib & plotly - visualization
-- tqdm - progress bars
+- **Author**: Ali Sadeghi Aghili
+- **Email**: alisadeghiaghili@gmail.com
+- **GitHub**: [@alisadeghiaghili](https://github.com/alisadeghiaghili)
 
 ---
 
-## 📞 Contact
-
-**Ali Sadeghi Aghili**  
-🦄 Data Unicorn  
-
-🌐 [zil.ink/thedatascientist](https://zil.ink/thedatascientist)  
-🔗 [linktr.ee/aliaghili](https://linktr.ee/aliaghili)  
-💻 [@alisadeghiaghili](https://github.com/alisadeghiaghili)
-
----
-
-## ⭐ Star History
-
-If you find this project useful, please consider giving it a star! ⭐
-
-It helps others discover the project and motivates continued development.
-
----
-
-**Made with ❤️, ☕, and rigorous statistical methodology by Ali Sadeghi Aghili**
-
-*"Better statistics through better software."*
+**Built with statistical rigor for production environments.** 🦄
