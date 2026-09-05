@@ -1,19 +1,21 @@
 <!--
-LICENSE NOTICE: py-distfit-pro is licensed under the Business Source License 1.1 (BUSL-1.1).
+LICENSE NOTICE: py-distfit-pro uses a dual-license model.
 
-• Free use: research, academic, internal business, and personal projects
-• Commercial/hosting use: requires explicit permission if you offer py-distfit-pro as a
-  hosted/embedded service that competes with the author's paid offering
-• Change Date: 2030-09-05 — on this date, the license automatically converts to Apache-2.0
+• Personal/non-commercial use (research, education, internal analytics, personal projects):
+  → Apache License 2.0 — free from day one
 
-See LICENSE for full terms. If you're unsure whether your use case is permitted,
-contact the licensor before deploying in production.
+• Commercial/hosting use (SaaS, competing products, commercial redistribution):
+  → BUSL-1.1 restrictions apply until 2030-09-05; contact licensor for permission
+
+• Change Date: 2030-09-05 — entire work becomes Apache-2.0 for all uses
+
+See LICENSE for full terms.
 -->
 
 # Data Unicorn 🦄
 
 [![Language](https://img.shields.io/badge/language-Python-blue)](https://www.python.org/)
-[![License](https://img.shields.io/badge/license-BUSL--1.1-orange)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0%20%2F%20BUSL--1.1-orange)](LICENSE)
 [![Release](https://img.shields.io/badge/release-1.0.0-blue)](https://github.com/alisadeghiaghili/py-distfit-pro/releases)
 [![CHANGELOG](https://img.shields.io/badge/CHANGELOG-latest-purple)](CHANGELOG.md)
 
@@ -144,26 +146,32 @@ See the `examples/` directory for complete workflows:
 
 ## ⚖️ License
 
-**py-distfit-pro** is licensed under the **Business Source License 1.1 (BUSL-1.1)**.
+**py-distfit-pro** uses a **dual-license model**:
 
-### What this means:
+### ✅ Apache License 2.0 (from day one)
 
-✅ **Free to use for:**
-- Research and academic projects
-- Internal business analytics
-- Personal and educational use
-- Non-competing applications
+Free for **personal and non-commercial use**, including:
 
-⚠️ **Requires explicit permission for:**
-- Offering py-distfit-pro as a hosted/cloud service (SaaS)
-- Embedding in a product that competes with the author's paid offering
-- Commercial redistribution without modification
+- 🎓 Academic research and education
+- 💼 Internal business analytics (not offered as a service)
+- 🧪 Personal projects and experimentation
+- 🤝 Non-profit and open-source community work
 
-📅 **Change Date: 2030-09-05**
+### ⚠️ BUSL-1.1 restrictions (until 2030-09-05)
 
-On this date, the license automatically converts to **Apache License 2.0**, making the software fully open source with no restrictions.
+Applies if your use includes:
 
-For full terms, see the [LICENSE](LICENSE) file. If you're unsure whether your use case is permitted, contact the licensor before deploying in production.
+- ☁️ Offering py-distfit-pro as a hosted/cloud service (SaaS)
+- 🏢 Embedding in a product that competes with the author's paid offering
+- 💰 Commercial redistribution without modification
+
+For these cases, **contact the licensor** for explicit permission or a commercial license.
+
+### 📅 Change Date: 2030-09-05
+
+On this date, **the entire work becomes Apache-2.0** for all uses, with no restrictions.
+
+For full terms, see the [LICENSE](LICENSE) file.
 
 ---
 
