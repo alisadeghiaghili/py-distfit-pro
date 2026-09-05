@@ -4,9 +4,9 @@ Parameters:
 
 Licensor:             Ali Sadeghi Aghili
 Licensed Work:        py-distfit-pro
-Additional Use Grant: You may make production use of the Licensed Work, provided Your use does not include offering the Licensed Work to third parties on a hosted or embedded basis in order to compete with the Licensor's paid version of the Licensed Work.
-                      For clarity, a "hosted or embedded basis" means making the Licensed Work available as a cloud service, SaaS, or embedded component where the primary value proposition is the functionality of the Licensed Work itself.
-                      Academic, research, and internal business use are always permitted.
+Additional Use Grant: You may make production use of the Licensed Work under the terms of the Apache License, Version 2.0, provided Your use is for personal, non-commercial purposes only.
+                      "Personal, non-commercial purposes" means: (a) academic research and education; (b) internal business analytics not offered as a service to third parties; (c) personal projects and experimentation; (d) non-profit and open-source community work.
+                      If Your use includes offering the Licensed Work to third parties on a hosted or embedded basis in order to compete with the Licensor's paid version of the Licensed Work, the Apache-2.0 grant does not apply and You must obtain a separate commercial license from the Licensor.
 Change Date:          2030-09-05
 Change License:       Apache License, Version 2.0
 
