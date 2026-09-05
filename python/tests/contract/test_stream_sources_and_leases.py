@@ -64,6 +64,24 @@ class StreamSourceContractTests(unittest.TestCase):
 
 
 class ActiveLeaseBufferTests(unittest.TestCase):
+    def test_released_chunk_is_rejected_without_mutating_buffer_then_cancel_remains_safe(
+        self,
+    ) -> None:
+        buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
+        released = chunk("released", 0)
+        released.release()
+
+        with self.assertRaisesRegex(RuntimeError, "cannot buffer an already released chunk"):
+            buffer.put(released)
+
+        self.assertEqual(buffer.queued_chunks, 0)
+        self.assertEqual(buffer.inflight_bytes, 0)
+        self.assertEqual(buffer.peak_inflight_bytes, 0)
+        buffer.cancel()
+        self.assertTrue(buffer.cancelled)
+        self.assertEqual(buffer.queued_chunks, 0)
+        self.assertEqual(buffer.inflight_bytes, 0)
+
     def test_active_lease_remains_charged_until_release(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         buffer.put(chunk("first", 0))

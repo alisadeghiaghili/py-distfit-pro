@@ -7,7 +7,7 @@ from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
-from threading import Condition, Lock
+from threading import Condition, RLock
 
 from veridist.engine.data_source import Replayability
 from veridist.engine.errors import EngineContractError, FailureCode
@@ -224,7 +224,7 @@ class BufferedChunk:
         self.envelope = envelope
         self.payload = payload
         self._release_callback = release_callback
-        self._release_lock = Lock()
+        self._release_lock = RLock()
         self._released = False
 
     @property
@@ -401,14 +401,17 @@ class BoundedChunkBuffer:
                 finally:
                     self._waiting_producers -= 1
                 self._raise_if_cancelled()
-            self._queue.append(item)
-            self._inflight_bytes += byte_size
-            self._peak_inflight_bytes = max(self._peak_inflight_bytes, self._inflight_bytes)
-            self._largest_retained_chunk_bytes = max(
-                self._largest_retained_chunk_bytes,
-                byte_size,
-            )
-            item._compose_release_callback(lambda: self._release(item.envelope.byte_size))
+            with item._release_lock:
+                if item._released:
+                    raise RuntimeError("cannot buffer an already released chunk")
+                item._compose_release_callback(lambda: self._release(item.envelope.byte_size))
+                self._queue.append(item)
+                self._inflight_bytes += byte_size
+                self._peak_inflight_bytes = max(self._peak_inflight_bytes, self._inflight_bytes)
+                self._largest_retained_chunk_bytes = max(
+                    self._largest_retained_chunk_bytes,
+                    byte_size,
+                )
             self._condition.notify_all()
 
     def _release(self, byte_size: int) -> None:
