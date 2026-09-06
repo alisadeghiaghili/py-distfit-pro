@@ -267,6 +267,7 @@ def main() -> int:
         "schema_version": "2",
         "run": {
             "git_sha": preflight_sha,
+            "candidate_git_sha": preflight_sha,
             "git_dirty": False,
             "utc_started": started,
             "python": {

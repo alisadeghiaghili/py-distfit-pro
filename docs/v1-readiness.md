@@ -132,15 +132,14 @@ as a statement about uninspected current files.
   2,217 generated, 1,776 killed, 441 survived, zero unresolved, and score
   `0.801082543978349`.  That milestone evidence is not a 0.5 release proof and
   does not establish scale portability or broader statistical support.
-- `SCALE-CSV-EXP-01` retains an actual strict CSV adapter and one-pass
-  exponential-orchestrator trace at `python/evidence/scale-csv-exponential-v1.json`.
-  Its fail-closed checker accepts exactly nine cells: 10k/100k/1m rows by
-  32KiB/64KiB/128KiB logical chunk budgets. Every recorded cell has 1/1 pass,
-  complete rows, and internal retained/inflight payload no larger than the
-  configured budget; input paths are redacted and independent Decimal facts
-  agree with the fit. CPython 3.14.6/Windows 11 tracemalloc and elapsed values
-  are descriptive. RSS is unknown on that stdlib environment, so no process
-  memory ceiling or general throughput claim is made. Parquet/Arrow/dataframe/
+- `SCALE-CSV-EXP-01` preserves a historical strict CSV/exponential snapshot at
+  `python/evidence/scale-csv-exponential-v1.json`. Its schema v1 timing fields
+  lack valid provenance, so the current checker deliberately rejects it: it is
+  not candidate evidence and cannot support a current scale or performance
+  claim. Its independently reproducible source bytes, Decimal fit facts,
+  one-pass counts and logical-payload observations remain historical context.
+  A current candidate requires a clean schema-v2 run that binds both run and
+  candidate SHA and declares paired timing provenance. Parquet/Arrow/dataframe/
   database adapters, persistent checkpoint backend, cancellation/retry
   orchestration, broad streaming equivalence and production-scale RSS bounds
   remain **NOT IMPLEMENTED**.

@@ -49,7 +49,10 @@ covariates, or free location parameter in this vertical.
 
 The CSV adapter consumes one iterator pass. Its declared chunk byte budget is a
 logical bound on retained payload, not a portable process-memory or RSS limit.
-`SCALE-CSV-EXP-01` retains a checked 10k/100k/1m by 32KiB/64KiB/128KiB matrix
-for this strict adapter and estimator only. It demonstrates bounded internal
-payload for that matrix; it does not establish throughput, generic big-data
-support, another adapter, cancellation, retry, or checkpointing.
+`SCALE-CSV-EXP-01` preserves a historical 10k/100k/1m by
+32KiB/64KiB/128KiB snapshot for this strict adapter and estimator only. Its
+schema-v1 timing lacks valid provenance and cannot support a current candidate,
+payload-bound, or performance claim. A current claim requires a clean schema-v2
+run bound to the reviewed candidate. The historical snapshot does not establish
+throughput, generic big-data support, another adapter, cancellation, retry, or
+checkpointing.
