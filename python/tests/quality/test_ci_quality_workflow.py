@@ -187,9 +187,11 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn("tests.browser.test_sphinx_rtl_pages", self.workflow)
         self.assertIn("find artifacts/browser-rtl", self.workflow)
         self.assertIn("-type f -name '*.png' -size +0c", self.workflow)
-        self.assertIn('test "${#screenshots[@]}" -eq 2', self.workflow)
+        self.assertIn('test "${#screenshots[@]}" -eq 4', self.workflow)
         self.assertIn("exponential-report-fa-failure.png", self.workflow)
         self.assertIn("exponential-report-fa-success.png", self.workflow)
+        self.assertIn("sphinx-api-fa.png", self.workflow)
+        self.assertIn("sphinx-index-fa.png", self.workflow)
         upload_start = self.workflow.index("      - name: Retain browser screenshots")
         upload_block = self.workflow[upload_start : self.workflow.index("  veridist-gate:")]
         self.assertIn("if: always()", upload_block)
@@ -214,7 +216,9 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         for required in (
             "sphinx",
+            "api.html",
             "exponential-right-censoring.html",
+            "index.html",
             "unicodeBidi",
             "code.literal",
             ".highlight pre",

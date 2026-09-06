@@ -197,10 +197,12 @@ jobs:
         run: |
           set -euo pipefail
           mapfile -t screenshots < <(find artifacts/browser-rtl -maxdepth 1 -type f -name '*.png' -size +0c -print | sort)
-          test "${#screenshots[@]}" -eq 2
-          test "$(find artifacts/browser-rtl -maxdepth 1 -type f -name '*.png' | wc -l)" -eq 2
+          test "${#screenshots[@]}" -eq 4
+          test "$(find artifacts/browser-rtl -maxdepth 1 -type f -name '*.png' | wc -l)" -eq 4
           test "$(basename "${screenshots[0]}")" = "exponential-report-fa-failure.png"
           test "$(basename "${screenshots[1]}")" = "exponential-report-fa-success.png"
+          test "$(basename "${screenshots[2]}")" = "sphinx-api-fa.png"
+          test "$(basename "${screenshots[3]}")" = "sphinx-index-fa.png"
       - name: Retain browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
