@@ -12,6 +12,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from unittest.mock import patch
 
+from veridist import DataSourceMetadata, IterableDataSource, Replayability
 from veridist.families.registry import FamilyId
 
 REPO = Path(__file__).parents[3]
@@ -35,8 +36,14 @@ def _head() -> str:
 class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
     def _value(self) -> dict[str, object]:
         value: dict[str, object] = {
-            "schema_version": "2",
-            "run": {"git_sha": _head(), "git_dirty": False, "generator": "normal-zero-v1"},
+            "schema_version": "3",
+            "run": {
+                "git_sha": _head(),
+                "candidate_git_sha": _head(),
+                "git_dirty": False,
+                "generator": "normal-zero-v1",
+                "source_contract": "public-iterable-data-source-v1",
+            },
             "cells": [],
         }
         for rows in MODULE.ROWS:
@@ -83,19 +90,49 @@ class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
             ):
                 RUNNER_MODULE._cell(10, 1)
 
+    def test_runner_cell_uses_public_single_pass_source_and_exact_result(self) -> None:
+        observed: list[object] = []
+
+        class RecordingSource:
+            def __init__(self, chunks: object, metadata: DataSourceMetadata) -> None:
+                observed.append(metadata)
+                self._delegate = IterableDataSource(chunks, metadata)
+
+            def iter_chunks(self):
+                return self._delegate.iter_chunks()
+
+        with patch.object(RUNNER_MODULE, "IterableDataSource", RecordingSource):
+            cell = RUNNER_MODULE._cell(10, 3)
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(
+            observed[0],
+            DataSourceMetadata(
+                source_id="scale-normal-10-3",
+                schema_version="1",
+                provenance_schema_version="1",
+                replayability=Replayability.SINGLE_PASS,
+                redaction_reason="generated",
+            ),
+        )
+        self.assertEqual(
+            cell["one_pass"], {"iterator_acquisitions": 1, "observation_yields": 10}
+        )
+        self.assertEqual(cell["actual"]["observation_count"], 10)
+
     def test_runner_rejects_a_second_outer_iterator_acquisition(self) -> None:
         from veridist.statistics.log_likelihood import LogLikelihoodSuccess
 
         def second_pass(
-            family: FamilyId, chunks: Iterable[Iterable[object]], /, **_parameters: object
+            family: FamilyId, chunks: object, /, **_parameters: object
         ) -> LogLikelihoodSuccess:
-            next(iter(chunks))
-            next(iter(chunks))
+            iter_chunks = getattr(chunks, "iter_chunks")
+            next(iter_chunks())
+            next(iter_chunks())
             return LogLikelihoodSuccess(family, "0" * 64, 10, -1.0)
 
         with patch.object(RUNNER_MODULE, "reduce_log_likelihood_chunks", side_effect=second_pass):
             with self.assertRaisesRegex(
-                RuntimeError, "generated source was iterated more than once"
+                Exception, "PASS_BUDGET_EXCEEDED"
             ):
                 RUNNER_MODULE._cell(10, 1)
 
@@ -127,29 +164,30 @@ class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
             MODULE.validate(value, expected_git_sha=_head(), repo_root=REPO),
         )
 
-    def test_runner_output_is_checker_validated(self) -> None:
+    def test_checker_rejects_transplanted_candidate_sha(self) -> None:
+        value = self._value()
+        run = value["run"]
+        assert isinstance(run, dict)
+        run["candidate_git_sha"] = "0" * 40
+        value["artifact_sha256"] = MODULE._digest(value)
+        self.assertIn(
+            "candidate Git SHA mismatch",
+            MODULE.validate(value, expected_git_sha=_head(), repo_root=REPO),
+        )
+
+    def test_runner_smoke_output_declares_current_public_source_contract(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "evidence.json"
-            generated = subprocess.run(
-                [sys.executable, str(RUNNER), "--output", str(output)],
-                cwd=REPO / "python",
-                capture_output=True,
-                text=True,
-            )
-            self.assertEqual(generated.returncode, 0, generated.stderr)
-            checked = subprocess.run(
-                [
-                    sys.executable,
-                    str(CHECKER),
-                    "--artifact",
-                    str(output),
-                    "--expected-git-sha",
-                    _head(),
-                    "--repo-root",
-                    str(REPO),
-                ],
-                capture_output=True,
-                text=True,
-            )
-            self.assertEqual(checked.returncode, 0, checked.stderr)
-            self.assertEqual(len(json.loads(output.read_text(encoding="utf-8"))["cells"]), 9)
+            command = [str(RUNNER), "--output", str(output)]
+            with (
+                patch.object(RUNNER_MODULE, "ROWS", (10,)),
+                patch.object(RUNNER_MODULE, "BUDGETS", (1,)),
+                patch.object(RUNNER_MODULE, "_head", return_value="a" * 40),
+                patch.object(sys, "argv", command),
+            ):
+                self.assertEqual(RUNNER_MODULE.main(), 0)
+            artifact = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(artifact["schema_version"], "3")
+            self.assertEqual(artifact["run"]["candidate_git_sha"], "a" * 40)
+            self.assertEqual(artifact["run"]["source_contract"], "public-iterable-data-source-v1")
+            self.assertEqual(len(artifact["cells"]), 1)

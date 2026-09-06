@@ -43,10 +43,16 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
     errors: list[str] = []
     if not isinstance(value, dict) or set(value) != KEYS:
         return ["artifact schema keys invalid"]
-    if value["schema_version"] != "2" or value["artifact_sha256"] != _digest(value):
+    if value["schema_version"] != "3" or value["artifact_sha256"] != _digest(value):
         errors.append("artifact version or digest invalid")
     run = value["run"]
-    if not isinstance(run, dict) or set(run) != {"git_sha", "git_dirty", "generator"}:
+    if not isinstance(run, dict) or set(run) != {
+        "git_sha",
+        "candidate_git_sha",
+        "git_dirty",
+        "generator",
+        "source_contract",
+    }:
         return [*errors, "run schema invalid"]
     if (
         run["git_sha"] != expected_git_sha
@@ -54,7 +60,13 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
         or SHA.fullmatch(run["git_sha"]) is None
     ):
         errors.append("frozen Git SHA mismatch")
-    if run["git_dirty"] is not False or run["generator"] != "normal-zero-v1":
+    if run["candidate_git_sha"] != expected_git_sha:
+        errors.append("candidate Git SHA mismatch")
+    if (
+        run["git_dirty"] is not False
+        or run["generator"] != "normal-zero-v1"
+        or run["source_contract"] != "public-iterable-data-source-v1"
+    ):
         errors.append("run metadata invalid")
     try:
         subprocess.run(

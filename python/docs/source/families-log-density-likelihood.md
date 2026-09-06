@@ -76,11 +76,14 @@ assert failed.processed_count == 1
 
 ## Evidence and limits
 
-`LLR-06` retains generated-stream evidence for normal-zero scalar reduction at
-10k/100k/1m observations and three chunk sizes. It records one outer iterator
-acquisition, every yielded observation, bitwise final-total agreement with an
-independent exact-unit oracle, and the 2162-bit algorithmic bound. Elapsed time
-and `tracemalloc` values are descriptive only.
+`LLR-06` preserves a historical generated-stream snapshot for normal-zero
+scalar reduction at 10k/100k/1m observations and three chunk sizes. Its
+schema-v2 artifact lacks candidate binding and the public source-route fact, so
+it cannot support a current candidate claim. A current schema-v3 run must use
+the public `IterableDataSource` single-pass route, bind the reviewed candidate
+SHA, record one outer acquisition and every yielded observation, and agree
+bitwise with the independent exact-unit oracle and 2162-bit algorithmic bound.
+Elapsed time and `tracemalloc` values remain descriptive only.
 
 This evidence is scoped to the tested scalar normal stream and exact reducer.
 It does not establish fitting, inference, goodness-of-fit, ranking, arrays,

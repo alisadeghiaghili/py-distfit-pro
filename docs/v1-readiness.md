@@ -35,16 +35,15 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
-- `LLR-06` retains a checker-validated generated-stream artifact at
-  `python/evidence/scale-log-likelihood-v1.json` for 10k/100k/1m rows and three
-  chunk sizes. It records one actual outer iterator acquisition and every yield,
-  then verifies the actual returned total bitwise against independently
-  reconstructed `Fraction` oracle units and the algorithmic 2162-bit bound. It
-  does not claim to measure public reducer state. The initial `e517dd3` bundle
-  was noncompliant because it did not reject wrong-total or second-pass mutants;
-  a corrective RED/GREEN chain now does. Elapsed/tracemalloc facts are
-  descriptive; no process-memory, throughput, out-of-core, fitting, or general
-  cross-platform claim follows from this artifact.
+- `LLR-06` preserves `python/evidence/scale-log-likelihood-v1.json` as a
+  historical 10k/100k/1m generated-stream snapshot. Its schema-v2 artifact
+  lacks candidate binding and a public-source-route fact, so the current
+  checker rejects it as candidate evidence. A current schema-v3 run must bind
+  the candidate SHA, use public `IterableDataSource` single-pass acquisition,
+  and verify the returned total bitwise against independently reconstructed
+  `Fraction` oracle units and the algorithmic 2162-bit bound. Elapsed/tracemalloc
+  facts are descriptive; no process-memory, throughput, out-of-core, fitting,
+  or general cross-platform claim follows from this historical artifact.
 
 ### Historical snapshot: `bfb496d` (preserved verbatim)
 
