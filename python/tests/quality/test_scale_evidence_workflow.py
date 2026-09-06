@@ -25,6 +25,11 @@ class ScaleEvidenceWorkflowTests(unittest.TestCase):
             "candidate SHA must be a full lowercase Git commit",
             "checked-out candidate SHA differs from requested candidate SHA",
             "refusing scale evidence from a dirty checkout",
+            "Verify required candidate checks",
+            "required candidate checks did not pass",
+            "veridist / gate",
+            "legacy / gate",
+            "mutation / gate",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, workflow)

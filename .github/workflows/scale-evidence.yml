@@ -9,6 +9,7 @@ on:
         type: string
 
 permissions:
+  checks: read
   contents: read
 
 jobs:
@@ -46,6 +47,15 @@ jobs:
             exit 1
           fi
           echo "sha=$actual" >> "$GITHUB_OUTPUT"
+      - name: Verify required candidate checks
+        shell: bash
+        env:
+          CHECK_RUNS: ${{ runner.temp }}/candidate-check-runs.json
+        run: |
+          set -euo pipefail
+          candidate="${{ steps.candidate.outputs.sha }}"
+          gh api "/repos/${GITHUB_REPOSITORY}/commits/${candidate}/check-runs?per_page=100" > "$CHECK_RUNS"
+          python -c 'import json, os, sys; required={"veridist / gate", "legacy / gate", "mutation / gate"}; payload=json.loads(open(os.environ["CHECK_RUNS"], encoding="utf-8").read()); completed={item.get("name"): item.get("conclusion") for item in payload.get("check_runs", []) if item.get("name") in required}; ok=completed == {name: "success" for name in required}; print("required candidate checks did not pass: " + repr(completed), file=sys.stderr) if not ok else None; sys.exit(0 if ok else 1)'
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
