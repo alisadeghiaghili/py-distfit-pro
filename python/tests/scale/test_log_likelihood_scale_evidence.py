@@ -8,7 +8,6 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from collections.abc import Iterable
 from pathlib import Path
 from unittest.mock import patch
 
@@ -76,10 +75,12 @@ class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
         from veridist.statistics.log_likelihood import LogLikelihoodSuccess
 
         def wrong_total(
-            family: FamilyId, chunks: Iterable[Iterable[object]], /, **_parameters: object
+            family: FamilyId, chunks: object, /, **_parameters: object
         ) -> LogLikelihoodSuccess:
+            from veridist.engine.streaming import iter_stream
+
             count = 0
-            for chunk in chunks:
+            for chunk in iter_stream(chunks):
                 for _ in chunk:
                     count += 1
             return LogLikelihoodSuccess(family, "0" * 64, count, 0.0)

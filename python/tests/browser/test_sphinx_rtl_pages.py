@@ -67,7 +67,7 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                     }
                     for page_name, required_exemplars in page_contracts.items():
                         page.goto((outputs["fa"] / page_name).as_uri(), wait_until="load")
-                        fa = page.evaluate("""() => ({
+                        fa = page.evaluate("""(requiredExemplars) => ({
                       lang: document.documentElement.lang, dir: document.documentElement.dir,
                       body: {
                         direction: getComputedStyle(document.body).direction,
@@ -81,7 +81,8 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                         ['pre', '.highlight pre'],
                         ['table', 'table.docutils'],
                         ['math', '.math'],
-                      ].map(([name, selector]) => {
+                      ].filter(([name]) => requiredExemplars.includes(name))
+                        .map(([name, selector]) => {
                         const element = document.querySelector(selector);
                         if (element === null) {
                           throw new Error(`missing required exemplar: ${selector}`);
@@ -100,7 +101,7 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                           visible: box.width > 0 && box.height > 0,
                         };
                       }),
-                        })""")
+                        })""", list(required_exemplars))
                         self.assertEqual(fa["lang"], "fa", page_name)
                         self.assertEqual(fa["dir"], "rtl", page_name)
                         self.assertEqual(

@@ -9,20 +9,21 @@ from veridist.engine.data_source import DataSourceMetadata, Replayability
 from veridist.engine.errors import EngineContractError, FailureCode
 
 T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
 
 
 class StreamSourceError(EngineContractError):
     """Typed failure raised when a stream cannot honor its declared passes."""
 
 
-class StreamSource(Protocol[T]):
+class StreamSource(Protocol[T_co]):
     """A metadata-declared sequential stream of chunks."""
 
     @property
     def metadata(self) -> DataSourceMetadata:
         """Return immutable source identity and replayability facts."""
 
-    def iter_chunks(self) -> Iterator[T]:
+    def iter_chunks(self) -> Iterator[T_co]:
         """Acquire one sequential chunk iterator."""
 
 
@@ -94,7 +95,7 @@ def iter_stream(source: StreamSource[T] | Iterable[T]) -> Iterator[T]:
         return cast(Iterator[T], open_chunks())
     if not isinstance(source, Iterable):
         raise TypeError("source must be a StreamSource or iterable")
-    return iter(cast(Iterable[T], source))
+    return iter(source)
 
 
 __all__ = ["IterableDataSource", "StreamSource", "StreamSourceError", "iter_stream"]

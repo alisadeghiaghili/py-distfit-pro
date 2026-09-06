@@ -47,7 +47,7 @@ class RequiredQualityArtifactTests(unittest.TestCase):
         self.assertNotIn("github.com/wch/r-source/blob/trunk", adr)
 
     def test_capability_matrix_declares_the_only_callable_statistical_cell(self) -> None:
-        content = CAPABILITY_MATRIX.read_text(encoding="utf-8")
+        content = " ".join(CAPABILITY_MATRIX.read_text(encoding="utf-8").split())
         for required in (
             "0.0.0.dev0",
             "rate-only exponential MLE",
@@ -56,8 +56,8 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             "fixed O(1) reducer state",
             "one CSV iterator and one pass",
             "SCALE-CSV-EXP-01",
-            "formal mutation infrastructure and its versioned GitHub Linux",
-            "no remote execution has yet been retained",
+            "current candidate scale evidence pending; no RSS ceiling",
+            "no cell is release-ready until that candidate-specific evidence is complete",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, content)
