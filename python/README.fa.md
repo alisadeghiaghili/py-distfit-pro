@@ -35,6 +35,14 @@ checkpoint یا برون‌حافظه‌ای عمومی هم نیست.
 
 سطح اسکالر جداگانه فراداده‌های تغییرناپذیر `FAMILY_REGISTRY` را برای پنج خانوادهٔ `normal`، `gamma`، `weibull_min`، `lognormal` و `gumbel_right`، محاسبهٔ چگالیِ لگاریتمی تک‌مقداری `evaluate_log_density` و کاهش‌دهندهٔ حالتِ دقیق `reduce_log_likelihood_chunks` دارد. این سطح برازش عمومی، استنباط، نیکویی برازش، رتبه‌بندی، آرایه یا سانسور نیست. هر چگالیِ لگاریتمی binary64 موفق متناهی است؛ کاهش‌دهنده آن را به‌صورت تعداد صحیحِ دقیقِ واحدهای زیرنرمال انباشته می‌کند و فقط مجموع نهایی را یک‌بار به binary64 گرد می‌کند. کران شمارش unsigned-64 به کران ۲۱۶۲ بیت برای مجموع صحیحِ دقیق می‌انجامد. شواهد ۱۰k/۱۰۰k/۱m فقط مخصوص جریان‌های `normal` آزمایش‌شده است.
 
+اندازه‌گیری scale برای candidate عمداً دستی است: workflow با نام
+`veridist-scale-evidence` ابتدا SHA کامل و checkout تمیزِ candidate را bind و
+قراردادهای شواهد را اجرا می‌کند؛ سپس مسیر likelihood با iterable عمومی و مسیر
+سخت‌گیرانهٔ CSV/نمایی را روی Linux و Windows اندازه می‌گیرد. artifact فقط پس از
+اعتبارسنجی fail-closedِ SHA و schema خود نگه‌داری می‌شود. وجود این workflow یا
+artifact تاریخی به‌تنهایی شاهد یک candidate تازه نیست و ادعای throughput یا RSS
+ایجاد نمی‌کند.
+
 </div>
 
 <div lang="fa" dir="rtl">

@@ -39,6 +39,13 @@ censoring. The reducer represents successful binary64 terms exactly and rounds
 the final total once; its unsigned-64 count cap implies a 2162-bit exact-total
 bound. Its retained 10k/100k/1m evidence is scoped to tested normal streams.
 
+Candidate scale measurement is deliberately manual: the `veridist-scale-evidence`
+workflow first binds a clean, full candidate SHA and runs the evidence contracts,
+then measures the public iterable likelihood and strict CSV/exponential paths on
+Linux and Windows. It retains artifacts only after their own fail-closed SHA and
+schema validation. Merely having this workflow, or a historical artifact, is not
+evidence for a new candidate and is not a throughput or RSS claim.
+
 ## Install an evaluation build
 
 Install from the nested source project after cloning the repository:

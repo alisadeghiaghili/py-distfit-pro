@@ -44,6 +44,15 @@ Erfolgreiche binary64-Terme werden exakt repräsentiert; die Endsumme wird
 einmal gerundet. Die unsigned-64-Zählgrenze ergibt eine 2162-Bit-Grenze für die
 exakte Summe. Die Evidenz für 10k/100k/1m gilt nur für getestete Normalströme.
 
+Die Scale-Messung eines Kandidaten ist bewusst manuell: Der Workflow
+`veridist-scale-evidence` bindet zunächst den vollständigen SHA eines sauberen
+Kandidaten und führt die Evidenzverträge aus. Erst dann misst er den öffentlichen
+Iterable-Likelihood-Pfad und den strikten CSV/Exponential-Pfad unter Linux und
+Windows. Artefakte werden erst nach ihrer eigenen fail-closed SHA- und
+Schema-Validierung aufbewahrt. Das bloße Vorhandensein dieses Workflows oder eines
+historischen Artefakts ist kein Beleg für einen neuen Kandidaten und keine
+Durchsatz- oder RSS-Behauptung.
+
 ## Evaluierungsstand installieren
 
 Nach dem Klonen wird das verschachtelte Python-Projekt installiert:
