@@ -5,6 +5,8 @@ from __future__ import annotations
 import threading
 import time
 import unittest
+from collections.abc import Callable, Iterable, Iterator
+from typing import cast
 
 from veridist.domain.lifetimes import ExactLifetime
 from veridist.engine.data_source import DataSourceMetadata, Replayability
@@ -35,6 +37,32 @@ def chunk(identifier: str, sequence: int, callback=None) -> BufferedChunk:
 
 
 class StreamSourceContractTests(unittest.TestCase):
+    def test_source_constructor_rejects_non_metadata_instance(self) -> None:
+        with self.assertRaisesRegex(TypeError, "metadata must be DataSourceMetadata"):
+            IterableDataSource(((0.0,),), cast(DataSourceMetadata, object()))
+
+    def test_single_pass_source_rejects_iterator_factory(self) -> None:
+        with self.assertRaisesRegex(
+            TypeError,
+            "single-pass sources require an iterable, not an iterator factory",
+        ):
+            IterableDataSource(lambda: iter(((0.0,),)), metadata())
+
+    def test_single_pass_source_rejects_non_iterable_chunks(self) -> None:
+        with self.assertRaisesRegex(TypeError, "chunks must be an iterable"):
+            IterableDataSource(cast(Iterable[tuple[float, ...]], object()), metadata())
+
+    def test_replayable_source_rejects_factory_returning_non_iterator(self) -> None:
+        def invalid_factory() -> Iterator[tuple[float, ...]]:
+            return cast(Iterator[tuple[float, ...]], ((0.0,),))
+
+        source = IterableDataSource(
+            cast(Callable[[], Iterator[tuple[float, ...]]], invalid_factory),
+            metadata(Replayability.REPLAYABLE),
+        )
+        with self.assertRaisesRegex(TypeError, "stream factory must return an iterator"):
+            source.iter_chunks()
+
     def test_generic_source_is_consumed_by_current_streaming_reducers(self) -> None:
         likelihood_source = IterableDataSource(((0.0, 1.0),), metadata())
         likelihood = reduce_log_likelihood_chunks(
