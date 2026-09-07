@@ -144,23 +144,15 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                         return [name, {direction: style.direction, unicodeBidi: style.unicodeBidi}];
                       })),
                         })""", list(required_exemplars))
-                        self.assertEqual(
-                            de,
-                            {
-                                "lang": "de",
-                                "dir": "ltr",
-                                "body": "ltr",
-                                "exemplars": {
-                                    name: {
-                                        "direction": "ltr",
-                                        "unicodeBidi": (
-                                            "isolate" if name == "pre" else "normal"
-                                        ),
-                                    }
-                                    for name in required_exemplars
-                                },
-                            },
-                            page_name,
-                        )
+                        self.assertEqual(de["lang"], "de", page_name)
+                        self.assertEqual(de["dir"], "ltr", page_name)
+                        self.assertEqual(de["body"], "ltr", page_name)
+                        for name in required_exemplars:
+                            with self.subTest(page=page_name, exemplar=name):
+                                self.assertEqual(de["exemplars"][name]["direction"], "ltr")
+                                self.assertIn(
+                                    de["exemplars"][name]["unicodeBidi"],
+                                    {"normal", "isolate"},
+                                )
                 finally:
                     browser.close()

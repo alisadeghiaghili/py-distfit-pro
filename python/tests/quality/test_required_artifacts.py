@@ -24,7 +24,7 @@ class RequiredQualityArtifactTests(unittest.TestCase):
         self.assertIn("src/veridist/engine/streaming.py", manifest["production_files"])
         self.assertEqual(
             manifest["expected_denominators"]["src/veridist/engine/streaming.py"],
-            {"statements": 50, "branches": 20},
+            {"statements": 53, "branches": 22},
         )
         readiness = " ".join(READINESS.read_text(encoding="utf-8").split())
         self.assertIn(
