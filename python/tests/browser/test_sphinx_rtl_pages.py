@@ -151,7 +151,12 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                                 "dir": "ltr",
                                 "body": "ltr",
                                 "exemplars": {
-                                    name: {"direction": "ltr", "unicodeBidi": "normal"}
+                                    name: {
+                                        "direction": "ltr",
+                                        "unicodeBidi": (
+                                            "isolate" if name == "pre" else "normal"
+                                        ),
+                                    }
                                     for name in required_exemplars
                                 },
                             },
