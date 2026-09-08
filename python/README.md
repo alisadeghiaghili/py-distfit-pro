@@ -68,4 +68,5 @@ limits.
 
 ## License
 
-MIT; see [LICENSE](LICENSE).
+BUSL-1.1 with an Apache-2.0 additional-use grant for personal,
+non-commercial use; see [LICENSE](LICENSE).

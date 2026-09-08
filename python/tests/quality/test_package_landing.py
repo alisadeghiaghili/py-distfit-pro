@@ -36,7 +36,7 @@ class PackageLandingContractTests(unittest.TestCase):
         self.assertEqual(
             project["readme"], {"file": "README.md", "content-type": "text/markdown"}
         )
-        self.assertEqual(project["license"], "MIT")
+        self.assertEqual(project["license"], "BUSL-1.1")
         self.assertEqual(project["license-files"], ["LICENSE"])
         self.assertEqual(
             project["urls"],
@@ -81,6 +81,7 @@ class PackageLandingContractTests(unittest.TestCase):
                 "public CSV path is strict",
                 "one iterator pass",
                 "not a generic CSV reader",
+                "BUSL-1.1 with an Apache-2.0 additional-use grant",
             ),
             "fa": (
                 "هستهٔ قراردادی پیش‌آلفا",
@@ -91,6 +92,7 @@ class PackageLandingContractTests(unittest.TestCase):
                 "مسیر CSV عمومی آن سخت‌گیرانه است",
                 "یک گذر از iterator",
                 "CSV عمومی",
+                "BUSL-1.1 با مجوز استفادهٔ اضافی Apache-2.0",
             ),
             "de": (
                 "Pre-Alpha-Vertragskern",
@@ -101,6 +103,7 @@ class PackageLandingContractTests(unittest.TestCase):
                 "öffentliche CSV-Pfad ist strikt",
                 "einen Iterator-Durchlauf",
                 "allgemeines CSV",
+                "BUSL-1.1 mit einer zusätzlichen Apache-2.0-Nutzungserlaubnis",
             ),
         }
         for locale, phrases in required.items():

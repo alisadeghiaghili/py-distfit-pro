@@ -87,6 +87,7 @@ assert fit.censoring_assumption == "independent_right_censoring"
 
 ## مجوز
 
-MIT؛ متن کامل در [LICENSE](LICENSE) است.
+BUSL-1.1 با مجوز استفادهٔ اضافی Apache-2.0 برای استفادهٔ شخصی و غیرتجاری؛
+متن کامل در [LICENSE](LICENSE) است.
 
 </div>
