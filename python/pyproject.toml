@@ -7,7 +7,7 @@ name = "veridist"
 version = "0.0.0.dev0"
 description = "Evidence-first distribution fitting with explicit execution contracts"
 readme = { file = "README.md", content-type = "text/markdown" }
-license = "MIT"
+license = "BUSL-1.1"
 license-files = ["LICENSE"]
 authors = [
     { name = "Ali Sadeghi Aghili", email = "alisadeghiaghili@gmail.com" },

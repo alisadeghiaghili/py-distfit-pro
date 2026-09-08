@@ -73,4 +73,5 @@ und ausdrückliche Grenzen getrennt ausgewiesen.
 
 ## Lizenz
 
-MIT; siehe [LICENSE](LICENSE).
+BUSL-1.1 mit einer zusätzlichen Apache-2.0-Nutzungserlaubnis für persönliche,
+nicht-kommerzielle Nutzung; siehe [LICENSE](LICENSE).
