@@ -67,6 +67,29 @@ def expectation(**overrides: object) -> ResumeExpectation:
 
 
 class ResumeValidationProbeTests(unittest.TestCase):
+    def test_checksum_detects_tampering_of_every_canonical_field(self) -> None:
+        original = record()
+        replacements = {
+            "format_version": 2,
+            "source_id": "dataset:other",
+            "source_schema": "source-v2",
+            "source_revision": "other-revision",
+            "reducer_id": "other-reducer",
+            "accumulator_schema": "other-schema",
+            "plan_digest": hashlib.sha256(b"other-plan").hexdigest(),
+            "cursor": 2,
+            "committed_ranges": ((0, 2),),
+            "generation": 2,
+            "operation_token": "chunk-2",
+            "operation_digest": hashlib.sha256(b"other-operation").hexdigest(),
+            "state": b"other-state",
+        }
+
+        self.assertTrue(original.has_valid_checksum())
+        for field, replacement in replacements.items():
+            with self.subTest(field=field):
+                self.assertFalse(replace(original, **{field: replacement}).has_valid_checksum())
+
     def test_expectation_rejects_bool_bounds_and_blank_identifiers(self) -> None:
         for overrides in (
             {"format_version": 0},
