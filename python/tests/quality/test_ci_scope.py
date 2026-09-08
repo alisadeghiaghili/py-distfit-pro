@@ -36,6 +36,7 @@ class CiScopeClassifierTests(unittest.TestCase):
             "docs/decisions-2026-08-20.md",
             "docs/migration/legacy-salvage-ledger.json",
             ".github/workflows/mutation.yml",
+            ".github/workflows/scale-evidence.yml",
             ".github/workflows/v1-ci.yml",
             ".github/workflows/ci.yml",
         )
