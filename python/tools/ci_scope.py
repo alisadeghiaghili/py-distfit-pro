@@ -11,6 +11,7 @@ _VERIDIST_PREFIXES = ("python/", "docs/adr/", "docs/evidence/", "docs/migration/
 _VERIDIST_PATHS = frozenset(
     {
         ".github/workflows/ci.yml",
+        ".github/workflows/mutation.yml",
         ".github/workflows/v1-ci.yml",
         "docs/adoption-and-reputation-strategy.md",
         "docs/capability-matrix.md",

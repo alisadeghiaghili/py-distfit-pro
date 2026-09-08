@@ -19,10 +19,13 @@
     "src/veridist/execution.py",
     "src/veridist/families/__init__.py",
     "src/veridist/families/exponential.py",
+    "src/veridist/families/registry.py",
     "src/veridist/reporting/__init__.py",
     "src/veridist/reporting/exponential.py",
     "src/veridist/statistics/__init__.py",
-    "src/veridist/statistics/exponential.py"
+    "src/veridist/statistics/exponential.py",
+    "src/veridist/statistics/log_density.py",
+    "src/veridist/statistics/log_likelihood.py"
   ],
   "critical_modules": [
     "domain",
@@ -48,11 +51,14 @@
     "src/veridist/engine/retry.py": {"statements": 107, "branches": 40},
     "src/veridist/execution.py": {"statements": 95, "branches": 20},
     "src/veridist/families/__init__.py": {"statements": 2, "branches": 0},
-    "src/veridist/families/exponential.py": {"statements": 112, "branches": 38},
+    "src/veridist/families/exponential.py": {"statements": 114, "branches": 40},
+    "src/veridist/families/registry.py": {"statements": 152, "branches": 62},
     "src/veridist/reporting/__init__.py": {"statements": 2, "branches": 0},
     "src/veridist/reporting/exponential.py": {"statements": 54, "branches": 12},
-    "src/veridist/statistics/__init__.py": {"statements": 2, "branches": 0},
-    "src/veridist/statistics/exponential.py": {"statements": 90, "branches": 44}
+    "src/veridist/statistics/__init__.py": {"statements": 3, "branches": 0},
+    "src/veridist/statistics/exponential.py": {"statements": 90, "branches": 44},
+    "src/veridist/statistics/log_density.py": {"statements": 192, "branches": 46},
+    "src/veridist/statistics/log_likelihood.py": {"statements": 182, "branches": 62}
   },
   "accepted_exceptions": []
 }

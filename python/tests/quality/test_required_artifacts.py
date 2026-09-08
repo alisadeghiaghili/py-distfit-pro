@@ -12,18 +12,34 @@ REPOSITORY_ROOT = PYTHON_ROOT.parent
 MANIFEST = PYTHON_ROOT / "quality" / "coverage-manifest.json"
 CAPABILITY_MATRIX = REPOSITORY_ROOT / "docs" / "capability-matrix.md"
 READINESS = REPOSITORY_ROOT / "docs" / "v1-readiness.md"
+EVALUATED_FAMILY_ADR = REPOSITORY_ROOT / "docs" / "adr" / "ADR-0019-evaluated-family-kernel.md"
+MUTATION_WORKFLOW = REPOSITORY_ROOT / ".github" / "workflows" / "mutation.yml"
 
 
 class RequiredQualityArtifactTests(unittest.TestCase):
     def test_readiness_uses_the_authoritative_production_file_count(self) -> None:
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
         production_count = len(manifest["production_files"])
-        self.assertEqual(production_count, 22)
+        self.assertEqual(production_count, 25)
         readiness = " ".join(READINESS.read_text(encoding="utf-8").split())
         self.assertIn(
             f"accepted all {production_count} enumerated production files",
             readiness,
         )
+
+    def test_readiness_separates_historical_snapshot_from_current_evidence(
+        self,
+    ) -> None:
+        readiness = READINESS.read_text(encoding="utf-8")
+        self.assertIn("Historical snapshot: `bfb496d` (preserved verbatim)", readiness)
+        self.assertIn("accepted all 23 enumerated\n  production files", readiness)
+        self.assertIn("Current unmerged family-kernel candidate", readiness)
+        self.assertNotIn("coverage.json` SHA-256", readiness)
+
+    def test_evaluated_family_adr_uses_a_primary_immutable_math_source(self) -> None:
+        adr = EVALUATED_FAMILY_ADR.read_text(encoding="utf-8")
+        self.assertIn("NIST DLMF §5.11", adr)
+        self.assertNotIn("github.com/wch/r-source/blob/trunk", adr)
 
     def test_capability_matrix_declares_the_only_callable_statistical_cell(self) -> None:
         content = CAPABILITY_MATRIX.read_text(encoding="utf-8")
@@ -35,7 +51,8 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             "fixed O(1) reducer state",
             "one CSV iterator and one pass",
             "SCALE-CSV-EXP-01",
-            "formal mutation runner remains **NOT IMPLEMENTED**",
+            "formal mutation infrastructure and its versioned GitHub Linux",
+            "no remote execution has yet been retained",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, content)
@@ -66,6 +83,83 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             1,
             "quality/coverage-manifest.json must remain visible to Git",
         )
+
+    def test_mutation_checker_and_runner_are_versioned_and_cache_is_ignored(self) -> None:
+        for artifact in (
+            PYTHON_ROOT / "quality" / "mutation-manifest.json",
+            PYTHON_ROOT / "tools" / "check_mutation_evidence.py",
+            PYTHON_ROOT / "tools" / "run_mutation.py",
+        ):
+            with self.subTest(artifact=artifact):
+                self.assertTrue(artifact.is_file())
+        ignored = (PYTHON_ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("/mutants/", ignored)
+        self.assertIn("/mutation-evidence.json", ignored)
+        self.assertIn("/.mutation-tmp/", ignored)
+
+    def test_mutation_cache_ignores_are_limited_to_the_python_root(self) -> None:
+        ignored = (PYTHON_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+        self.assertIn("/mutants/", ignored)
+        self.assertIn("/mutation-evidence.json", ignored)
+        self.assertIn("/.mutation-tmp/", ignored)
+
+        ignored_paths = (
+            "mutants/cache.py",
+            "mutation-evidence.json",
+            ".mutation-tmp/cache.json",
+        )
+        retained_paths = (
+            "src/veridist/mutants/example.py",
+            "tests/mutants/example.py",
+            "subdir/mutation-evidence.json",
+            "subdir/.mutation-tmp/cache.json",
+        )
+        for path in ignored_paths:
+            with self.subTest(path=path):
+                result = subprocess.run(
+                    ["git", "check-ignore", "-q", "--no-index", "--", path],
+                    cwd=PYTHON_ROOT,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0)
+        for path in retained_paths:
+            with self.subTest(path=path):
+                result = subprocess.run(
+                    ["git", "check-ignore", "-q", "--no-index", "--", path],
+                    cwd=PYTHON_ROOT,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 1)
+
+    def test_mutation_workflow_is_pinned_linux_evidence_gate(self) -> None:
+        workflow = MUTATION_WORKFLOW.read_text(encoding="utf-8")
+        for required in (
+            "runs-on: ubuntu-latest",
+            'python-version: \"3.13\"',
+            "workflow_dispatch:",
+            "pull_request:",
+            "types: [published]",
+            "MUTMUT_WHEEL_SHA256:",
+            "MUTMUT_WHEEL: mutmut-3.7.0-py3-none-any.whl",
+            "1d2f9a1bfa4a474b2213df6b17223150b492bf4a85af0eda4fb322297337fb32",
+            "importlib.metadata.version('mutmut')",
+            "--index-url https://pypi.org/simple",
+            "python -m pip install '.[test,docs]'",
+            "--mutmut-wheel",
+            "--logs-dir",
+            "--logs-root",
+            "--mutants-root",
+            "if: always()",
+            "python/mutants/**/*.meta",
+            "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+            "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
+            "fetch-depth: 0",
+            "persist-credentials: false",
+            "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+            "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, workflow)
 
 
 if __name__ == "__main__":

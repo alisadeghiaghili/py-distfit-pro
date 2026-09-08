@@ -16,3 +16,12 @@ tokens, fields, budgets, or source access produce typed failures.
 The vertical fixes `location=0`, has no confidence interval or goodness-of-fit
 claim, and supplies no weights, covariates, truncation, left/interval censoring,
 free location, model selection, retry, checkpointing, or cancellation.
+
+## Evaluated scalar primitives
+
+`veridist.families.registry` exports immutable `FAMILY_REGISTRY` metadata and
+`FamilyId` for five evaluated families. `veridist.statistics.log_density`
+exports scalar `evaluate_log_density`; `veridist.statistics.log_likelihood`
+exports `LogLikelihoodState` and `reduce_log_likelihood_chunks`. These are
+separate, finite scalar contracts: they are not generic fitting, inference,
+goodness-of-fit, ranking, array, or censoring APIs.

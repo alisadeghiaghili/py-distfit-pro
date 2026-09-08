@@ -29,12 +29,45 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
-- On 2026-08-27 at `f6c5ace`, the branch-local coverage run executed 254 passing
-  tests with one opt-in browser test skipped. The deterministic checker accepted
-  all 22 enumerated production files with 100% observed coverage: 1,988
-  statements and 684 branches, with no accepted exceptions. This is structural and contract
-  evidence, not a formal mutation score, calibration result or production-scale
-  benchmark.
+- `LLR-06` retains a checker-validated generated-stream artifact at
+  `python/evidence/scale-log-likelihood-v1.json` for 10k/100k/1m rows and three
+  chunk sizes. It records one actual outer iterator acquisition and every yield,
+  then verifies the actual returned total bitwise against independently
+  reconstructed `Fraction` oracle units and the algorithmic 2162-bit bound. It
+  does not claim to measure public reducer state. The initial `e517dd3` bundle
+  was noncompliant because it did not reject wrong-total or second-pass mutants;
+  a corrective RED/GREEN chain now does. Elapsed/tracemalloc facts are
+  descriptive; no process-memory, throughput, out-of-core, fitting, or general
+  cross-platform claim follows from this artifact.
+
+### Historical snapshot: `bfb496d` (preserved verbatim)
+
+- The family-registry tranche adds one metadata-only production file. The
+  CI-shaped local run collected 282 items (280 passed and two opt-in browser
+  tests skipped); the deterministic checker accepted all 23 enumerated
+  production files with 2,113 statements and 736 branches at 100% observed
+  coverage, with no accepted exceptions. The registry itself is not a
+  numerical evaluator, fit, inference, or large-data capability claim.
+
+### Current unmerged family-kernel candidate
+
+- On 2026-08-30, the CI-shaped local command
+  `python -m pytest --cov=veridist --cov-branch --ignore=tests/docs/test_docs_toolchain.py --cov-report=json:coverage.json`
+  collected 351 items: 349 passed and the two opt-in browser tests skipped.
+  The deterministic checker accepted all 25 enumerated production files with
+  2,518 statements and 854 branches at 100% observed line and branch coverage,
+  with no accepted exceptions. The generated coverage JSON is deliberately not
+  retained as a release artifact, so this ledger does not assert a mutable file
+  hash. The current candidate's five-family scalar evaluator has independent
+  exact-binary `mpmath==1.3.0` references, a Gamma large-shape/scale/delta grid
+  with more than 90 finite cases plus far-left subnormal direct-log regressions,
+  a Lognormal magnitude/adjacent-center/sigma grid, and a fixed-seed ordinary
+  smoke sweep. All reference acceptance uses
+  `max(8 ULP, 2e-14 relative, 2e-14 absolute)`; the sweep is not a mutation
+  score or a generalized numerical guarantee. This evidence is limited to
+  scalar log-density correctness; it is not fitting, inference, censoring,
+  array, or large-data evidence. Remote CI for this unmerged candidate remains
+  unverified.
 - ADR-0017's first callable cell is implemented on the development branch: a
   fixed-location, rate-only exponential MLE for exact and independently
   right-censored lifetimes. It returns a finite point estimate or a typed
@@ -48,23 +81,33 @@ as a statement about uninspected current files.
 - A branch-local PEP 517 sdist/wheel build and Twine check pass. A clean wheel
   environment outside the checkout passes dependency/import/version/`py.typed`
   checks and calls the 0.5-rate exponential fit plus a Persian RTL report.
-- Base CI lane isolation and Linux Python 3.11--3.14 jobs were previously
-  configured and pushed. The current exponential/docs/browser branch changes
-  are not pushed yet; all remote results for them remain **UNVERIFIED**.
+- PR #31 (`csv-exponential-source`) was merged to `main` at
+  `1b01385a5d707cfff1dc59c22a6e2e2c5f8eaf14`; its reviewed head was
+  `b57041701f3c6d25e99f968fcb07a810dc97e14b`. The remote Linux Python
+  3.11--3.14 CI lanes, package build/clean-wheel checks, and browser gates for
+  that merged vertical are verified. This verifies only the narrow CSV/
+  exponential vertical, not a broad distribution-fitting release.
 - Local Sphinx gettext, EN/FA/DE HTML and English linkcheck complete with
   warnings fatal. Exact real POT/catalog parity, translated rendered semantics,
-  locale direction and canonical examples pass. Remote CI remains unverified.
+  locale direction and canonical examples pass. The corresponding PR #31
+  remote CI evidence is verified; subsequent family-kernel changes still need
+  their own remote CI evidence before merge.
 - The narrow `I18N-RTL-EXP-01` opt-in browser contract passes locally with Edge 151 and exactly two
   nonempty Persian HTML screenshots; computed RTL/right alignment and
   LTR/isolate facts pass for success and failure reports. Exact Playwright
-  1.62.0 bundled-Chromium execution remains required and unverified in remote CI.
-  `I18N-RTL-DOC-01` additionally passes locally with Edge against Sphinx-built
-  Persian and German tutorial pages: the Farsi root/body are `fa`/RTL/right,
-  German is `de`/LTR, and independently selected inline code, highlighted
-  Python block, table and static math nodes are LTR with `unicode-bidi:isolate`.
-  The page uses a local static math asset rather than a network MathJax fetch.
-  Pinned Playwright-Chromium remote execution, PDF, network-font and
-  pixel-baseline rendering remain unverified and are not claimed.
+  1.62.0 bundled-Chromium execution is verified for the merged PR #31 vertical.
+  `I18N-RTL-DOC-01` additionally passes locally with Edge 151 against
+  Sphinx-built Persian and German `exponential-right-censoring` and
+  `families-log-density-likelihood` pages: the Farsi root/body are
+  `fa`/RTL/right, German is `de`/LTR, and independently selected inline code,
+  highlighted Python block, table and static math nodes are LTR with
+  `unicode-bidi:isolate`. The local browser scope is those two pages in each
+  locale plus the existing report success/failure gate; no documentation
+  screenshots are retained locally, while the CI policy retains only the two
+  report screenshots. The pages use a local static math asset rather than a
+  network MathJax fetch. Remote pinned-Chromium evidence for the subsequent
+  family-kernel documentation commits, PDF rendering, network-font rendering,
+  and pixel-baseline comparison remain unverified and are not claimed.
 - Eight scratch-only manual patches were each killed by one targeted unittest:
   `fit_exponential` materialized `tuple(observations)` / `test_exp14_memory_growth_is_bounded_for_unique_generated_observations`;
   `merge` used the raw two totals / `test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions`;
@@ -74,8 +117,9 @@ as a statement about uninspected current files.
   the final `REPORT_KEYS` item was removed / `test_i18n_exp04_has_exact_stable_keys_and_semantic_facts_for_every_result`;
   every machine fact became `mutated` / `test_i18n_exp13_machine_values_are_bound_to_success_and_failure_facts`;
   and Persian `dir="rtl"` became `dir="ltr"` / `test_i18n_exp02_farsi_report_has_rtl_root_and_ltr_isolates`.
-  This is diagnostic evidence only. The formal mutation runner and score are
-  **NOT IMPLEMENTED**.
+  This is diagnostic evidence only. The formal mutation infrastructure and its
+  versioned GitHub Linux workflow are implemented, but no remote execution or
+  score is yet retained or claimed.
 - `SCALE-CSV-EXP-01` retains an actual strict CSV adapter and one-pass
   exponential-orchestrator trace at `python/evidence/scale-csv-exponential-v1.json`.
   Its fail-closed checker accepts exactly nine cells: 10k/100k/1m rows by
@@ -92,11 +136,13 @@ as a statement about uninspected current files.
   `fit_exponential_csv`, `CsvLifetimeSchema`, `CsvLifetimeLimits`,
   `PublicSourceId`, and `ExponentialSourceFitResult`. It is deliberately not
   a broad distribution-fitting API or an alpha release claim. The version stays
-  `0.0.0.dev0`: the executable mutation runner, PDF/release documentation
+  `0.0.0.dev0`: formal mutation execution evidence, PDF/release documentation
   evidence, and release/publishing exits are still incomplete.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free
-  semantic/hash checker, AST/dynamic-import isolation checks and built-artifact
-  payload inspection in the configured package job. LM-002 records the
+  fail-closed semantic checker and a separate immutable source-lock policy that
+  require the exact frozen source commit, `commit:path` blob, SHA-256, and
+  ordered in-bounds source ranges, plus AST/dynamic-import isolation checks and
+  built-artifact payload inspection in the configured package job. LM-002 records the
   independent exponential rewrite and reviewed statistical evidence but remains
   `review_pending`; no legacy runtime code, compatibility surface or numerical
   oracle is used. LM-003 remains pending and does not claim legacy phrase reuse.
@@ -104,8 +150,8 @@ as a statement about uninspected current files.
   feature count, name/trademark availability, and SQL-export novelty remains
   unverified unless a current command or primary source is attached.
 - Statistical calibration, bootstrap coverage, production-adapter streaming
-  equivalence, production-scale memory bounds, PyPI publication and source-lock
-  checking remain unverified. Reference agreement is scoped only to the current
+  equivalence, production-scale memory bounds, and PyPI publication remain
+  unverified. Reference agreement is scoped only to the current
   exponential point-estimation cell.
 
 ## Remaining v1 work and release evidence

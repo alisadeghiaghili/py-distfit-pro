@@ -21,6 +21,14 @@ Retained evidence establishes bounded internal payload only for the measured
 10k/100k/1m by 32KiB/64KiB/128KiB matrix; it does not establish a general
 big-data or high-throughput capability.
 
+The separate scalar surface exposes immutable `FAMILY_REGISTRY` metadata for
+normal, gamma, Weibull-minimum, lognormal, and right-Gumbel; scalar
+`evaluate_log_density`; and exact-state `reduce_log_likelihood_chunks`.
+It is not generic fitting, inference, goodness-of-fit, ranking, arrays, or
+censoring. The reducer represents successful binary64 terms exactly and rounds
+the final total once; its unsigned-64 count cap implies a 2162-bit exact-total
+bound. Its retained 10k/100k/1m evidence is scoped to tested normal streams.
+
 ## Install an evaluation build
 
 Install from the nested source project after cloning the repository:

@@ -1,7 +1,7 @@
 (veridist-home)=
 # Veridist documentation
 
-Evidence-first distribution fitting.
+Evidence-first, deliberately narrow distribution primitives.
 
 ## First CSV vertical
 
@@ -26,6 +26,13 @@ of the returned provenance.
 Translations for this vertical are owner-reviewed provisional text; no external
 native-speaker review is claimed.
 
+## Five evaluated scalar families
+
+The public kernel also has an immutable five-family registry, finite scalar
+log-density evaluation, and an exact-state streaming log-likelihood reducer.
+These are distinct from the CSV exponential MLE: they do not provide generic
+fitting, inference, goodness-of-fit, ranking, arrays, or censoring support.
+
 ```{literalinclude} examples/quickstart.py
 :language: python
 :caption: Canonical executable example
@@ -36,4 +43,5 @@ native-speaker review is claimed.
 
 api
 exponential-right-censoring
+families-log-density-likelihood
 ```

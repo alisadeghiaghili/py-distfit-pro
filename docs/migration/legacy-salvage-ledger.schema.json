@@ -6,7 +6,7 @@
     "additionalProperties": false,
     "required": ["schema_version", "target_namespace", "legacy_package", "entries"],
     "properties": {
-        "schema_version": {"type": "string", "const": "1.0"},
+        "schema_version": {"type": "string", "const": "1.1"},
         "target_namespace": {"type": "string", "const": "veridist"},
         "legacy_package": {"type": "string", "const": "distfit_pro"},
         "entries": {
@@ -61,7 +61,7 @@
                     "source": {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": ["commit", "path", "blob", "sha256"],
+                        "required": ["commit", "path", "blob", "sha256", "line_ranges"],
                         "properties": {
                             "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                             "path": {
@@ -70,7 +70,21 @@
                                 "minLength": 1
                             },
                             "blob": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                            "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+                            "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                            "line_ranges": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": ["path", "start_line", "end_line"],
+                                    "properties": {
+                                        "path": {"type": "string", "pattern": "^(?:distfit_pro|tests|examples)/", "minLength": 1},
+                                        "start_line": {"type": "integer", "minimum": 1},
+                                        "end_line": {"type": "integer", "minimum": 1}
+                                    }
+                                }
+                            }
                         }
                     },
                     "license": {

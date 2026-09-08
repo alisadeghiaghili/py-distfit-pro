@@ -9,6 +9,7 @@ from math import inf, nan
 from pathlib import Path
 from types import MappingProxyType
 
+from tests.contract.buffer_watchdog import bounded_buffer_call
 from veridist.engine.data_source import (
     CheckpointMetadata,
     DataSourceCapabilityError,
@@ -194,16 +195,16 @@ class TypedFailureSurfaceTests(unittest.TestCase):
                 payload=None,
             )
 
-        buffer.put(buffered("first", 0))
+        bounded_buffer_call(buffer, lambda: buffer.put(buffered("first", 0)))
         with self.assertRaises(DeliveryContractError) as put_error:
-            buffer.put(buffered("second", 1), timeout=0.001)
+            bounded_buffer_call(buffer, lambda: buffer.put(buffered("second", 1), timeout=0.001))
         self.assertIs(put_error.exception.code, FailureCode.BUFFER_TIMEOUT)
         self.assertEqual(put_error.exception.context, {"operation": "put"})
 
-        buffer.get()
+        bounded_buffer_call(buffer, lambda: buffer.get())
 
         with self.assertRaises(DeliveryContractError) as caught:
-            buffer.get(timeout=0.001)
+            bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.001))
 
         self.assertIs(caught.exception.code, FailureCode.BUFFER_TIMEOUT)
         self.assertNotEqual(caught.exception.code, FailureCode.CANCELLED)

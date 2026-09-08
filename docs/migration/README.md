@@ -11,8 +11,11 @@ python python/tools/check_migration_ledger.py
 ```
 
 The checker validates both JSON Schema-shaped fields and cross-field policy,
-then recomputes each recorded legacy file hash from the working tree. A hash
-mismatch means the entry is stale and must not be used as reuse evidence.
+then requires the recorded immutable source *commit* to exist and be a commit,
+verifies `commit:path` is exactly the recorded blob, recomputes its SHA-256,
+and validates closed, ordered, in-bounds line ranges tied to that same path.
+Missing history is a failure, not a fallback to the working tree. A mismatch
+means the entry is stale and must not be used as reuse evidence.
 
 The only allowed dispositions are:
 

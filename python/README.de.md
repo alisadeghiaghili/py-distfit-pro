@@ -24,6 +24,15 @@ Die hinterlegte Evidenz belegt begrenzte interne Payload nur für die gemessene
 Matrix aus 10k/100k/1m Zeilen und 32KiB/64KiB/128KiB; daraus folgt keine
 allgemeine Big-Data- oder Hochdurchsatzfähigkeit.
 
+Die separate skalare Oberfläche bietet unveränderliche `FAMILY_REGISTRY`-
+Metadaten für Normal-, Gamma-, Weibull-Minimum-, Lognormal- und Rechts-Gumbel-
+Familien, die skalare `evaluate_log_density` und die exakte Zustandsreduktion
+`reduce_log_likelihood_chunks`. Sie ist keine generische Anpassungs-,
+Inferenz-, Anpassungsgüte-, Ranking-, Array- oder Zensierungs-API.
+Erfolgreiche binary64-Terme werden exakt repräsentiert; die Endsumme wird
+einmal gerundet. Die unsigned-64-Zählgrenze ergibt eine 2162-Bit-Grenze für die
+exakte Summe. Die Evidenz für 10k/100k/1m gilt nur für getestete Normalströme.
+
 ## Evaluierungsstand installieren
 
 Nach dem Klonen wird das verschachtelte Python-Projekt installiert:

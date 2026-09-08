@@ -30,7 +30,12 @@ FailureFactValidator = Callable[[int, int, float | None], bool]
 
 
 def _valid_empty_sample(observation_count: int, event_count: int, total_time: float | None) -> bool:
-    return observation_count == 0 and event_count == 0 and total_time == 0.0
+    return (
+        observation_count == 0
+        and event_count == 0
+        and type(total_time) is float
+        and total_time == 0.0
+    )
 
 
 def _valid_no_observed_events(
@@ -48,7 +53,12 @@ def _valid_no_observed_events(
 def _valid_unbounded_likelihood(
     observation_count: int, event_count: int, total_time: float | None
 ) -> bool:
-    return observation_count > 0 and event_count > 0 and total_time == 0.0
+    return (
+        observation_count > 0
+        and event_count > 0
+        and type(total_time) is float
+        and total_time == 0.0
+    )
 
 
 def _valid_numerical_overflow(
@@ -152,6 +162,8 @@ class ExponentialFitFailure:
     def __post_init__(self) -> None:
         if type(self.code) is not ExponentialFitFailureCode:
             raise TypeError("code must be an ExponentialFitFailureCode")
+        if self.total_time is not None and type(self.total_time) is not float:
+            raise TypeError("total_time must be a built-in float or None")
         for name, value in (
             ("observation_count", self.observation_count),
             ("event_count", self.event_count),

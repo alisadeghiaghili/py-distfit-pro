@@ -19,3 +19,9 @@ html[dir="rtl"] .math * {
   text-align: left;
   unicode-bidi: isolate;
 }
+
+html[dir="rtl"] a.veridist-api-url {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
