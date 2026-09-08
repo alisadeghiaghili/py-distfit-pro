@@ -266,6 +266,10 @@ class RetryValidationProbeTests(unittest.TestCase):
         first = self._pure(store, reducer)
         second = self._pure(store, reducer)
         self.assertIs(second, first)
+        self.assertEqual(
+            first.operation_digest,
+            "e6e049a06ef3cabae0e92842aa37b8cad249166be82f6e87578793606a2f2192",
+        )
         self.assertEqual(reducer.calls, 1)
         self.assertEqual(store.write_count, 1)
 
