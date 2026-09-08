@@ -836,9 +836,15 @@ class BoundedBufferContractTests(unittest.TestCase):
             def blocked(operation):
                 try:
                     if operation == 'put':
-                        buffer.put(item('second', 1))
+                        buffer.put(
+                            item('second', 1),
+                            timeout=0.01 if scenario == 'put-timeout' else None,
+                        )
                     else:
-                        result.append(buffer.get().envelope.chunk_id)
+                        result.append(
+                            buffer.get(timeout=0.01 if scenario == 'get-timeout' else None)
+                            .envelope.chunk_id
+                        )
                 except DeliveryContractError as error:
                     result.append(error.code)
                 finally:
@@ -855,10 +861,12 @@ class BoundedBufferContractTests(unittest.TestCase):
                     if scenario == 'get-release':
                         buffer.put(item('first', 0), timeout=0.1)
                         expected = ['first']
-                    else:
+                    elif scenario == 'get-cancel':
                         buffer.cancel()
                         expected = ['CANCELLED']
-                    require(done.wait(0.1), 'get worker did not finish')
+                    else:
+                        expected = ['BUFFER_TIMEOUT']
+                    require(done.wait(0.2), 'get worker did not finish')
                     worker.join(0.05)
                     require(not worker.is_alive(), 'get worker remained alive')
                     require(result == expected, f'unexpected get result: {result!r}')
@@ -875,10 +883,12 @@ class BoundedBufferContractTests(unittest.TestCase):
                         )
                         first.release()
                         expected = []
-                    else:
+                    elif scenario == 'put-cancel':
                         buffer.cancel()
                         expected = ['CANCELLED']
-                    require(done.wait(0.1), 'put worker did not finish')
+                    else:
+                        expected = ['BUFFER_TIMEOUT']
+                    require(done.wait(0.2), 'put worker did not finish')
                     worker.join(0.05)
                     require(not worker.is_alive(), 'put worker remained alive')
                     require(result == expected, f'unexpected put result: {result!r}')
@@ -896,7 +906,15 @@ class BoundedBufferContractTests(unittest.TestCase):
             print('watchdog-ok')
             """
         )
-        for scenario in ("init", "get-release", "get-cancel", "put-release", "put-cancel"):
+        for scenario in (
+            "init",
+            "get-release",
+            "get-cancel",
+            "get-timeout",
+            "put-release",
+            "put-cancel",
+            "put-timeout",
+        ):
             with self.subTest(scenario=scenario):
                 try:
                     completed = run(
