@@ -482,6 +482,24 @@ class BoundedBufferContractTests(unittest.TestCase):
         self.assertEqual(observation.largest_retained_chunk_bytes, 0)
         self.assertEqual(observation.backpressure_event_count, 0)
 
+    def test_ds06_buffer_accepts_chunks_that_exactly_fill_its_byte_budget(self) -> None:
+        buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=8)
+        first = buffered(chunk("first", 0, 1, byte_size=4))
+        second = buffered(chunk("second", 1, 2, byte_size=4))
+
+        bounded_buffer_call(buffer, lambda: buffer.put(first))
+        bounded_buffer_call(buffer, lambda: buffer.put(second))
+
+        self.assertEqual(buffer.inflight_bytes, 8)
+        self.assertEqual(buffer.queued_chunks, 2)
+
+    def test_ds06_nonempty_queue_returns_oldest_chunk_before_timeout(self) -> None:
+        buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
+        first = buffered(chunk("first", 0, 1, byte_size=4))
+        bounded_buffer_call(buffer, lambda: buffer.put(first))
+
+        self.assertIs(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.01)), first)
+
     def test_ds06_producer_blocks_until_get_releases_budget(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         first = buffered(chunk("first", 0, 1, byte_size=4))
