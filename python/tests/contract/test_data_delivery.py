@@ -851,22 +851,22 @@ class BoundedBufferContractTests(unittest.TestCase):
                 elif scenario.startswith('get-'):
                     worker = threading.Thread(target=blocked, args=('get',), daemon=True)
                     worker.start()
-                    require(wait_entered.wait(0.25), 'get did not enter Condition.wait')
+                    require(wait_entered.wait(0.1), 'get did not enter Condition.wait')
                     if scenario == 'get-release':
-                        buffer.put(item('first', 0), timeout=0.25)
+                        buffer.put(item('first', 0), timeout=0.1)
                         expected = ['first']
                     else:
                         buffer.cancel()
                         expected = ['CANCELLED']
-                    require(done.wait(0.25), 'get worker did not finish')
+                    require(done.wait(0.1), 'get worker did not finish')
                     worker.join(0.05)
                     require(not worker.is_alive(), 'get worker remained alive')
                     require(result == expected, f'unexpected get result: {result!r}')
                 else:
-                    buffer.put(item('first', 0), timeout=0.25)
+                    buffer.put(item('first', 0), timeout=0.1)
                     worker = threading.Thread(target=blocked, args=('put',), daemon=True)
                     worker.start()
-                    require(wait_entered.wait(0.25), 'put did not enter Condition.wait')
+                    require(wait_entered.wait(0.1), 'put did not enter Condition.wait')
                     if scenario == 'put-release':
                         first = buffer.get()
                         require(
@@ -878,7 +878,7 @@ class BoundedBufferContractTests(unittest.TestCase):
                     else:
                         buffer.cancel()
                         expected = ['CANCELLED']
-                    require(done.wait(0.25), 'put worker did not finish')
+                    require(done.wait(0.1), 'put worker did not finish')
                     worker.join(0.05)
                     require(not worker.is_alive(), 'put worker remained alive')
                     require(result == expected, f'unexpected put result: {result!r}')
@@ -903,7 +903,7 @@ class BoundedBufferContractTests(unittest.TestCase):
                         [executable, "-c", program, scenario],
                         capture_output=True,
                         text=True,
-                        timeout=1.5,
+                        timeout=0.75,
                         check=False,
                     )
                 except TimeoutExpired as error:
