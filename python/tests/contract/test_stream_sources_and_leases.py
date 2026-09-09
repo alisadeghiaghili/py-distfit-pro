@@ -150,7 +150,7 @@ class ActiveLeaseBufferTests(unittest.TestCase):
     def test_active_lease_remains_charged_until_release(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         buffer.put(chunk("first", 0))
-        received = buffer.get()
+        received = buffer.get(timeout=0.1)
         self.assertEqual(buffer.inflight_bytes, 4)
         self.assertEqual(buffer.queued_chunks, 0)
         received.release()
@@ -159,7 +159,7 @@ class ActiveLeaseBufferTests(unittest.TestCase):
     def test_producer_unblocks_only_after_active_lease_release(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         buffer.put(chunk("first", 0))
-        received = buffer.get()
+        received = buffer.get(timeout=0.1)
         completed = threading.Event()
         producer = threading.Thread(
             target=lambda: (buffer.put(chunk("second", 1)), completed.set())
@@ -173,7 +173,7 @@ class ActiveLeaseBufferTests(unittest.TestCase):
         received.release()
         producer.join(1.0)
         self.assertTrue(completed.is_set())
-        buffer.get().release()
+        buffer.get(timeout=0.1).release()
         self.assertEqual(buffer.inflight_bytes, 0)
 
     def test_cancel_releases_every_queued_item_then_reraises_first_callback_error(self) -> None:

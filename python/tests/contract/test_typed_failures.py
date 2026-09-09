@@ -201,7 +201,7 @@ class TypedFailureSurfaceTests(unittest.TestCase):
         self.assertIs(put_error.exception.code, FailureCode.BUFFER_TIMEOUT)
         self.assertEqual(put_error.exception.context, {"operation": "put"})
 
-        bounded_buffer_call(buffer, lambda: buffer.get())
+        bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1))
 
         with self.assertRaises(DeliveryContractError) as caught:
             bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.001))

@@ -244,10 +244,10 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
             while buffer.waiting_producers == 0 and time.monotonic() < deadline:
                 threading.Event().wait(0.001)
             self.assertEqual(buffer.waiting_producers, 1)
-            bounded_buffer_call(buffer, lambda: buffer.get()).release()
+            bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1)).release()
             producer.join(timeout=0.5)
             self.assertFalse(producer.is_alive())
-            bounded_buffer_call(buffer, lambda: buffer.get()).release()
+            bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1)).release()
         finally:
             buffer.cancel()
             producer.join(timeout=0.05)
@@ -757,7 +757,7 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
         self.assertNotIn(b"payload", encoded)
         self.assertEqual(json.loads(encoded)["checkpoint"]["initial_generation"], 7)
         self.assertEqual(json.loads(encoded)["execution"]["required_passes"], 1)
-        bounded_buffer_call(buffer, lambda: buffer.get()).release()
+        bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1)).release()
 
     def test_ds12_serializer_rejects_legacy_open_mappings(self) -> None:
         plan = ExecutionPlan(
@@ -1017,7 +1017,7 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
             failure_record_from_error(error, FailureStage.CANCELLATION),
             FailureRecord(FailureCode.CANCELLED, FailureStage.CANCELLATION),
         )
-        bounded_buffer_call(buffer, lambda: buffer.get()).release()
+        bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1)).release()
 
     def test_ds12_minimal_variant_omits_unavailable_optional_facts_exactly(self) -> None:
         metadata = replace(

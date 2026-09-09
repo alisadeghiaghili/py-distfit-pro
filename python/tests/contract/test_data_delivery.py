@@ -894,7 +894,7 @@ class BoundedBufferContractTests(unittest.TestCase):
                     worker.start()
                     require(wait_entered.wait(0.1), 'put did not enter Condition.wait')
                     if scenario == 'put-release':
-                        first = buffer.get()
+                        first = buffer.get(timeout=0.1)
                         require(
                             first.envelope.chunk_id == 'first',
                             'initial chunk was not returned',
@@ -912,7 +912,7 @@ class BoundedBufferContractTests(unittest.TestCase):
                     require(result == expected, f'unexpected put result: {result!r}')
                     if scenario == 'put-release':
                         require(
-                            buffer.get().envelope.chunk_id == 'second',
+                            buffer.get(timeout=0.1).envelope.chunk_id == 'second',
                             'released put was not queued',
                         )
             finally:
