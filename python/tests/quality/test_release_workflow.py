@@ -1,7 +1,7 @@
 """Contracts for the fail-closed Veridist release validation workflow."""
 
-import unittest
 from pathlib import Path
+import unittest
 
 
 WORKFLOW = Path(__file__).resolve().parents[3] / ".github" / "workflows" / "veridist-release.yml"
