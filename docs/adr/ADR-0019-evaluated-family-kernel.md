@@ -1,6 +1,6 @@
 # ADR-0019: Evaluated-family kernel and parameter contracts
 
-Status: Proposed
+Status: Accepted
 
 Owner: Ali Sadeghi Aghili
 
