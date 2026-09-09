@@ -24,6 +24,40 @@ README_PATHS = {
 
 
 class PackageLandingContractTests(unittest.TestCase):
+    def test_repository_landing_and_security_policy_describe_the_pre_release_package(self) -> None:
+        required = {
+            REPOSITORY_ROOT / "README.md": (
+                "# veridist",
+                "0.0.0.dev0",
+                "not a released distribution",
+                "python/README.md",
+                "README.fa.md",
+                "README.de.md",
+            ),
+            REPOSITORY_ROOT / "README.fa.md": (
+                "# veridist",
+                "0.0.0.dev0",
+                "انتشار رسمی نیست",
+                "python/README.fa.md",
+            ),
+            REPOSITORY_ROOT / "README.de.md": (
+                "# veridist",
+                "0.0.0.dev0",
+                "keine veroeffentlichte Distribution",
+                "python/README.de.md",
+            ),
+            REPOSITORY_ROOT / "SECURITY.md": (
+                "# Security policy",
+                "not a released distribution",
+                "GitHub Security Advisory",
+            ),
+        }
+        for path, phrases in required.items():
+            content = " ".join(path.read_text(encoding="utf-8").split())
+            with self.subTest(path=path):
+                for phrase in phrases:
+                    self.assertIn(phrase, content)
+
     def test_project_metadata_points_to_packaged_human_facing_material(self) -> None:
         configuration = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
         project = configuration["project"]
