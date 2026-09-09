@@ -51,6 +51,7 @@ jobs:
         shell: bash
         env:
           CHECK_RUNS: ${{ runner.temp }}/candidate-check-runs.json
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           candidate="${{ steps.candidate.outputs.sha }}"
