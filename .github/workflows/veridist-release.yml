@@ -3,6 +3,10 @@ name: veridist-release-validation
 on:
   workflow_dispatch:
     inputs:
+      candidate_sha:
+        description: Exact full lowercase Git commit SHA to validate
+        required: true
+        type: string
       release_tag:
         description: Exact v-prefixed package version to validate
         required: true
@@ -20,13 +24,21 @@ jobs:
         working-directory: python
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Bind requested tag to package version
+      - name: Bind requested candidate and tag to package version
         shell: bash
         run: |
           set -euo pipefail
+          candidate="${{ inputs.candidate_sha }}"
+          [[ "$candidate" =~ ^[0-9a-f]{40}$ ]] || { echo "candidate SHA must be a full lowercase Git commit" >&2; exit 1; }
+          test "$(git rev-parse HEAD)" = "$candidate" || { echo "checked-out candidate SHA differs from requested candidate SHA" >&2; exit 1; }
+          test -z "$(git status --porcelain)" || { echo "release candidate checkout is dirty" >&2; exit 1; }
           version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
           test "${{ inputs.release_tag }}" = "v$version" || { echo "release tag does not match package version" >&2; exit 1; }
       - name: Build and inspect distributions
