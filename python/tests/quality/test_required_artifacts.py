@@ -13,6 +13,12 @@ MANIFEST = PYTHON_ROOT / "quality" / "coverage-manifest.json"
 CAPABILITY_MATRIX = REPOSITORY_ROOT / "docs" / "capability-matrix.md"
 READINESS = REPOSITORY_ROOT / "docs" / "v1-readiness.md"
 EVALUATED_FAMILY_ADR = REPOSITORY_ROOT / "docs" / "adr" / "ADR-0019-evaluated-family-kernel.md"
+CSV_ADAPTER_ADR = (
+    REPOSITORY_ROOT
+    / "docs"
+    / "adr"
+    / "ADR-0018-csv-lifetime-adapter-and-one-pass-exponential-orchestrator.md"
+)
 MUTATION_WORKFLOW = REPOSITORY_ROOT / ".github" / "workflows" / "mutation.yml"
 
 
@@ -45,6 +51,11 @@ class RequiredQualityArtifactTests(unittest.TestCase):
         adr = EVALUATED_FAMILY_ADR.read_text(encoding="utf-8")
         self.assertIn("NIST DLMF §5.11", adr)
         self.assertNotIn("github.com/wch/r-source/blob/trunk", adr)
+
+    def test_release_cell_adrs_are_accepted(self) -> None:
+        for adr in (CSV_ADAPTER_ADR, EVALUATED_FAMILY_ADR):
+            with self.subTest(adr=adr):
+                self.assertIn("Status: Accepted", adr.read_text(encoding="utf-8"))
 
     def test_capability_matrix_declares_the_only_callable_statistical_cell(self) -> None:
         content = " ".join(CAPABILITY_MATRIX.read_text(encoding="utf-8").split())
