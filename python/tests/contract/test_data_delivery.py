@@ -504,7 +504,7 @@ class BoundedBufferContractTests(unittest.TestCase):
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         first = buffered(chunk("first", 0, 1, byte_size=4))
         second = buffered(chunk("second", 1, 2, byte_size=4))
-        bounded_buffer_call(buffer, lambda: buffer.put(first))
+        bounded_buffer_call(buffer, lambda: buffer.put(first, timeout=0.1))
         outcome: list[str] = []
 
         def produce() -> None:
@@ -542,7 +542,7 @@ class BoundedBufferContractTests(unittest.TestCase):
             payload=object(),
             release_callback=lambda: released.append("first"),
         )
-        bounded_buffer_call(buffer, lambda: buffer.put(first))
+        bounded_buffer_call(buffer, lambda: buffer.put(first, timeout=0.1))
 
         buffer.cancel()
         buffer.cancel()
@@ -556,7 +556,7 @@ class BoundedBufferContractTests(unittest.TestCase):
     def test_ds06_full_buffer_put_timeout_is_bounded(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         first = buffered(chunk("first", 0, 1, byte_size=4))
-        bounded_buffer_call(buffer, lambda: buffer.put(first))
+        bounded_buffer_call(buffer, lambda: buffer.put(first, timeout=0.1))
 
         with self.assertRaises(DeliveryContractError) as caught:
             bounded_buffer_call(
@@ -572,7 +572,10 @@ class BoundedBufferContractTests(unittest.TestCase):
 
     def test_ds06_cancel_wakes_waiter_and_stops_future_put_get(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
-        bounded_buffer_call(buffer, lambda: buffer.put(buffered(chunk("first", 0, 1, byte_size=4))))
+        bounded_buffer_call(
+            buffer,
+            lambda: buffer.put(buffered(chunk("first", 0, 1, byte_size=4)), timeout=0.1),
+        )
         outcome: list[str] = []
 
         def produce() -> None:
@@ -607,7 +610,10 @@ class BoundedBufferContractTests(unittest.TestCase):
 
     def test_ds06_cancel_prevents_new_reads_and_releases_rejected_read(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
-        bounded_buffer_call(buffer, lambda: buffer.put(buffered(chunk("first", 0, 1, byte_size=4))))
+        bounded_buffer_call(
+            buffer,
+            lambda: buffer.put(buffered(chunk("first", 0, 1, byte_size=4)), timeout=0.1),
+        )
         read_count = 0
         released: list[str] = []
         outcome: list[str] = []
@@ -706,7 +712,7 @@ class BoundedBufferContractTests(unittest.TestCase):
     def test_ds06_capacity_release_admits_one_waiter_then_cancel_cleans_up(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         first = buffered(chunk("first", 0, 1, byte_size=4))
-        bounded_buffer_call(buffer, lambda: buffer.put(first))
+        bounded_buffer_call(buffer, lambda: buffer.put(first, timeout=0.1))
         start = (threading.Event(), threading.Event())
         attempted = (threading.Event(), threading.Event())
         admitted = (threading.Event(), threading.Event())
@@ -720,7 +726,10 @@ class BoundedBufferContractTests(unittest.TestCase):
                 if not start[index].wait(1.0):
                     raise AssertionError("test did not permit producer")
                 attempted[index].set()
-                buffer.put(buffered(chunk(f"waiting-{index}", index + 1, index + 2, byte_size=4)))
+                buffer.put(
+                    buffered(chunk(f"waiting-{index}", index + 1, index + 2, byte_size=4)),
+                    timeout=0.5,
+                )
             except DeliveryContractError as error:
                 with history_lock:
                     history.append(f"{index}:{error.code}")
@@ -772,7 +781,10 @@ class BoundedBufferContractTests(unittest.TestCase):
 
     def test_ds06_cancel_wakes_two_blocked_producers_without_resource_leak(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
-        bounded_buffer_call(buffer, lambda: buffer.put(buffered(chunk("first", 0, 1, byte_size=4))))
+        bounded_buffer_call(
+            buffer,
+            lambda: buffer.put(buffered(chunk("first", 0, 1, byte_size=4)), timeout=0.1),
+        )
         ready = threading.Barrier(3)
         outcomes: list[str] = []
         worker_errors: list[BaseException] = []
@@ -780,7 +792,10 @@ class BoundedBufferContractTests(unittest.TestCase):
         def produce(index: int) -> None:
             try:
                 ready.wait(timeout=1.0)
-                buffer.put(buffered(chunk(f"blocked-{index}", index + 1, index + 2, byte_size=4)))
+                buffer.put(
+                    buffered(chunk(f"blocked-{index}", index + 1, index + 2, byte_size=4)),
+                    timeout=0.5,
+                )
             except DeliveryContractError as error:
                 outcomes.append(error.code)
             except BaseException as error:
