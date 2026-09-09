@@ -35,6 +35,11 @@ jobs:
           python -m pip install "build>=1.2,<2" "twine>=6,<7"
           python -m build --sdist --wheel
           python -m twine check dist/*
+          python tools/check_release_artifacts.py \
+            --project-root . \
+            --release-tag "${{ inputs.release_tag }}" \
+            --artifact dist/*.whl \
+            --artifact dist/*.tar.gz
       - name: Smoke test installed wheel
         shell: bash
         run: |
