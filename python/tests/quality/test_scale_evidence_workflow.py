@@ -63,7 +63,7 @@ class ScaleEvidenceWorkflowTests(unittest.TestCase):
             "run_scale_csv_exponential_evidence.py",
             "check_scale_csv_exponential_evidence.py",
             "--expected-git-sha \"${{ needs.preflight.outputs.candidate_sha }}\"",
-            "--repo-root .",
+            "--repo-root ..",
             "1m public-stream likelihood evidence",
             "if: always()",
             "actions/upload-artifact@v4",

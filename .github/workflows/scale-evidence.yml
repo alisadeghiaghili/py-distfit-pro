@@ -112,7 +112,7 @@ jobs:
           python tools/check_log_likelihood_scale_evidence.py
           --artifact "${{ runner.temp }}/likelihood-scale-evidence.json"
           --expected-git-sha "${{ needs.preflight.outputs.candidate_sha }}"
-          --repo-root .
+          --repo-root ..
       - name: Generate 10k, 100k, and 1m strict CSV exponential evidence
         run: >
           python tools/run_scale_csv_exponential_evidence.py
@@ -122,7 +122,7 @@ jobs:
           python tools/check_scale_csv_exponential_evidence.py
           --artifact "${{ runner.temp }}/csv-exponential-scale-evidence.json"
           --expected-git-sha "${{ needs.preflight.outputs.candidate_sha }}"
-          --repo-root .
+          --repo-root ..
       - name: Retain scale evidence
         if: always()
         uses: actions/upload-artifact@v4
