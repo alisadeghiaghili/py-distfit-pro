@@ -1,0 +1,45 @@
+name: veridist-release-validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Exact v-prefixed package version to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: veridist / release validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Bind requested tag to package version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          test "${{ inputs.release_tag }}" = "v$version" || { echo "release tag does not match package version" >&2; exit 1; }
+      - name: Build and inspect distributions
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "build>=1.2,<2" "twine>=6,<7"
+          python -m build --sdist --wheel
+          python -m twine check dist/*
+      - name: Smoke test installed wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/veridist-release-wheel"
+          "$RUNNER_TEMP/veridist-release-wheel/bin/python" -m pip install dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/veridist-release-wheel/bin/python" -c 'import importlib.metadata as metadata; import veridist; assert metadata.version("veridist") == veridist.__version__'

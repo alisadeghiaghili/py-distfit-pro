@@ -17,6 +17,7 @@ _VERIDIST_PATHS = frozenset(
         ".github/workflows/ci.yml",
         ".github/workflows/mutation.yml",
         ".github/workflows/scale-evidence.yml",
+        ".github/workflows/veridist-release.yml",
         ".github/workflows/v1-ci.yml",
         "docs/adoption-and-reputation-strategy.md",
         "docs/capability-matrix.md",
