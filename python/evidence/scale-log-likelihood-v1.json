@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "a59f0ff67cd3fbcce178b7cb4b5cd81780288777e890ac96c04171d338c16df0",
+  "artifact_sha256": "04f9724c8d902f1a9adde94e85ab48728ed6bcc90cdfa801ea6f9876891a9b1e",
   "cells": [
     {
       "actual": {
@@ -8,9 +8,9 @@
         "total_log_likelihood_hex": "-0x1.1f2b1528f7d65p+13"
       },
       "chunk_size": 1024,
-      "elapsed_seconds": 0.1762618999928236,
+      "elapsed_seconds": 0.1385949000250548,
       "memory": {
-        "tracemalloc_peak_bytes": 3015
+        "tracemalloc_peak_bytes": 2591
       },
       "one_pass": {
         "iterator_acquisitions": 1,
@@ -30,9 +30,9 @@
         "total_log_likelihood_hex": "-0x1.1f2b1528f7d65p+13"
       },
       "chunk_size": 8192,
-      "elapsed_seconds": 0.17612659995211288,
+      "elapsed_seconds": 0.1540373999159783,
       "memory": {
-        "tracemalloc_peak_bytes": 1863
+        "tracemalloc_peak_bytes": 1815
       },
       "one_pass": {
         "iterator_acquisitions": 1,
@@ -52,9 +52,9 @@
         "total_log_likelihood_hex": "-0x1.1f2b1528f7d65p+13"
       },
       "chunk_size": 65536,
-      "elapsed_seconds": 0.16852120001567528,
+      "elapsed_seconds": 0.14519310009200126,
       "memory": {
-        "tracemalloc_peak_bytes": 1831
+        "tracemalloc_peak_bytes": 1783
       },
       "one_pass": {
         "iterator_acquisitions": 1,
@@ -74,9 +74,9 @@
         "total_log_likelihood_hex": "-0x1.66f5da7335cbfp+16"
       },
       "chunk_size": 1024,
-      "elapsed_seconds": 1.9604628999950364,
+      "elapsed_seconds": 1.5172084000660107,
       "memory": {
-        "tracemalloc_peak_bytes": 1863
+        "tracemalloc_peak_bytes": 1815
       },
       "one_pass": {
         "iterator_acquisitions": 1,
@@ -96,9 +96,9 @@
         "total_log_likelihood_hex": "-0x1.66f5da7335cbfp+16"
       },
       "chunk_size": 8192,
-      "elapsed_seconds": 1.7004134999588132,
+      "elapsed_seconds": 1.6215361000504345,
       "memory": {
-        "tracemalloc_peak_bytes": 1863
+        "tracemalloc_peak_bytes": 1815
       },
       "one_pass": {
         "iterator_acquisitions": 1,
@@ -118,9 +118,9 @@
         "total_log_likelihood_hex": "-0x1.66f5da7335cbfp+16"
       },
       "chunk_size": 65536,
-      "elapsed_seconds": 1.7082381999935023,
+      "elapsed_seconds": 1.4749116000020877,
       "memory": {
-        "tracemalloc_peak_bytes": 1863
+        "tracemalloc_peak_bytes": 1815
       },
       "one_pass": {
         "iterator_acquisitions": 1,
@@ -140,9 +140,9 @@
         "total_log_likelihood_hex": "-0x1.c0b35110033eep+19"
       },
       "chunk_size": 1024,
-      "elapsed_seconds": 17.533949600008782,
+      "elapsed_seconds": 15.332556599983945,
       "memory": {
-        "tracemalloc_peak_bytes": 1983
+        "tracemalloc_peak_bytes": 1815
       },
       "one_pass": {
         "iterator_acquisitions": 1,
@@ -162,9 +162,9 @@
         "total_log_likelihood_hex": "-0x1.c0b35110033eep+19"
       },
       "chunk_size": 8192,
-      "elapsed_seconds": 18.981844299996737,
+      "elapsed_seconds": 17.649370200000703,
       "memory": {
-        "tracemalloc_peak_bytes": 2223
+        "tracemalloc_peak_bytes": 1815
       },
       "one_pass": {
         "iterator_acquisitions": 1,
@@ -184,9 +184,9 @@
         "total_log_likelihood_hex": "-0x1.c0b35110033eep+19"
       },
       "chunk_size": 65536,
-      "elapsed_seconds": 18.480198099976406,
+      "elapsed_seconds": 21.83303470001556,
       "memory": {
-        "tracemalloc_peak_bytes": 2223
+        "tracemalloc_peak_bytes": 1815
       },
       "one_pass": {
         "iterator_acquisitions": 1,
@@ -203,7 +203,7 @@
   "run": {
     "generator": "normal-zero-v1",
     "git_dirty": false,
-    "git_sha": "8b81ff8326d353fb0902cdd5d017682c69aae74d"
+    "git_sha": "9d4ef675c6f9ecc25e15d43e0f937a5ffd6c5a41"
   },
   "schema_version": "2"
 }

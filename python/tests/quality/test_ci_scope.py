@@ -36,6 +36,7 @@ class CiScopeClassifierTests(unittest.TestCase):
             "docs/decisions-2026-08-20.md",
             "docs/migration/legacy-salvage-ledger.json",
             ".github/workflows/mutation.yml",
+            ".github/workflows/scale-evidence.yml",
             ".github/workflows/v1-ci.yml",
             ".github/workflows/ci.yml",
         )
@@ -185,7 +186,8 @@ class CiScopeClassifierTests(unittest.TestCase):
         self.assertIn("--no-renames", workflow)
         self.assertIn("--diff-filter=ACMRTD", workflow)
         self.assertIn("^[0-9a-fA-F]{40}$", workflow)
-        self.assertIn('"release"', workflow)
+        self.assertIn("branches: [main, develop]", workflow)
+        self.assertNotIn('"release"', workflow)
         self.assertIn('"workflow_dispatch"', workflow)
         self.assertIn('"0000000000000000000000000000000000000000"', workflow)
         self.assertNotIn("paths:", workflow)

@@ -84,3 +84,11 @@ msgid ""
 "contracts: they are not generic fitting, inference, goodness-of-fit, "
 "ranking, array, or censoring APIs."
 msgstr "`veridist.families.registry` exportiert unveränderliche `FAMILY_REGISTRY`-Metadaten und `FamilyId` für fünf ausgewertete Familien. `veridist.statistics.log_density` exportiert das skalare `evaluate_log_density`; `veridist.statistics.log_likelihood` exportiert `LogLikelihoodState` und `reduce_log_likelihood_chunks`. Dies sind getrennte, endliche skalare Verträge und keine APIs für allgemeine Anpassung, Inferenz, Anpassungsgüte, Rankings, Arrays oder Zensierung."
+
+#: DOC-MSG-API-STREAM-TITLE
+msgid "Generic stream source API"
+msgstr "API für allgemeine Stream-Quellen"
+
+#: DOC-MSG-API-STREAM-BODY
+msgid "`DataSourceMetadata`, `Replayability`, `IterableDataSource`, `FamilyId`, and `reduce_log_likelihood_chunks` are public so a caller can construct and consume a generic in-memory or caller-owned stream. A `SINGLE_PASS` source receives an iterable and is acquired once; `REPLAYABLE` requires a zero-argument iterator factory. `CHECKPOINT_REPLAYABLE` is not yet implemented by this adapter and fails immediately with typed `CHECKPOINT_REQUIRED`; do not treat it as a promise of checkpoint recovery."
+msgstr "`DataSourceMetadata`, `Replayability`, `IterableDataSource`, `FamilyId` und `reduce_log_likelihood_chunks` sind öffentlich, damit Aufrufer einen allgemeinen In-Memory- oder eigenen Stream konstruieren und verarbeiten können. Eine `SINGLE_PASS`-Quelle erhält ein Iterable und wird einmal akquiriert; `REPLAYABLE` erfordert eine nullstellige Iterator-Factory. `CHECKPOINT_REPLAYABLE` ist von diesem Adapter noch nicht implementiert und schlägt sofort mit typisiertem `CHECKPOINT_REQUIRED` fehl; behandeln Sie es nicht als Zusage einer Checkpoint-Wiederherstellung."

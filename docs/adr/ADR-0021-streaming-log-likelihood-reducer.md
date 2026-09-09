@@ -1,4 +1,4 @@
-# ADR-0020: Exact-state streaming log-likelihood reduction
+# ADR-0021: Exact-state streaming log-likelihood reduction
 
 Status: Accepted
 

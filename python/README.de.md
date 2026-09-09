@@ -24,6 +24,17 @@ Die hinterlegte Evidenz belegt begrenzte interne Payload nur für die gemessene
 Matrix aus 10k/100k/1m Zeilen und 32KiB/64KiB/128KiB; daraus folgt keine
 allgemeine Big-Data- oder Hochdurchsatzfähigkeit.
 
+`IterableDataSource` ist der wiederverwendbare öffentliche Stream-Adapter für
+aufruferseitige Chunk-Iterables. Seine unveränderlichen Metadaten erklären
+Einmaligkeit oder Wiederholbarkeit ausdrücklich: Eine zweite Akquisition einer
+Einmalquelle schlägt mit einem typisierten Pass-Budget-Fehler fehl; eine
+wiederholbare Quelle benötigt eine Iterator-Factory. `BoundedChunkBuffer`
+berechnet Bytes für eingereihte und vom Consumer gehaltene Chunks bis
+`BufferedChunk.release()`; empfangene Chunks müssen, üblicherweise in
+`finally`, freigegeben werden. Der einzige ausgelieferte Datei-Adapter bleibt
+der strikte CSV-Lebensdauer-Adapter. Dies ergänzt weder allgemeines CSV noch
+Parquet-, Arrow-, Dataframe-, Datenbank- oder breite Out-of-Core-Adapter.
+
 Die separate skalare Oberfläche bietet unveränderliche `FAMILY_REGISTRY`-
 Metadaten für Normal-, Gamma-, Weibull-Minimum-, Lognormal- und Rechts-Gumbel-
 Familien, die skalare `evaluate_log_density` und die exakte Zustandsreduktion
@@ -32,6 +43,15 @@ Inferenz-, Anpassungsgüte-, Ranking-, Array- oder Zensierungs-API.
 Erfolgreiche binary64-Terme werden exakt repräsentiert; die Endsumme wird
 einmal gerundet. Die unsigned-64-Zählgrenze ergibt eine 2162-Bit-Grenze für die
 exakte Summe. Die Evidenz für 10k/100k/1m gilt nur für getestete Normalströme.
+
+Die Scale-Messung eines Kandidaten ist bewusst manuell: Der Workflow
+`veridist-scale-evidence` bindet zunächst den vollständigen SHA eines sauberen
+Kandidaten und führt die Evidenzverträge aus. Erst dann misst er den öffentlichen
+Iterable-Likelihood-Pfad und den strikten CSV/Exponential-Pfad unter Linux und
+Windows. Artefakte werden erst nach ihrer eigenen fail-closed SHA- und
+Schema-Validierung aufbewahrt. Das bloße Vorhandensein dieses Workflows oder eines
+historischen Artefakts ist kein Beleg für einen neuen Kandidaten und keine
+Durchsatz- oder RSS-Behauptung.
 
 ## Evaluierungsstand installieren
 

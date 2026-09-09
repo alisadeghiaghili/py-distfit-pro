@@ -53,6 +53,7 @@ from veridist.engine.provenance import (
     failure_record_from_error,
     snapshot_execution_observation,
 )
+from veridist.engine.streaming import iter_stream
 from veridist.families.exponential import ExponentialFit, fit_exponential_chunks
 
 
@@ -98,7 +99,7 @@ def fit_exponential_source(adapter: object) -> ExponentialSourceFitResult:
         """Deliver one validated payload at a time and release it before advancing."""
 
         nonlocal stage, expected_row_stop, expected_chunk_count, iterator
-        acquired = iter(adapter.iter_chunks())
+        acquired = iter_stream(adapter)
         iterator = acquired
         try:
             for chunk in acquired:

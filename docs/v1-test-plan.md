@@ -75,16 +75,14 @@ The executable contract matrix is a prerequisite, not evidence that a
 DataSource adapter or scale tier exists. Before either is advertised, the same
 matrix must run against the actual adapter/orchestrator and retain fixture
 version, observed pass/byte traces and the typed-result/provenance record needed
-to audit each assertion. `SCALE-CSV-EXP-01` now supplies this limited evidence
-for the strict CSV lifetime adapter plus one-pass exponential orchestrator:
-`python/evidence/scale-csv-exponential-v1.json` is validated by
-`python/tools/check_scale_csv_exponential_evidence.py`. It covers the fixed
-10k/100k/1m-row by three-budget matrix, not the other adapter families or all
-DS scenarios. The checker requires exact cells, a clean source SHA, one pass,
-complete rows, configured/observed retained-payload bounds, redacted artifacts,
-independent Decimal fit agreement and structural chunk-count evidence. Its
-tracemalloc/RSS and elapsed-time fields are descriptive, not portable ceilings
-or timing assertions.
+to audit each assertion. `SCALE-CSV-EXP-01` preserves a historical strict CSV
+lifetime adapter plus one-pass exponential-orchestrator snapshot at
+`python/evidence/scale-csv-exponential-v1.json`. Schema v1 is quarantined by
+the current checker because its timing lacks valid provenance. It supplies
+historical source/Decimal/one-pass/logical-payload facts, not current candidate
+or performance evidence. Any replacement must be schema v2, bind the reviewed
+candidate SHA, declare paired timing provenance, and cover the fixed
+10k/100k/1m-row by three-budget matrix before it can support a current claim.
 
 ## Statistical evidence
 

@@ -266,6 +266,27 @@ class RetryValidationProbeTests(unittest.TestCase):
         first = self._pure(store, reducer)
         second = self._pure(store, reducer)
         self.assertIs(second, first)
+        self.assertEqual(
+            first.operation_digest,
+            "e6e049a06ef3cabae0e92842aa37b8cad249166be82f6e87578793606a2f2192",
+        )
+        self.assertEqual(reducer.calls, 1)
+        self.assertEqual(store.write_count, 1)
+
+    def test_reused_operation_token_rejects_a_different_range_before_reduce_or_write(self) -> None:
+        store = InMemoryCheckpointStore(record())
+        reducer = BytesReducer()
+        self._pure(store, reducer)
+
+        with self.assertRaises(EngineContractError) as caught:
+            self._pure(
+                store,
+                reducer,
+                row_start=1,
+                row_stop=2,
+            )
+
+        self.assertIs(caught.exception.code, FailureCode.OPERATION_DIGEST_CONFLICT)
         self.assertEqual(reducer.calls, 1)
         self.assertEqual(store.write_count, 1)
 
@@ -341,6 +362,35 @@ class RetryValidationProbeTests(unittest.TestCase):
             operation_token="token-1",
         )
         self.assertIs(second, first)
+        self.assertEqual(store.write_count, 1)
+
+    def test_reused_sink_token_rejects_a_different_range_before_second_effect(self) -> None:
+        store = InMemoryCheckpointStore(record())
+        sink = InvalidSink()
+        apply_sink(
+            store=store,
+            sink=sink,
+            source_revision=SOURCE_REVISION,
+            payload=b"x",
+            payload_sha256=sha256(b"x"),
+            row_start=0,
+            row_stop=1,
+            operation_token="token-1",
+        )
+
+        with self.assertRaises(EngineContractError) as caught:
+            apply_sink(
+                store=store,
+                sink=sink,
+                source_revision=SOURCE_REVISION,
+                payload=b"x",
+                payload_sha256=sha256(b"x"),
+                row_start=1,
+                row_stop=2,
+                operation_token="token-1",
+            )
+
+        self.assertIs(caught.exception.code, FailureCode.OPERATION_DIGEST_CONFLICT)
         self.assertEqual(store.write_count, 1)
 
     def test_sink_retry_exhaustion_warns_that_effect_may_have_applied(self) -> None:

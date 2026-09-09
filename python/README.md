@@ -21,6 +21,16 @@ Retained evidence establishes bounded internal payload only for the measured
 10k/100k/1m by 32KiB/64KiB/128KiB matrix; it does not establish a general
 big-data or high-throughput capability.
 
+`IterableDataSource` is the reusable public stream adapter for caller-owned
+chunk iterables. Its immutable metadata explicitly declares one-pass or
+replayable acquisition: a single-pass source fails with a typed pass-budget
+error if acquired twice, while a replayable source requires an iterator
+factory. `BoundedChunkBuffer` charges queued and consumer-held chunks until
+`BufferedChunk.release()`; callers must release received chunks, normally in
+`finally`. The only shipped file adapter remains the strict CSV lifetime
+adapter—this does not add generic CSV, Parquet, Arrow, dataframe, database,
+or broad out-of-core adapters.
+
 The separate scalar surface exposes immutable `FAMILY_REGISTRY` metadata for
 normal, gamma, Weibull-minimum, lognormal, and right-Gumbel; scalar
 `evaluate_log_density`; and exact-state `reduce_log_likelihood_chunks`.
@@ -28,6 +38,13 @@ It is not generic fitting, inference, goodness-of-fit, ranking, arrays, or
 censoring. The reducer represents successful binary64 terms exactly and rounds
 the final total once; its unsigned-64 count cap implies a 2162-bit exact-total
 bound. Its retained 10k/100k/1m evidence is scoped to tested normal streams.
+
+Candidate scale measurement is deliberately manual: the `veridist-scale-evidence`
+workflow first binds a clean, full candidate SHA and runs the evidence contracts,
+then measures the public iterable likelihood and strict CSV/exponential paths on
+Linux and Windows. It retains artifacts only after their own fail-closed SHA and
+schema validation. Merely having this workflow, or a historical artifact, is not
+evidence for a new candidate and is not a throughput or RSS claim.
 
 ## Install an evaluation build
 

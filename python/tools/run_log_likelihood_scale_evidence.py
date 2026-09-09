@@ -12,6 +12,7 @@ import tracemalloc
 from fractions import Fraction
 from pathlib import Path
 
+from veridist import DataSourceMetadata, IterableDataSource, Replayability
 from veridist.families.registry import FamilyId
 from veridist.statistics.log_likelihood import LogLikelihoodSuccess, reduce_log_likelihood_chunks
 
@@ -26,12 +27,12 @@ def _head(root: Path) -> str:
 
 
 def _chunks(rows: int, size: int):
-    """Return a generated source that fails closed if iterated more than once."""
+    """Return generated chunks whose underlying traversal is observable."""
 
-    return _OnePassGeneratedChunks(rows, size)
+    return _GeneratedNormalChunks(rows, size)
 
 
-class _OnePassGeneratedChunks:
+class _GeneratedNormalChunks:
     """Generate Normal(0,1) observations while recording actual source traversal."""
 
     def __init__(self, rows: int, size: int) -> None:
@@ -61,9 +62,19 @@ def _oracle_units(rows: int) -> int:
 
 def _cell(rows: int, chunk_size: int) -> dict[str, object]:
     chunks = _chunks(rows, chunk_size)
+    source = IterableDataSource(
+        chunks,
+        DataSourceMetadata(
+            source_id=f"scale-normal-{rows}-{chunk_size}",
+            schema_version="1",
+            provenance_schema_version="1",
+            replayability=Replayability.SINGLE_PASS,
+            redaction_reason="generated",
+        ),
+    )
     tracemalloc.start()
     started = time.perf_counter()
-    result = reduce_log_likelihood_chunks(FamilyId.NORMAL, chunks, mu=0, sigma=1)
+    result = reduce_log_likelihood_chunks(FamilyId.NORMAL, source, mu=0, sigma=1)
     elapsed = time.perf_counter() - started
     _, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
@@ -108,8 +119,14 @@ def main() -> int:
     root = Path(__file__).resolve().parents[2]
     sha = _head(root)
     value: dict[str, object] = {
-        "schema_version": "2",
-        "run": {"git_sha": sha, "git_dirty": False, "generator": "normal-zero-v1"},
+        "schema_version": "3",
+        "run": {
+            "git_sha": sha,
+            "candidate_git_sha": sha,
+            "git_dirty": False,
+            "generator": "normal-zero-v1",
+            "source_contract": "public-iterable-data-source-v1",
+        },
         "cells": [_cell(rows, budget) for rows in ROWS for budget in BUDGETS],
     }
     value["artifact_sha256"] = hashlib.sha256(

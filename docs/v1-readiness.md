@@ -4,6 +4,12 @@ This is a planning ledger, not a release checklist for `distfit_pro`. v1 uses
 the `veridist` namespace. Legacy assets count only after an explicit,
 evidence-backed disposition and validation under the v1 contracts.
 
+ADR-0020 is the narrower binding contract for a real `veridist` 0.5 release.
+It keeps the version at `0.0.0.dev0` until its release-safety, active-lease
+bound, cleanup, measured million-row, portability, localization, quality,
+artifact, and audit gates pass.  It does not claim v1 readiness or translated
+ADR parity.
+
 ## Evidence already obtained
 
 - The reviewed legacy package demonstrated the value of explicit failure,
@@ -29,16 +35,15 @@ as a statement about uninspected current files.
 
 ## Current verified and unverified status
 
-- `LLR-06` retains a checker-validated generated-stream artifact at
-  `python/evidence/scale-log-likelihood-v1.json` for 10k/100k/1m rows and three
-  chunk sizes. It records one actual outer iterator acquisition and every yield,
-  then verifies the actual returned total bitwise against independently
-  reconstructed `Fraction` oracle units and the algorithmic 2162-bit bound. It
-  does not claim to measure public reducer state. The initial `e517dd3` bundle
-  was noncompliant because it did not reject wrong-total or second-pass mutants;
-  a corrective RED/GREEN chain now does. Elapsed/tracemalloc facts are
-  descriptive; no process-memory, throughput, out-of-core, fitting, or general
-  cross-platform claim follows from this artifact.
+- `LLR-06` preserves `python/evidence/scale-log-likelihood-v1.json` as a
+  historical 10k/100k/1m generated-stream snapshot. Its schema-v2 artifact
+  lacks candidate binding and a public-source-route fact, so the current
+  checker rejects it as candidate evidence. A current schema-v3 run must bind
+  the candidate SHA, use public `IterableDataSource` single-pass acquisition,
+  and verify the returned total bitwise against independently reconstructed
+  `Fraction` oracle units and the algorithmic 2162-bit bound. Elapsed/tracemalloc
+  facts are descriptive; no process-memory, throughput, out-of-core, fitting,
+  or general cross-platform claim follows from this historical artifact.
 
 ### Historical snapshot: `bfb496d` (preserved verbatim)
 
@@ -54,7 +59,7 @@ as a statement about uninspected current files.
 - On 2026-08-30, the CI-shaped local command
   `python -m pytest --cov=veridist --cov-branch --ignore=tests/docs/test_docs_toolchain.py --cov-report=json:coverage.json`
   collected 351 items: 349 passed and the two opt-in browser tests skipped.
-  The deterministic checker accepted all 25 enumerated production files with
+  The deterministic checker accepted all 26 enumerated production files with
   2,518 statements and 854 branches at 100% observed line and branch coverage,
   with no accepted exceptions. The generated coverage JSON is deliberately not
   retained as a release artifact, so this ledger does not assert a mutable file
@@ -66,8 +71,10 @@ as a statement about uninspected current files.
   `max(8 ULP, 2e-14 relative, 2e-14 absolute)`; the sweep is not a mutation
   score or a generalized numerical guarantee. This evidence is limited to
   scalar log-density correctness; it is not fitting, inference, censoring,
-  array, or large-data evidence. Remote CI for this unmerged candidate remains
-  unverified.
+  array, or large-data evidence.  At exact candidate `31a015f`, the remote
+  Linux CI and configured pinned-browser gates passed; mutation run
+  `33804554520` is retained separately below.  Those PR milestone runs are
+  neither a tag/release proof nor Windows/portable performance evidence.
 - ADR-0017's first callable cell is implemented on the development branch: a
   fixed-location, rate-only exponential MLE for exact and independently
   right-censored lifetimes. It returns a finite point estimate or a typed
@@ -89,9 +96,10 @@ as a statement about uninspected current files.
   exponential vertical, not a broad distribution-fitting release.
 - Local Sphinx gettext, EN/FA/DE HTML and English linkcheck complete with
   warnings fatal. Exact real POT/catalog parity, translated rendered semantics,
-  locale direction and canonical examples pass. The corresponding PR #31
-  remote CI evidence is verified; subsequent family-kernel changes still need
-  their own remote CI evidence before merge.
+  locale direction and canonical examples pass.  In addition to the historical
+  PR #31 evidence, exact candidate `31a015f` has passing remote Linux CI for
+  its family-kernel changes.  This is execution evidence for configured gates,
+  not a release documentation or visual-review claim.
 - The narrow `I18N-RTL-EXP-01` opt-in browser contract passes locally with Edge 151 and exactly two
   nonempty Persian HTML screenshots; computed RTL/right alignment and
   LTR/isolate facts pass for success and failure reports. Exact Playwright
@@ -105,9 +113,10 @@ as a statement about uninspected current files.
   locale plus the existing report success/failure gate; no documentation
   screenshots are retained locally, while the CI policy retains only the two
   report screenshots. The pages use a local static math asset rather than a
-  network MathJax fetch. Remote pinned-Chromium evidence for the subsequent
-  family-kernel documentation commits, PDF rendering, network-font rendering,
-  and pixel-baseline comparison remain unverified and are not claimed.
+  network MathJax fetch.  Exact candidate `31a015f` has remote pinned-browser
+  execution evidence for its configured gate.  PDF rendering, network-font
+  rendering, retained independent visual review, and pixel-baseline comparison
+  remain unverified and are not claimed.
 - Eight scratch-only manual patches were each killed by one targeted unittest:
   `fit_exponential` materialized `tuple(observations)` / `test_exp14_memory_growth_is_bounded_for_unique_generated_observations`;
   `merge` used the raw two totals / `test_exp11_merge_preserves_compensation_and_declares_only_tolerance_across_partitions`;
@@ -117,18 +126,19 @@ as a statement about uninspected current files.
   the final `REPORT_KEYS` item was removed / `test_i18n_exp04_has_exact_stable_keys_and_semantic_facts_for_every_result`;
   every machine fact became `mutated` / `test_i18n_exp13_machine_values_are_bound_to_success_and_failure_facts`;
   and Persian `dir="rtl"` became `dir="ltr"` / `test_i18n_exp02_farsi_report_has_rtl_root_and_ltr_isolates`.
-  This is diagnostic evidence only. The formal mutation infrastructure and its
-  versioned GitHub Linux workflow are implemented, but no remote execution or
-  score is yet retained or claimed.
-- `SCALE-CSV-EXP-01` retains an actual strict CSV adapter and one-pass
-  exponential-orchestrator trace at `python/evidence/scale-csv-exponential-v1.json`.
-  Its fail-closed checker accepts exactly nine cells: 10k/100k/1m rows by
-  32KiB/64KiB/128KiB logical chunk budgets. Every recorded cell has 1/1 pass,
-  complete rows, and internal retained/inflight payload no larger than the
-  configured budget; input paths are redacted and independent Decimal facts
-  agree with the fit. CPython 3.14.6/Windows 11 tracemalloc and elapsed values
-  are descriptive. RSS is unknown on that stdlib environment, so no process
-  memory ceiling or general throughput claim is made. Parquet/Arrow/dataframe/
+  This is diagnostic evidence only.  Later immutable candidate `31a015f` has
+  retained GitHub Actions run `33804554520` baseline-passing mutation evidence:
+  2,217 generated, 1,776 killed, 441 survived, zero unresolved, and score
+  `0.801082543978349`.  That milestone evidence is not a 0.5 release proof and
+  does not establish scale portability or broader statistical support.
+- `SCALE-CSV-EXP-01` preserves a historical strict CSV/exponential snapshot at
+  `python/evidence/scale-csv-exponential-v1.json`. Its schema v1 timing fields
+  lack valid provenance, so the current checker deliberately rejects it: it is
+  not candidate evidence and cannot support a current scale or performance
+  claim. Its independently reproducible source bytes, Decimal fit facts,
+  one-pass counts and logical-payload observations remain historical context.
+  A current candidate requires a clean schema-v2 run that binds both run and
+  candidate SHA and declares paired timing provenance. Parquet/Arrow/dataframe/
   database adapters, persistent checkpoint backend, cancellation/retry
   orchestration, broad streaming equivalence and production-scale RSS bounds
   remain **NOT IMPLEMENTED**.

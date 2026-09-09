@@ -4,19 +4,21 @@
 
 Five validated scalar-density families support an exact binary64-output
 streaming reducer. The retained 10k/100k/1m generated-stream matrix at
-`python/evidence/scale-log-likelihood-v1.json` is checker-validated only for
-actual one-pass traversal, returned-total equality to an independent exact
-oracle, and the algorithmic 2162-bit reducer bound under the uint64 count cap.
-It does not measure public reducer state and is not a process-memory,
-throughput, out-of-core, fitting, or cross-platform scalar-equivalence claim.
+`python/evidence/scale-log-likelihood-v1.json` is a historical schema-v2
+snapshot, not current candidate evidence: it lacks candidate binding and the
+public-source-route fact. A current schema-v3 run must bind the candidate SHA
+and use the public `IterableDataSource` single-pass route before it can support
+one-pass or exact-result evidence. It is not a process-memory, throughput,
+out-of-core, fitting, or cross-platform scalar-equivalence claim.
 
 This matrix records callable behavior on the current development branch. It is
-not a release announcement: the package version remains `0.0.0.dev0` and the
-remote pull-request workflow has not yet verified this branch.
+not a release announcement: the package version remains `0.0.0.dev0`.  The
+binding 0.5 claim boundary and pre-tag gates are defined by ADR-0020; no cell
+is release-ready until that candidate-specific evidence is complete.
 
 | Family | Estimator and parameterization | Accepted data semantics | Result | Inference | Scale boundary | Status/evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| Exponential, fixed `loc=0` | rate-only exponential MLE | strict UTF-8 CSV with exact `time,event_observed` header; event `1` is exact; `0` is independent right-censoring; finite times `>= 0` | finite point estimate, typed statistical non-estimate, or typed failed execution | `inference=not_provided` | one CSV iterator and one pass; retained logical payload bound per 32/64/128KiB budget; no RSS ceiling | Experimental callable cell; ADR-0017/0018, `EXP-01`--`EXP-14`, `CSV-01`--`CSV-06`, `SCALE-CSV-EXP-01` |
+| Exponential, fixed `loc=0` | rate-only exponential MLE | strict UTF-8 CSV with exact `time,event_observed` header; event `1` is exact; `0` is independent right-censoring; finite times `>= 0` | finite point estimate, typed statistical non-estimate, or typed failed execution | `inference=not_provided` | one CSV iterator and one pass by contract; current candidate scale evidence pending; no RSS ceiling | Experimental callable cell; ADR-0017/0018, `EXP-01`--`EXP-14`, `CSV-01`--`CSV-06`; historical `SCALE-CSV-EXP-01` only |
 | Normal, Gamma, Weibull-min, Lognormal, Gumbel-right | exact scalar log-density only; canonical two-parameter forms in ADR-0019 | one finite built-in scalar; Gamma/Weibull-min/Lognormal require strict `x>0`; no aliases | finite log-density or closed typed evaluation failure | none | scalar only; no array, fitting, censoring, ranking, or streaming claim | Experimental internal module; ADR-0019 addendum, independent 100-digit oracle and metamorphic contracts |
 
 This callable cell accepts exact and independent right-censoring observations;
@@ -51,6 +53,8 @@ The public package surface exposes only `fit_exponential_csv`,
 result. It has no legacy runtime import. The retained scale artifact is limited
 to the strict CSV/exponential matrix; it does not establish generic big-data,
 portable RSS, throughput, retry/checkpoint, cancellation, or other-adapter
-support. The formal mutation infrastructure and its versioned GitHub Linux
-workflow are implemented, but no remote execution has yet been retained and no
-score is claimed.
+support. On immutable candidate `31a015f`, GitHub Actions run `33804554520`
+retained a mutation baseline pass for the binding scope: 2,217 generated,
+1,776 killed, 441 survived, zero unresolved, and score
+`0.801082543978349`.  This is milestone-quality evidence only; it does not
+prove the 0.5 release gates, scale portability, or broader statistical claims.

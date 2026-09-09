@@ -102,6 +102,30 @@ msgid ""
 msgstr "هستهٔ عمومی همچنین رجیستری تغییرناپذیر پنج‌خانواده‌ای، ارزیابی چگالی لگاریتمی اسکالرِ متناهی و کاهندهٔ درست‌نمایی لگاریتمی جریانی با حالت دقیق دارد. این‌ها از MLE نمایی CSV جدا هستند: برازش عمومی، استنباط، نیکویی برازش، رتبه‌بندی، آرایه‌ها یا پشتیبانی از سانسور را فراهم نمی‌کنند."
 
 #: ../../../py-distfit-pro/python/docs/source/index.md:36
+msgid "Generic stream sources and delivery leases"
+msgstr "منابع جریان عمومی و اجاره‌های تحویل"
+
+#: ../../../py-distfit-pro/python/docs/source/index.md:38
+msgid ""
+"`IterableDataSource` adapts caller-owned chunk iterables with immutable source "
+"metadata. A `single_pass` source is acquired once and a second acquisition "
+"raises a typed pass-budget failure; replayable declarations require an explicit "
+"iterator factory. The strict CSV lifetime adapter remains the only bundled file "
+"adapter. `BoundedChunkBuffer` charges a chunk while queued and while held by a "
+"consumer, until `BufferedChunk.release()`; consumers must release received "
+"chunks, normally in `finally`. This is not a generic CSV, Parquet, Arrow, "
+"dataframe, database, RSS, throughput, or broad out-of-core claim."
+msgstr ""
+"`IterableDataSource` iterableهای chunk متعلق به فراخواننده را با فرادادهٔ "
+"تغییرناپذیر منبع سازگار می‌کند. منبع `single_pass` یک‌بار دریافت می‌شود و "
+"دریافت دوم با شکست نوع‌دار بودجهٔ گذر مواجه می‌شود؛ اعلان‌های بازپخش‌پذیر به "
+"iterator factory صریح نیاز دارند. آداپتور سخت‌گیرانهٔ طول‌عمر CSV تنها آداپتور "
+"فایلِ همراه است. `BoundedChunkBuffer` یک chunk را هنگام صف‌شدن و در اختیار "
+"مصرف‌کننده بودن تا `BufferedChunk.release()` حساب می‌کند؛ مصرف‌کننده باید chunk "
+"دریافت‌شده را، معمولاً در `finally`، آزاد کند. این ادعای CSV عمومی، Parquet، "
+"Arrow، dataframe، پایگاه‌داده، RSS، توان عملیاتی یا out-of-core گسترده نیست."
+
+#: ../../../py-distfit-pro/python/docs/source/index.md:36
 #: 00a24412b2a54f208c18eaa92e87a5cf
 msgid "Canonical executable example"
 msgstr "مثال اجرایی مرجع"

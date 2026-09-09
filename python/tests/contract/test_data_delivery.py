@@ -482,6 +482,24 @@ class BoundedBufferContractTests(unittest.TestCase):
         self.assertEqual(observation.largest_retained_chunk_bytes, 0)
         self.assertEqual(observation.backpressure_event_count, 0)
 
+    def test_ds06_buffer_accepts_chunks_that_exactly_fill_its_byte_budget(self) -> None:
+        buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=8)
+        first = buffered(chunk("first", 0, 1, byte_size=4))
+        second = buffered(chunk("second", 1, 2, byte_size=4))
+
+        buffer.put(first, timeout=0.01)
+        buffer.put(second, timeout=0.01)
+
+        self.assertEqual(buffer.inflight_bytes, 8)
+        self.assertEqual(buffer.queued_chunks, 2)
+
+    def test_ds06_nonempty_queue_returns_oldest_chunk_before_timeout(self) -> None:
+        buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
+        first = buffered(chunk("first", 0, 1, byte_size=4))
+        buffer.put(first, timeout=0.01)
+
+        self.assertIs(buffer.get(timeout=0.01), first)
+
     def test_ds06_producer_blocks_until_get_releases_budget(self) -> None:
         buffer = BoundedChunkBuffer(chunk_bytes=4, max_inflight_bytes=4)
         first = buffered(chunk("first", 0, 1, byte_size=4))
@@ -503,12 +521,14 @@ class BoundedBufferContractTests(unittest.TestCase):
             self.assertLessEqual(buffer.peak_inflight_bytes, buffer.max_inflight_bytes)
 
             self.assertEqual(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.2)), first)
+            first.release()
             producer.join(timeout=0.5)
 
             self.assertFalse(producer.is_alive())
             self.assertEqual(outcome, ["accepted"])
             self.assertEqual(buffer.inflight_bytes, 4)
             self.assertEqual(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.2)), second)
+            second.release()
             self.assertEqual(buffer.inflight_bytes, 0)
         finally:
             buffer.cancel()
@@ -726,6 +746,7 @@ class BoundedBufferContractTests(unittest.TestCase):
             self.assertTrue(attempted[1].wait(1.0))
             wait_for_waiting_producers(buffer, 2)
             self.assertEqual(bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1)), first)
+            first.release()
             self.assertTrue(admitted[0].wait(0.5) or admitted[1].wait(0.5))
             buffer.cancel()
             self.assertTrue(finished[0].wait(1.0))
@@ -833,9 +854,15 @@ class BoundedBufferContractTests(unittest.TestCase):
             def blocked(operation):
                 try:
                     if operation == 'put':
-                        buffer.put(item('second', 1))
+                        buffer.put(
+                            item('second', 1),
+                            timeout=0.01 if scenario == 'put-timeout' else None,
+                        )
                     else:
-                        result.append(buffer.get().envelope.chunk_id)
+                        result.append(
+                            buffer.get(timeout=0.01 if scenario == 'get-timeout' else None)
+                            .envelope.chunk_id
+                        )
                 except DeliveryContractError as error:
                     result.append(error.code)
                 finally:
@@ -848,38 +875,44 @@ class BoundedBufferContractTests(unittest.TestCase):
                 elif scenario.startswith('get-'):
                     worker = threading.Thread(target=blocked, args=('get',), daemon=True)
                     worker.start()
-                    require(wait_entered.wait(0.25), 'get did not enter Condition.wait')
+                    require(wait_entered.wait(0.1), 'get did not enter Condition.wait')
                     if scenario == 'get-release':
-                        buffer.put(item('first', 0), timeout=0.25)
+                        buffer.put(item('first', 0), timeout=0.1)
                         expected = ['first']
-                    else:
+                    elif scenario == 'get-cancel':
                         buffer.cancel()
                         expected = ['CANCELLED']
-                    require(done.wait(0.25), 'get worker did not finish')
+                    else:
+                        expected = ['BUFFER_TIMEOUT']
+                    require(done.wait(0.2), 'get worker did not finish')
                     worker.join(0.05)
                     require(not worker.is_alive(), 'get worker remained alive')
                     require(result == expected, f'unexpected get result: {result!r}')
                 else:
-                    buffer.put(item('first', 0), timeout=0.25)
+                    buffer.put(item('first', 0), timeout=0.1)
                     worker = threading.Thread(target=blocked, args=('put',), daemon=True)
                     worker.start()
-                    require(wait_entered.wait(0.25), 'put did not enter Condition.wait')
+                    require(wait_entered.wait(0.1), 'put did not enter Condition.wait')
                     if scenario == 'put-release':
+                        first = buffer.get(timeout=0.1)
                         require(
-                            buffer.get().envelope.chunk_id == 'first',
+                            first.envelope.chunk_id == 'first',
                             'initial chunk was not returned',
                         )
+                        first.release()
                         expected = []
-                    else:
+                    elif scenario == 'put-cancel':
                         buffer.cancel()
                         expected = ['CANCELLED']
-                    require(done.wait(0.25), 'put worker did not finish')
+                    else:
+                        expected = ['BUFFER_TIMEOUT']
+                    require(done.wait(0.2), 'put worker did not finish')
                     worker.join(0.05)
                     require(not worker.is_alive(), 'put worker remained alive')
                     require(result == expected, f'unexpected put result: {result!r}')
                     if scenario == 'put-release':
                         require(
-                            buffer.get().envelope.chunk_id == 'second',
+                            buffer.get(timeout=0.1).envelope.chunk_id == 'second',
                             'released put was not queued',
                         )
             finally:
@@ -891,14 +924,22 @@ class BoundedBufferContractTests(unittest.TestCase):
             print('watchdog-ok')
             """
         )
-        for scenario in ("init", "get-release", "get-cancel", "put-release", "put-cancel"):
+        for scenario in (
+            "init",
+            "get-release",
+            "get-cancel",
+            "get-timeout",
+            "put-release",
+            "put-cancel",
+            "put-timeout",
+        ):
             with self.subTest(scenario=scenario):
                 try:
                     completed = run(
                         [executable, "-c", program, scenario],
                         capture_output=True,
                         text=True,
-                        timeout=1.5,
+                        timeout=0.75,
                         check=False,
                     )
                 except TimeoutExpired as error:

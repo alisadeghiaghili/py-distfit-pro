@@ -106,6 +106,32 @@ msgid ""
 msgstr "Der öffentliche Kern enthält außerdem ein unveränderliches Register mit fünf Familien, die Auswertung endlicher skalarer Log-Dichten und einen gestreamten Log-Likelihood-Reduzierer mit exaktem Zustand. Sie sind vom exponentiellen CSV-MLE getrennt: Sie stellen keine allgemeine Anpassung, Inferenz, Anpassungsgüte, Rankings, Arrays oder Unterstützung für Zensierung bereit."
 
 #: ../../../py-distfit-pro/python/docs/source/index.md:36
+msgid "Generic stream sources and delivery leases"
+msgstr "Allgemeine Stream-Quellen und Delivery-Leases"
+
+#: ../../../py-distfit-pro/python/docs/source/index.md:38
+msgid ""
+"`IterableDataSource` adapts caller-owned chunk iterables with immutable source "
+"metadata. A `single_pass` source is acquired once and a second acquisition "
+"raises a typed pass-budget failure; replayable declarations require an explicit "
+"iterator factory. The strict CSV lifetime adapter remains the only bundled file "
+"adapter. `BoundedChunkBuffer` charges a chunk while queued and while held by a "
+"consumer, until `BufferedChunk.release()`; consumers must release received "
+"chunks, normally in `finally`. This is not a generic CSV, Parquet, Arrow, "
+"dataframe, database, RSS, throughput, or broad out-of-core claim."
+msgstr ""
+"`IterableDataSource` passt aufruferseitige Chunk-Iterables mit unveränderlichen "
+"Quellmetadaten an. Eine `single_pass`-Quelle wird einmal akquiriert; eine zweite "
+"Akquisition löst einen typisierten Pass-Budget-Fehler aus. Wiederholbare "
+"Deklarationen benötigen eine explizite Iterator-Factory. Der strikte CSV-"
+"Lebensdauer-Adapter bleibt der einzige ausgelieferte Datei-Adapter. "
+"`BoundedChunkBuffer` berechnet einen Chunk in der Warteschlange und während ihn "
+"ein Consumer hält bis `BufferedChunk.release()`; Consumer müssen erhaltene Chunks, "
+"gewöhnlich in `finally`, freigeben. Dies ist keine Behauptung über allgemeines "
+"CSV, Parquet, Arrow, Dataframes, Datenbanken, RSS, Durchsatz oder breite Out-of-"
+"Core-Unterstützung."
+
+#: ../../../py-distfit-pro/python/docs/source/index.md:36
 #: 00a24412b2a54f208c18eaa92e87a5cf
 msgid "Canonical executable example"
 msgstr "Kanonisches ausführbares Beispiel"

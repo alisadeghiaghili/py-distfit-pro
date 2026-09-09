@@ -33,6 +33,17 @@ log-density evaluation, and an exact-state streaming log-likelihood reducer.
 These are distinct from the CSV exponential MLE: they do not provide generic
 fitting, inference, goodness-of-fit, ranking, arrays, or censoring support.
 
+## Generic stream sources and delivery leases
+
+`IterableDataSource` adapts caller-owned chunk iterables with immutable source
+metadata. A `single_pass` source is acquired once and a second acquisition
+raises a typed pass-budget failure; replayable declarations require an explicit
+iterator factory. The strict CSV lifetime adapter remains the only bundled file
+adapter. `BoundedChunkBuffer` charges a chunk while queued and while held by a
+consumer, until `BufferedChunk.release()`; consumers must release received
+chunks, normally in `finally`. This is not a generic CSV, Parquet, Arrow,
+dataframe, database, RSS, throughput, or broad out-of-core claim.
+
 ```{literalinclude} examples/quickstart.py
 :language: python
 :caption: Canonical executable example

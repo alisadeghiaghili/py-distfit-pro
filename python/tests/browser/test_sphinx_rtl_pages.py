@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import ExitStack
 from pathlib import Path
 
 PYTHON_ROOT = Path(__file__).resolve().parents[2]
@@ -21,8 +22,15 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
     def test_rtl_doc01_built_farsi_and_german_pages_have_computed_direction_contracts(self) -> None:
         from playwright.sync_api import sync_playwright
 
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+        configured_directory = os.environ.get("VERIDIST_BROWSER_ARTIFACT_DIR")
+        with ExitStack() as resources:
+            root = Path(resources.enter_context(tempfile.TemporaryDirectory()))
+            artifact_directory = (
+                Path(configured_directory)
+                if configured_directory is not None
+                else Path(resources.enter_context(tempfile.TemporaryDirectory()))
+            )
+            artifact_directory.mkdir(parents=True, exist_ok=True)
             outputs = {locale: root / locale for locale in ("fa", "de")}
             for locale, output in outputs.items():
                 result = subprocess.run(
@@ -51,12 +59,15 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                 )
                 try:
                     page = browser.new_page()
-                    for page_name in (
-                        "exponential-right-censoring.html",
-                        "families-log-density-likelihood.html",
-                    ):
+                    page_contracts = {
+                        "api.html": ("code", "pre"),
+                        "exponential-right-censoring.html": ("code", "pre", "table", "math"),
+                        "families-log-density-likelihood.html": ("code", "pre", "table", "math"),
+                        "index.html": ("code", "pre"),
+                    }
+                    for page_name, required_exemplars in page_contracts.items():
                         page.goto((outputs["fa"] / page_name).as_uri(), wait_until="load")
-                        fa = page.evaluate("""() => ({
+                        fa = page.evaluate("""(requiredExemplars) => ({
                       lang: document.documentElement.lang, dir: document.documentElement.dir,
                       body: {
                         direction: getComputedStyle(document.body).direction,
@@ -70,7 +81,8 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                         ['pre', '.highlight pre'],
                         ['table', 'table.docutils'],
                         ['math', '.math'],
-                      ].map(([name, selector]) => {
+                      ].filter(([name]) => requiredExemplars.includes(name))
+                        .map(([name, selector]) => {
                         const element = document.querySelector(selector);
                         if (element === null) {
                           throw new Error(`missing required exemplar: ${selector}`);
@@ -89,7 +101,7 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                           visible: box.width > 0 && box.height > 0,
                         };
                       }),
-                        })""")
+                        })""", list(required_exemplars))
                         self.assertEqual(fa["lang"], "fa", page_name)
                         self.assertEqual(fa["dir"], "rtl", page_name)
                         self.assertEqual(
@@ -100,7 +112,7 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                             fa["exemplars"],
                             {
                                 name: {"direction": "ltr", "unicodeBidi": "isolate"}
-                                for name in ("code", "pre", "table", "math")
+                                for name in required_exemplars
                             },
                             page_name,
                         )
@@ -110,17 +122,37 @@ class SphinxRtlBrowserContracts(unittest.TestCase):
                             else []
                         )
                         self.assertEqual(fa["urlExemplars"], expected_urls, page_name)
+                        if page_name in {"api.html", "index.html"}:
+                            page.evaluate("window.scrollTo(0, 0)")
+                            screenshot = artifact_directory / f"sphinx-{page_name[:-5]}-fa.png"
+                            page.screenshot(path=str(screenshot), full_page=True)
+                            self.assertGreater(screenshot.stat().st_size, 0)
                         page.goto((outputs["de"] / page_name).as_uri(), wait_until="load")
-                        de = page.evaluate("""() => ({
+                        de = page.evaluate("""(requiredExemplars) => ({
                       lang: document.documentElement.lang, dir: document.documentElement.dir,
                       body: getComputedStyle(document.body).direction,
-                      exemplarCount: ['code.literal', '.highlight pre', 'table.docutils', '.math']
-                        .map((selector) => document.querySelector(selector)).filter(Boolean).length,
-                        })""")
-                        self.assertEqual(
-                            de,
-                            {"lang": "de", "dir": "ltr", "body": "ltr", "exemplarCount": 4},
-                            page_name,
-                        )
+                      exemplars: Object.fromEntries([
+                        ['code', 'code.literal'], ['pre', '.highlight pre'],
+                        ['table', 'table.docutils'], ['math', '.math'],
+                      ].filter(([name]) => requiredExemplars.includes(name))
+                        .map(([name, selector]) => {
+                        const element = document.querySelector(selector);
+                        if (element === null) {
+                          throw new Error(`missing required exemplar: ${selector}`);
+                        }
+                        const style = getComputedStyle(element);
+                        return [name, {direction: style.direction, unicodeBidi: style.unicodeBidi}];
+                      })),
+                        })""", list(required_exemplars))
+                        self.assertEqual(de["lang"], "de", page_name)
+                        self.assertEqual(de["dir"], "ltr", page_name)
+                        self.assertEqual(de["body"], "ltr", page_name)
+                        for name in required_exemplars:
+                            with self.subTest(page=page_name, exemplar=name):
+                                self.assertEqual(de["exemplars"][name]["direction"], "ltr")
+                                self.assertIn(
+                                    de["exemplars"][name]["unicodeBidi"],
+                                    {"normal", "isolate"},
+                                )
                 finally:
                     browser.close()

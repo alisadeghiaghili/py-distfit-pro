@@ -899,6 +899,11 @@ class CsvLifetimeAdapterContracts(unittest.TestCase):
 
         small = operation_count(128)
         large = operation_count(256)
+        # Per-record accounting may inspect the newly parsed observation, but
+        # the adapter's fixed empty-chunk graph must be computed once at
+        # construction, not walked again for every row.
+        self.assertLessEqual(small, 4 * 128 + 4)
+        self.assertLessEqual(large, 4 * 256 + 4)
         self.assertLessEqual(large, 2 * small + 4)
 
     def test_csv19_filesystem_initial_identity_is_bound_to_open_handle(self) -> None:

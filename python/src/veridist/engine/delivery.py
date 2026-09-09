@@ -7,7 +7,7 @@ from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
-from threading import Condition, Lock
+from threading import Condition, RLock
 
 from veridist.engine.data_source import Replayability
 from veridist.engine.errors import EngineContractError, FailureCode
@@ -224,7 +224,7 @@ class BufferedChunk:
         self.envelope = envelope
         self.payload = payload
         self._release_callback = release_callback
-        self._release_lock = Lock()
+        self._release_lock = RLock()
         self._released = False
 
     @property
@@ -241,6 +241,26 @@ class BufferedChunk:
             callback = self._release_callback
         if callback is not None:
             callback()
+
+    def _compose_release_callback(self, callback: Callable[[], None]) -> None:
+        """Append buffer cleanup before any caller cleanup callback.
+
+        This private operation runs only while the buffer owns the chunk. The
+        accounting callback is first so a caller callback failure cannot strand
+        capacity or block another producer.
+        """
+
+        with self._release_lock:
+            if self._released:
+                raise RuntimeError("cannot buffer an already released chunk")
+            previous = self._release_callback
+
+            def composed() -> None:
+                callback()
+                if previous is not None:
+                    previous()
+
+            self._release_callback = composed
 
 
 @dataclass(frozen=True, slots=True)
@@ -381,13 +401,26 @@ class BoundedChunkBuffer:
                 finally:
                     self._waiting_producers -= 1
                 self._raise_if_cancelled()
-            self._queue.append(item)
-            self._inflight_bytes += byte_size
-            self._peak_inflight_bytes = max(self._peak_inflight_bytes, self._inflight_bytes)
-            self._largest_retained_chunk_bytes = max(
-                self._largest_retained_chunk_bytes,
-                byte_size,
-            )
+            with item._release_lock:
+                if item._released:
+                    raise RuntimeError("cannot buffer an already released chunk")
+                item._compose_release_callback(lambda: self._release(item.envelope.byte_size))
+                self._queue.append(item)
+                self._inflight_bytes += byte_size
+                self._peak_inflight_bytes = max(self._peak_inflight_bytes, self._inflight_bytes)
+                self._largest_retained_chunk_bytes = max(
+                    self._largest_retained_chunk_bytes,
+                    byte_size,
+                )
+            self._condition.notify_all()
+
+    def _release(self, byte_size: int) -> None:
+        """Release a transferred queue lease exactly once through BufferedChunk."""
+
+        with self._condition:
+            self._inflight_bytes -= byte_size
+            if self._inflight_bytes < 0:
+                raise RuntimeError("buffer inflight byte accounting underflow")
             self._condition.notify_all()
 
     def read_and_put(
@@ -408,7 +441,7 @@ class BoundedChunkBuffer:
             raise
 
     def get(self, *, timeout: float | None = None) -> BufferedChunk:
-        """Return the oldest item and release its bytes from the buffer budget."""
+        """Return the oldest item while retaining its charge until release."""
 
         deadline = None if timeout is None else time.monotonic() + timeout
         with self._condition:
@@ -422,7 +455,6 @@ class BoundedChunkBuffer:
                     )
                 self._condition.wait(remaining)
             item = self._queue.popleft()
-            self._inflight_bytes -= item.envelope.byte_size
             self._condition.notify_all()
             return item
 
@@ -435,10 +467,16 @@ class BoundedChunkBuffer:
             self._cancelled = True
             queued = tuple(self._queue)
             self._queue.clear()
-            self._inflight_bytes = 0
             self._condition.notify_all()
+        first_error: BaseException | None = None
         for item in queued:
-            item.release()
+            try:
+                item.release()
+            except BaseException as error:
+                if first_error is None:
+                    first_error = error
+        if first_error is not None:
+            raise first_error
 
 
 __all__ = [

