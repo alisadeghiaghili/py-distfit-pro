@@ -7,9 +7,23 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW = REPOSITORY_ROOT / ".github" / "workflows" / "scale-evidence.yml"
+MUTATION_WORKFLOW = REPOSITORY_ROOT / ".github" / "workflows" / "mutation.yml"
 
 
 class ScaleEvidenceWorkflowTests(unittest.TestCase):
+    def test_candidate_mutation_workflow_publishes_the_required_gate(self) -> None:
+        workflow = MUTATION_WORKFLOW.read_text(encoding="utf-8")
+        for required in (
+            "mutation-gate:",
+            "name: mutation / gate",
+            "needs: [mutation]",
+            "if: always()",
+            "MUTATION_RESULT: ${{ needs.mutation.result }}",
+            '"$MUTATION_RESULT" != "success"',
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, workflow)
+
     def test_gate_is_manual_candidate_bound_and_cross_platform(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
         for required in (
