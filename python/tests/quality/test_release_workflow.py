@@ -12,7 +12,11 @@ class ReleaseWorkflowTests(unittest.TestCase):
         for required in (
             "name: veridist-release-validation",
             "workflow_dispatch:",
+            "candidate_sha:",
             "release_tag:",
+            "ref: ${{ inputs.candidate_sha }}",
+            "fetch-depth: 0",
+            "persist-credentials: false",
             "working-directory: python",
             "python -m build --sdist --wheel",
             "python -m twine check dist/*",
@@ -23,6 +27,9 @@ class ReleaseWorkflowTests(unittest.TestCase):
             "importlib.metadata",
             "veridist",
             "release tag does not match package version",
+            "candidate SHA must be a full lowercase Git commit",
+            "checked-out candidate SHA differs from requested candidate SHA",
+            "release candidate checkout is dirty",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, content)

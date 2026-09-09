@@ -40,7 +40,17 @@ def bounded_buffer_call(
     worker = Thread(target=invoke, name="bounded-buffer-test-call", daemon=True)
     worker.start()
     if not completed.wait(timeout):
-        buffer.cancel()
+        cancel_completed = Event()
+
+        def cancel() -> None:
+            try:
+                buffer.cancel()
+            finally:
+                cancel_completed.set()
+
+        canceller = Thread(target=cancel, name="bounded-buffer-test-cancel", daemon=True)
+        canceller.start()
+        cancel_completed.wait(0.05)
         worker.join(0.05)
         raise AssertionError("buffer operation did not complete before the test deadline")
     worker.join(0.05)

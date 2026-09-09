@@ -57,6 +57,16 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             with self.subTest(adr=adr):
                 self.assertIn("Status: Accepted", adr.read_text(encoding="utf-8"))
 
+        index = (REPOSITORY_ROOT / "docs" / "adr" / "README.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "| 0018 | CSV lifetime adapter and one-pass exponential orchestrator | Accepted |",
+            index,
+        )
+        self.assertIn(
+            "| 0019 | Evaluated-family kernel and parameter contracts | Accepted |",
+            index,
+        )
+
     def test_capability_matrix_declares_the_only_callable_statistical_cell(self) -> None:
         content = " ".join(CAPABILITY_MATRIX.read_text(encoding="utf-8").split())
         for required in (
@@ -151,7 +161,7 @@ class RequiredQualityArtifactTests(unittest.TestCase):
         workflow = MUTATION_WORKFLOW.read_text(encoding="utf-8")
         for required in (
             "runs-on: ubuntu-latest",
-            'python-version: \"3.13\"',
+            'python-version: "3.13"',
             "workflow_dispatch:",
             "pull_request:",
             "types: [published]",
