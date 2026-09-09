@@ -113,3 +113,20 @@ jobs:
             ${{ runner.temp }}/mutation-logs/baseline.log
             ${{ runner.temp }}/mutation-logs/mutmut.log
             python/mutants/**/*.meta
+
+  mutation-gate:
+    name: mutation / gate
+    needs: [mutation]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce fail-closed mutation evidence
+        shell: bash
+        env:
+          MUTATION_RESULT: ${{ needs.mutation.result }}
+        run: |
+          set -euo pipefail
+          if [[ "$MUTATION_RESULT" != "success" ]]; then
+            echo "critical mutation evidence did not succeed" >&2
+            exit 1
+          fi
