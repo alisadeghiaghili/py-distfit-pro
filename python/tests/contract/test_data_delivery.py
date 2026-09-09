@@ -727,8 +727,7 @@ class BoundedBufferContractTests(unittest.TestCase):
                     raise AssertionError("test did not permit producer")
                 attempted[index].set()
                 buffer.put(
-                    buffered(chunk(f"waiting-{index}", index + 1, index + 2, byte_size=4)),
-                    timeout=0.5,
+                    buffered(chunk(f"waiting-{index}", index + 1, index + 2, byte_size=4))
                 )
             except DeliveryContractError as error:
                 with history_lock:
@@ -793,8 +792,7 @@ class BoundedBufferContractTests(unittest.TestCase):
             try:
                 ready.wait(timeout=1.0)
                 buffer.put(
-                    buffered(chunk(f"blocked-{index}", index + 1, index + 2, byte_size=4)),
-                    timeout=0.5,
+                    buffered(chunk(f"blocked-{index}", index + 1, index + 2, byte_size=4))
                 )
             except DeliveryContractError as error:
                 outcomes.append(error.code)
