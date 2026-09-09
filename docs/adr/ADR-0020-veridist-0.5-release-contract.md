@@ -99,7 +99,8 @@ Before a `0.5.0` tag, all of the following are mandatory:
   installed-artifact smoke contract pass.  The legacy workflow remains
   incapable of publication.
 - `REL-META-01` passes: tag, package version, wheel and sdist metadata agree;
-  the MIT license text is corrected and included; `SECURITY.md`, the 0.5
+  the BUSL-1.1 text and Apache-2.0 additional-use grant are included exactly;
+  `SECURITY.md`, the 0.5
   changelog and known limits, and root repository landing content are present
   and mutually consistent.
 - ADR-0018, ADR-0019, and ADR-0021, together with every other behavioral ADR
@@ -146,7 +147,7 @@ limits.  A passing result from another revision is historical context only.
   fail-closed, as is mutation score with zero unresolved mutants.
 - `REL-PUBLISH-01`: the future dedicated publisher rejects a nonmatching tag,
   version, metadata, payload, or installed-artifact namespace.
-- `REL-META-01`: version consistency, MIT text, security policy, changelog,
+- `REL-META-01`: version consistency, BUSL-1.1 text and additional-use grant,
   known limits, and root landing content are checked as one release contract.
 
 These are acceptance tests, not placeholders.  They are written before the

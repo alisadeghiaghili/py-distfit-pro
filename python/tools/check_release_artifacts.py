@@ -133,6 +133,15 @@ def validate_artifact(artifact: Path, *, project_root: Path, release_tag: str) -
             raise ReleaseArtifactError(f"{artifact.name} does not contain the veridist source tree")
         if any("distfit_pro" in parts for parts in package_members):
             raise ReleaseArtifactError(f"{artifact.name} contains the legacy distfit_pro package")
+        for required_name in (
+            "CHANGELOG.md",
+            "KNOWN_LIMITS.md",
+            "KNOWN_LIMITS.fa.md",
+            "KNOWN_LIMITS.de.md",
+        ):
+            packaged = _required_member(members, f"{source_prefix}/{required_name}", artifact)
+            if packaged != (project_root / required_name).read_bytes():
+                raise ReleaseArtifactError(f"{artifact.name} contains a modified {required_name}")
 
 
 def main(arguments: list[str] | None = None) -> int:

@@ -25,7 +25,9 @@ python -m pip install .
 
 صفحه‌های بسته شامل مثال اجرایی، قرارداد adapter و محدودیت‌ها به
 [English](python/README.md)، [فارسی](python/README.fa.md) و
-[Deutsch](python/README.de.md) هستند. قرارداد انتشار لازم در
+[Deutsch](python/README.de.md) هستند. [تغییرات candidate](python/CHANGELOG.md) و
+[محدودیت‌های شناخته‌شده](python/KNOWN_LIMITS.fa.md) جداگانه نگه‌داری می‌شوند.
+قرارداد انتشار لازم در
 [ADR-0020](docs/adr/ADR-0020-veridist-0.5-release-contract.md) تا گذر همهٔ
 گیت‌های وابسته به candidate، نسخه را روی `0.0.0.dev0` نگه می‌دارد.
 

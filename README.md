@@ -22,7 +22,8 @@ python -m pip install .
 
 The package landing pages give the executable example, adapter contracts, and
 limits in [English](python/README.md), [Persian](python/README.fa.md), and
-[German](python/README.de.md). The binding release contract is
+[German](python/README.de.md). The candidate [changelog](python/CHANGELOG.md)
+and [known limits](python/KNOWN_LIMITS.md) are maintained separately. The binding release contract is
 [ADR-0020](docs/adr/ADR-0020-veridist-0.5-release-contract.md); it keeps the
 version at `0.0.0.dev0` until its candidate-specific gates pass.
 

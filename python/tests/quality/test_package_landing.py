@@ -33,18 +33,22 @@ class PackageLandingContractTests(unittest.TestCase):
                 "python/README.md",
                 "README.fa.md",
                 "README.de.md",
+                "python/CHANGELOG.md",
+                "python/KNOWN_LIMITS.md",
             ),
             REPOSITORY_ROOT / "README.fa.md": (
                 "# veridist",
                 "0.0.0.dev0",
                 "انتشار رسمی نیست",
                 "python/README.fa.md",
+                "python/KNOWN_LIMITS.fa.md",
             ),
             REPOSITORY_ROOT / "README.de.md": (
                 "# veridist",
                 "0.0.0.dev0",
                 "keine veroeffentlichte Distribution",
                 "python/README.de.md",
+                "python/KNOWN_LIMITS.de.md",
             ),
             REPOSITORY_ROOT / "SECURITY.md": (
                 "# Security policy",
@@ -67,9 +71,7 @@ class PackageLandingContractTests(unittest.TestCase):
             "Evidence-first distribution fitting with explicit execution contracts",
         )
         self.assertNotIn("greenfield", project["description"].casefold())
-        self.assertEqual(
-            project["readme"], {"file": "README.md", "content-type": "text/markdown"}
-        )
+        self.assertEqual(project["readme"], {"file": "README.md", "content-type": "text/markdown"})
         self.assertEqual(project["license"], "BUSL-1.1")
         self.assertEqual(project["license-files"], ["LICENSE"])
         self.assertEqual(
@@ -100,9 +102,7 @@ class PackageLandingContractTests(unittest.TestCase):
                 self.assertIn("cd py-distfit-pro/python", content)
                 self.assertIn("python -m pip install .", content)
                 self.assertIn("python -m pip install /path/to/veridist-", content)
-                self.assertIsNone(
-                    re.search(r"(?m)^python -m pip install veridist\s*$", content)
-                )
+                self.assertIsNone(re.search(r"(?m)^python -m pip install veridist\s*$", content))
 
     def test_each_locale_states_the_same_experimental_vertical_and_limits(self) -> None:
         required = {
@@ -223,9 +223,51 @@ class PackageLandingContractTests(unittest.TestCase):
                 "include README.md",
                 "include README.fa.md",
                 "include README.de.md",
+                "include CHANGELOG.md",
+                "include KNOWN_LIMITS.md",
+                "include KNOWN_LIMITS.fa.md",
+                "include KNOWN_LIMITS.de.md",
                 "include src/veridist/py.typed",
             ],
         )
+
+    def test_candidate_changelog_and_known_limits_are_complete_and_parallel(self) -> None:
+        changelog = (PYTHON_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        for required in (
+            "## [0.5.0] - Unreleased",
+            "0.0.0.dev0",
+            "ADR-0020",
+            "KNOWN_LIMITS.md",
+        ):
+            self.assertIn(required, changelog)
+
+        limits = {
+            locale: (PYTHON_ROOT / filename).read_text(encoding="utf-8")
+            for locale, filename in {
+                "en": "KNOWN_LIMITS.md",
+                "fa": "KNOWN_LIMITS.fa.md",
+                "de": "KNOWN_LIMITS.de.md",
+            }.items()
+        }
+        contract_ids = (
+            "FIT-CSV-EXP",
+            "CSV-STRICT",
+            "SCALAR-FAMILIES",
+            "STREAM-SOURCE",
+            "MEMORY-BOUND",
+            "SCALE-EVIDENCE",
+            "LICENSE",
+        )
+        for locale, content in limits.items():
+            with self.subTest(locale=locale):
+                self.assertIn("0.0.0.dev0", content)
+                self.assertIn("BUSL-1.1", content)
+                self.assertIn("Apache-2.0", content)
+                self.assertIn("2030-09-05", content)
+                self.assertEqual(
+                    [contract_id for contract_id in contract_ids if f"`{contract_id}`" in content],
+                    list(contract_ids),
+                )
 
 
 if __name__ == "__main__":

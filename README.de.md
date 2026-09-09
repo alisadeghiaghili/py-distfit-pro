@@ -23,7 +23,9 @@ python -m pip install .
 
 Die Paket-Landingpages enthalten ausfuehrbares Beispiel, Adapter-Vertraege und
 Grenzen auf [English](python/README.md), [فارسی](python/README.fa.md) und
-[Deutsch](python/README.de.md). Der verbindliche Release-Vertrag in
+[Deutsch](python/README.de.md). Das [Kandidaten-Changelog](python/CHANGELOG.md)
+und die [bekannten Grenzen](python/KNOWN_LIMITS.de.md) werden getrennt gepflegt.
+Der verbindliche Release-Vertrag in
 [ADR-0020](docs/adr/ADR-0020-veridist-0.5-release-contract.md) belaesst die
 Version bei `0.0.0.dev0`, bis alle kandidatspezifischen Gates erfuellt sind.
 
