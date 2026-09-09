@@ -40,6 +40,7 @@ class ScaleEvidenceWorkflowTests(unittest.TestCase):
             "checked-out candidate SHA differs from requested candidate SHA",
             "refusing scale evidence from a dirty checkout",
             "Verify required candidate checks",
+            "GH_TOKEN: ${{ github.token }}",
             "required candidate checks did not pass",
             "veridist / gate",
             "legacy / gate",
