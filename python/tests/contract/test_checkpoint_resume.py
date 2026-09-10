@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import sys
+import tempfile
 import unittest
 from dataclasses import replace
+from pathlib import Path
 
-from veridist.engine.checkpoint import CheckpointRecord, InMemoryCheckpointStore
+from veridist.engine.checkpoint import CheckpointRecord, InMemoryCheckpointStore, SQLiteCheckpointStore
 from veridist.engine.errors import EngineContractError, FailureCode
 from veridist.engine.resume import ResumeExpectation, resume_checkpoint
 from veridist.engine.retry import PureReducer, apply_pure_update
@@ -88,6 +90,43 @@ def expectation(**overrides: object) -> ResumeExpectation:
 
 
 class CheckpointResumeContractTests(unittest.TestCase):
+    def test_ds09_sqlite_resume_continues_transactional_reduction(self) -> None:
+        reducer = IntegerSumReducer()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "resume.sqlite3"
+            SQLiteCheckpointStore.create(path, checkpoint(cursor=0, state=b"0"))
+            store = SQLiteCheckpointStore(path)
+            current = apply_pure_update(
+                store=store,
+                source_revision=SOURCE_REVISION,
+                payload=b"1",
+                payload_sha256=sha256(b"1"),
+                row_start=0,
+                row_stop=1,
+                operation_token="chunk-1",
+                reducer=reducer,
+            )
+            self.assertEqual(current.generation, 1)
+            resumed = resume_checkpoint(
+                store=SQLiteCheckpointStore(path),
+                expected=expectation(cursor=1),
+                reducer=reducer,
+            )
+            self.assertEqual(resumed.accumulator, 1)
+            self.assertEqual(resumed.public_metadata.generation, 1)
+            current = apply_pure_update(
+                store=SQLiteCheckpointStore(path),
+                source_revision=SOURCE_REVISION,
+                payload=b"2",
+                payload_sha256=sha256(b"2"),
+                row_start=1,
+                row_stop=2,
+                operation_token="chunk-2",
+                reducer=reducer,
+            )
+            self.assertEqual(int(current.state), 3)
+            self.assertEqual(SQLiteCheckpointStore(path).read().generation, 2)
+
     def test_ds09_compatible_resume_matches_canonical_reduction(self) -> None:
         reducer = IntegerSumReducer()
         store = InMemoryCheckpointStore(checkpoint())
