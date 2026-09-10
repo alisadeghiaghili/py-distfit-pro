@@ -1,6 +1,6 @@
 # ADR-0023: Local SQLite checkpoint store
 
-Status: Proposed
+Status: Accepted
 
 Owner: Ali Sadeghi Aghili
 
@@ -98,8 +98,8 @@ as a second application of an operation.
 
 ## Exit criteria and effort class
 
-Ali Sadeghi Aghili must accept this ADR before production implementation.
-Acceptance authorizes only the scoped local backend. The 0.6 checkpoint
-milestone additionally requires every evidence ID above, quality gates,
+This record was accepted by Ali Sadeghi Aghili on 2026-09-10. Acceptance
+authorizes only the scoped local backend. The 0.6 checkpoint milestone
+additionally requires every evidence ID above, quality gates,
 three-locale documentation, and an end-to-end resumable operation before any
 public persistence claim. Effort class: medium, one focused engineering wave.
