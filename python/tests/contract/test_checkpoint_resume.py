@@ -17,6 +17,7 @@ from veridist.engine.checkpoint import (
 from veridist.engine.errors import EngineContractError, FailureCode
 from veridist.engine.resume import ResumeExpectation, resume_checkpoint
 from veridist.engine.retry import PureReducer, apply_pure_update
+from veridist.execution import fit_exponential_checkpointed_chunks
 
 SOURCE_ID = "dataset:resume-001"
 SOURCE_SCHEMA = "source-v1"
@@ -94,6 +95,36 @@ def expectation(**overrides: object) -> ResumeExpectation:
 
 
 class CheckpointResumeContractTests(unittest.TestCase):
+    def test_ds09_checkpointed_exponential_chunks_return_a_fit(self) -> None:
+        reducer_id = "exponential-reduction-v1"
+        accumulator_schema = "exponential-reduction-v1"
+        state = b'{"compensation":"0x0.0p+0","event_count":0,"observation_count":0,"total_time":"0x0.0p+0"}'
+        initial = CheckpointRecord.create(
+            format_version=1,
+            source_id="source",
+            source_schema="exponential-v1",
+            source_revision=SOURCE_REVISION,
+            reducer_id=reducer_id,
+            accumulator_schema=accumulator_schema,
+            plan_digest=PLAN_DIGEST,
+            cursor=0,
+            committed_ranges=(),
+            generation=0,
+            operation_token=None,
+            operation_digest=None,
+            state=state,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            store = SQLiteCheckpointStore.create(Path(directory) / "fit.sqlite3", initial)
+            fit = fit_exponential_checkpointed_chunks(
+                store=store,
+                source_revision=SOURCE_REVISION,
+                chunks=(b"[[1.5,true],[2.25,false]]",),
+            )
+        self.assertEqual(fit.observation_count, 2)
+        self.assertEqual(fit.event_count, 1)
+        self.assertEqual(fit.total_time, 3.75)
+
     def test_ds09_sqlite_resume_continues_transactional_reduction(self) -> None:
         reducer = IntegerSumReducer()
         with tempfile.TemporaryDirectory() as directory:
