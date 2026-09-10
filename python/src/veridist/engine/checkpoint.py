@@ -5,7 +5,9 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 from dataclasses import dataclass, replace
+from pathlib import Path
 from threading import Lock
 from typing import Protocol
 
@@ -105,7 +107,7 @@ class CheckpointRecord:
             _require_text("operation_token", operation_token)
             assert operation_digest is not None
             _require_text("operation_digest", operation_digest)
-        if not isinstance(state, (bytes, bytearray, memoryview)):
+        if not isinstance(state, bytes | bytearray | memoryview):
             raise TypeError("state must be bytes-like")
         for start, stop in committed_ranges:
             if (
@@ -236,3 +238,74 @@ class InMemoryCheckpointStore:
             self._record = candidate
             self._write_count += 1
             return self._record
+
+
+class FileCheckpointStore:
+    """Durable single-file checkpoint store with atomic replacement."""
+
+    __slots__ = ("_path", "_lock")
+
+    def __init__(self, path: str | os.PathLike[str]) -> None:
+        self._path = Path(path)
+        self._lock = Lock()
+
+    @property
+    def path(self) -> Path:
+        return self._path
+
+    @staticmethod
+    def _serialize(record: CheckpointRecord) -> str:
+        payload = json.loads(_canonical_payload(record).decode("utf-8"))
+        payload["checksum"] = record.checksum
+        return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+    def _read_unlocked(self) -> CheckpointRecord:
+        try:
+            payload = json.loads(self._path.read_text(encoding="utf-8"))
+            record = CheckpointRecord(
+                format_version=payload["format_version"], source_id=payload["source_id"],
+                source_schema=payload["source_schema"], source_revision=payload["source_revision"],
+                reducer_id=payload["reducer_id"], accumulator_schema=payload["accumulator_schema"],
+                plan_digest=payload["plan_digest"], cursor=payload["cursor"],
+                committed_ranges=tuple(tuple(item) for item in payload["committed_ranges"]),
+                generation=payload["generation"], operation_token=payload["operation_token"],
+                operation_digest=payload["operation_digest"],
+                state=base64.b64decode(payload["state"], validate=True),
+                checksum=payload["checksum"],
+            )
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+            raise EngineContractError(FailureCode.CHECKPOINT_CHECKSUM_MISMATCH) from None
+        if not record.has_valid_checksum():
+            raise EngineContractError(FailureCode.CHECKPOINT_CHECKSUM_MISMATCH)
+        return record
+
+    @classmethod
+    def create(cls, path: str | os.PathLike[str], initial: CheckpointRecord) -> FileCheckpointStore:
+        store = cls(path)
+        store._path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = store._path.with_suffix(store._path.suffix + ".tmp")
+        temporary.write_text(store._serialize(initial), encoding="utf-8")
+        os.replace(temporary, store._path)
+        return store
+
+    def read(self) -> CheckpointRecord:
+        with self._lock:
+            return self._read_unlocked()
+
+    def compare_and_swap(
+        self, expected_generation: int, candidate: CheckpointRecord
+    ) -> CheckpointRecord:
+        with self._lock:
+            current = self._read_unlocked()
+            if (
+                current.generation != expected_generation
+                or candidate.generation != expected_generation + 1
+            ):
+                raise EngineContractError(FailureCode.CHECKPOINT_CONFLICT)
+            if not candidate.has_valid_checksum():
+                raise EngineContractError(FailureCode.CHECKPOINT_CHECKSUM_MISMATCH)
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            temporary = self._path.with_suffix(self._path.suffix + ".tmp")
+            temporary.write_text(self._serialize(candidate), encoding="utf-8")
+            os.replace(temporary, self._path)
+            return candidate
