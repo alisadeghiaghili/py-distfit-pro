@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import tracemalloc
+import tempfile
 import unittest
 from dataclasses import FrozenInstanceError, replace
 from decimal import Decimal
 from math import isclose
+from pathlib import Path
 from unittest.mock import PropertyMock, patch
 
 import veridist.families.exponential as exponential_module
@@ -20,6 +23,8 @@ from veridist.families.exponential import (
     fit_exponential_chunks,
     fit_exponential_reduction_state,
 )
+from veridist.engine.checkpoint import CheckpointRecord, SQLiteCheckpointStore
+from veridist.engine.retry import apply_pure_update
 from veridist.statistics.exponential import (
     ExponentialCheckpointReducer,
     ExponentialReductionState,
@@ -45,6 +50,39 @@ class ExponentialReducerContracts(unittest.TestCase):
             reducer.decode_state(b"[]")
         with self.assertRaises((ValueError, TypeError)):
             reducer.reduce(ExponentialReductionState.empty(), b"{}")
+
+    def test_checkpoint_reducer_commits_through_sqlite_store(self) -> None:
+        reducer = ExponentialCheckpointReducer()
+        initial_state = reducer.encode_state(ExponentialReductionState.empty())
+        initial = CheckpointRecord.create(
+            format_version=1,
+            source_id="source",
+            source_schema="exponential-v1",
+            source_revision="revision",
+            reducer_id=reducer.reducer_id,
+            accumulator_schema=reducer.accumulator_schema,
+            plan_digest="plan",
+            cursor=0,
+            committed_ranges=(),
+            generation=0,
+            operation_token=None,
+            operation_digest=None,
+            state=initial_state,
+        )
+        payload = b"[[1.5,true],[2.25,false]]"
+        with tempfile.TemporaryDirectory() as directory:
+            store = SQLiteCheckpointStore.create(Path(directory) / "state.sqlite3", initial)
+            committed = apply_pure_update(
+                store=store,
+                source_revision="revision",
+                payload=payload,
+                payload_sha256=hashlib.sha256(payload).hexdigest(),
+                row_start=0,
+                row_stop=2,
+                operation_token="chunk-1",
+                reducer=reducer,
+            )
+            self.assertEqual(reducer.decode_state(committed.state).summed_time, 3.75)
 
     def test_exp09_ragged_and_empty_chunks_match_canonical_observation_order(self) -> None:
         chunks = (
