@@ -9,7 +9,11 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from veridist.engine.checkpoint import CheckpointRecord, InMemoryCheckpointStore, SQLiteCheckpointStore
+from veridist.engine.checkpoint import (
+    CheckpointRecord,
+    InMemoryCheckpointStore,
+    SQLiteCheckpointStore,
+)
 from veridist.engine.errors import EngineContractError, FailureCode
 from veridist.engine.resume import ResumeExpectation, resume_checkpoint
 from veridist.engine.retry import PureReducer, apply_pure_update
