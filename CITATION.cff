@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use Veridist, please cite its released version and retained evidence."
+title: "Veridist"
+version: 0.5.0
+type: software
+authors:
+  - family-names: Aghili
+    given-names: Ali Sadeghi
+repository-code: "https://github.com/alisadeghiaghili/veridist"
+license: BUSL-1.1

@@ -1,0 +1,52 @@
+name: veridist-v1-release-evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact full candidate SHA to validate against retained evidence
+        required: true
+        type: string
+      execution_evidence_artifact:
+        description: Path to a reviewed, retained 27-cell evidence JSON checked into the candidate
+        required: true
+        type: string
+      source_lock_artifact:
+        description: Path to the reviewed competitive source-lock JSON checked into the candidate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate-retained-evidence:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Bind candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.candidate_sha }}" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "${{ inputs.candidate_sha }}"
+          test -z "$(git status --porcelain)"
+      - name: Validate retry/cancel/resume evidence
+        run: >
+          python tools/check_v1_execution_evidence.py
+          --artifact "${{ inputs.execution_evidence_artifact }}"
+          --expected-git-sha "${{ inputs.candidate_sha }}"
+      - name: Validate competitive source locks
+        run: >
+          python tools/check_competitive_source_lock.py
+          --matrix ../docs/competitive-feature-matrix.csv
+          --locks "${{ inputs.source_lock_artifact }}"
