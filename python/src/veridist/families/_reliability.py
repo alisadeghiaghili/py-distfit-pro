@@ -73,4 +73,3 @@ def positive_support(values: tuple[LifetimeObservation, ...]) -> bool:
     """Return whether all fixed-location reliability times are strictly positive."""
 
     return all(isfinite(value.time) and value.time > 0.0 for value in values)
-
