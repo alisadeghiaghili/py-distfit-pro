@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import hashlib
 import json
 import platform
@@ -68,11 +69,38 @@ def _clean_checkout_sha(root: Path) -> str:
     return _git(root, "rev-parse", "HEAD")
 
 
-def _rss_bytes() -> int | None:
-    try:
-        import resource  # type: ignore[import-not-found]
-    except ImportError:
-        return None
+def _rss_bytes() -> int:
+    """Return process RSS on both required evidence platforms or fail closed."""
+
+    if sys.platform == "win32":
+
+        class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
+            _fields_ = [
+                ("cb", ctypes.c_ulong),
+                ("PageFaultCount", ctypes.c_ulong),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+                ("PrivateUsage", ctypes.c_size_t),
+            ]
+
+        counters = PROCESS_MEMORY_COUNTERS_EX()
+        counters.cb = ctypes.sizeof(counters)
+        getter = ctypes.windll.psapi.GetProcessMemoryInfo
+        getter.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ulong]
+        getter.restype = ctypes.c_int
+        if not getter(
+            ctypes.windll.kernel32.GetCurrentProcess(), ctypes.byref(counters), counters.cb
+        ):
+            raise RuntimeError("cannot obtain Windows process RSS")
+        return int(counters.WorkingSetSize)
+    import resource
+
     value = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     return int(value if sys.platform == "darwin" else value * 1024)
 
@@ -197,11 +225,10 @@ def _cell(
         "memory": {
             "tracemalloc_peak_bytes": trace_peak,
             "rss_peak_bytes": after_rss,
-            "rss_delta_bytes": None
-            if before_rss is None or after_rss is None
-            else max(0, after_rss - before_rss),
+            "rss_delta_bytes": max(0, after_rss - before_rss),
         },
         "elapsed_seconds": elapsed,
+        "throughput_rows_per_second": rows / elapsed if elapsed else float(rows),
     }
 
 

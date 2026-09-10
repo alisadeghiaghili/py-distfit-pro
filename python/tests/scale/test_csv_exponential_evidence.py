@@ -72,8 +72,9 @@ def _cell(rows: int, budget: int) -> dict[str, object]:
             "absolute_rate_error": float(absolute),
             "relative_rate_error": float(relative),
         },
-        "memory": {"tracemalloc_peak_bytes": 1, "rss_peak_bytes": None, "rss_delta_bytes": None},
+        "memory": {"tracemalloc_peak_bytes": 1, "rss_peak_bytes": 1, "rss_delta_bytes": 0},
         "elapsed_seconds": 0.01,
+        "throughput_rows_per_second": rows / 0.01,
     }
 
 
@@ -464,6 +465,16 @@ class ScaleCsvExponentialEvidenceTests(unittest.TestCase):
         result = self._check(artifact)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("run schema keys invalid", result.stderr)
+
+    def test_scale17a_rejects_missing_process_memory_and_throughput(self) -> None:
+        artifact = _smoke_artifact()
+        cell = artifact["cells"][0]
+        cell["memory"]["rss_peak_bytes"] = None
+        del cell["throughput_rows_per_second"]
+        _seal(artifact)
+        result = self._check(artifact)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("schema keys invalid", result.stderr)
 
     def test_scale18_v2_rejects_transplanted_candidate_commit(self) -> None:
         artifact = _smoke_artifact()

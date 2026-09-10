@@ -35,39 +35,48 @@ def _head() -> str:
 class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
     def _value(self) -> dict[str, object]:
         value: dict[str, object] = {
-            "schema_version": "3",
+            "schema_version": "4",
             "run": {
                 "git_sha": _head(),
                 "candidate_git_sha": _head(),
                 "git_dirty": False,
-                "generator": "normal-zero-v1",
+                "generator": "fixed-supported-family-v1",
                 "source_contract": "public-iterable-data-source-v1",
+                "python": {"implementation": "CPython", "version": "3.11"},
+                "platform": "test-platform",
             },
             "cells": [],
         }
-        for rows in MODULE.ROWS:
-            for budget in MODULE.BUDGETS:
-                units = MODULE._units(rows)
-                expected = float(__import__("fractions").Fraction(units, 1 << 1074))
-                value["cells"].append(
-                    {
-                        "rows": rows,
-                        "chunk_size": budget,
-                        "one_pass": {"iterator_acquisitions": 1, "observation_yields": rows},
-                        "oracle": {
-                            "oracle_total_units": units,
-                            "oracle_total_units_bit_length": abs(units).bit_length(),
-                            "bound_bits": 2162,
-                        },
-                        "actual": {
-                            "observation_count": rows,
-                            "total_log_likelihood": expected,
-                            "total_log_likelihood_hex": expected.hex(),
-                        },
-                        "elapsed_seconds": 0.0,
-                        "memory": {"tracemalloc_peak_bytes": 0},
-                    }
-                )
+        for family in MODULE.FAMILIES:
+            for rows in MODULE.ROWS:
+                for budget in MODULE.BUDGETS:
+                    units = MODULE._units(rows, family)
+                    expected = float(__import__("fractions").Fraction(units, 1 << 1074))
+                    value["cells"].append(
+                        {
+                            "family": family,
+                            "rows": rows,
+                            "chunk_size": budget,
+                            "one_pass": {"iterator_acquisitions": 1, "observation_yields": rows},
+                            "oracle": {
+                                "oracle_total_units": units,
+                                "oracle_total_units_bit_length": abs(units).bit_length(),
+                                "bound_bits": 2162,
+                            },
+                            "actual": {
+                                "observation_count": rows,
+                                "total_log_likelihood": expected,
+                                "total_log_likelihood_hex": expected.hex(),
+                            },
+                            "elapsed_seconds": 1.0,
+                            "throughput_rows_per_second": float(rows),
+                            "memory": {
+                                "tracemalloc_peak_bytes": 0,
+                                "rss_peak_bytes": 0,
+                                "rss_delta_bytes": 0,
+                            },
+                        }
+                    )
         value["artifact_sha256"] = MODULE._digest(value)
         return value
 
@@ -115,9 +124,7 @@ class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
                 redaction_reason="generated",
             ),
         )
-        self.assertEqual(
-            cell["one_pass"], {"iterator_acquisitions": 1, "observation_yields": 10}
-        )
+        self.assertEqual(cell["one_pass"], {"iterator_acquisitions": 1, "observation_yields": 10})
         self.assertEqual(cell["actual"]["observation_count"], 10)
 
     def test_runner_rejects_a_second_outer_iterator_acquisition(self) -> None:
@@ -132,9 +139,7 @@ class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
             return LogLikelihoodSuccess(family, "0" * 64, 10, -1.0)
 
         with patch.object(RUNNER_MODULE, "reduce_log_likelihood_chunks", side_effect=second_pass):
-            with self.assertRaisesRegex(
-                Exception, "PASS_BUDGET_EXCEEDED"
-            ):
+            with self.assertRaisesRegex(Exception, "PASS_BUDGET_EXCEEDED"):
                 RUNNER_MODULE._cell(10, 1)
 
     def test_checker_rejects_tampered_actual_returned_total(self) -> None:
@@ -176,6 +181,29 @@ class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
             MODULE.validate(value, expected_git_sha=_head(), repo_root=REPO),
         )
 
+    def test_checker_rejects_missing_runtime_measurement_facts(self) -> None:
+        value = self._value()
+        run = value["run"]
+        assert isinstance(run, dict)
+        del run["platform"]
+        cell = value["cells"][0]
+        assert isinstance(cell, dict)
+        del cell["throughput_rows_per_second"]
+        value["artifact_sha256"] = MODULE._digest(value)
+        errors = MODULE.validate(value, expected_git_sha=_head(), repo_root=REPO)
+        self.assertIn("run schema invalid", errors)
+
+    def test_checker_rejects_incomplete_family_matrix(self) -> None:
+        value = self._value()
+        cells = value["cells"]
+        assert isinstance(cells, list)
+        value["cells"] = [cell for cell in cells if cell["family"] != "gamma"]
+        value["artifact_sha256"] = MODULE._digest(value)
+        self.assertIn(
+            "full five-family 10k/100k/1m by three-chunk matrix required",
+            MODULE.validate(value, expected_git_sha=_head(), repo_root=REPO),
+        )
+
     def test_runner_smoke_output_declares_current_public_source_contract(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "evidence.json"
@@ -188,7 +216,7 @@ class LogLikelihoodScaleEvidenceTests(unittest.TestCase):
             ):
                 self.assertEqual(RUNNER_MODULE.main(), 0)
             artifact = json.loads(output.read_text(encoding="utf-8"))
-            self.assertEqual(artifact["schema_version"], "3")
+            self.assertEqual(artifact["schema_version"], "4")
             self.assertEqual(artifact["run"]["candidate_git_sha"], "a" * 40)
             self.assertEqual(artifact["run"]["source_contract"], "public-iterable-data-source-v1")
-            self.assertEqual(len(artifact["cells"]), 1)
+            self.assertEqual(len(artifact["cells"]), len(RUNNER_MODULE.FAMILY_CASES))

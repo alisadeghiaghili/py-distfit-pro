@@ -14,13 +14,31 @@ from pathlib import Path
 
 ROWS = (10_000, 100_000, 1_000_000)
 BUDGETS = (1_024, 8_192, 65_536)
+FAMILIES = ("normal", "gamma", "weibull_min", "lognormal", "gumbel_right")
+CONTRIBUTIONS = {
+    "normal": "-0x1.d67f1c864beb4p-1",
+    "gamma": "-0x1.0000000000000p+0",
+    "weibull_min": "-0x1.3a37a020b8c22p-2",
+    "lognormal": "-0x1.d67f1c864beb4p-1",
+    "gumbel_right": "-0x1.0000000000000p+0",
+}
 SHA = re.compile(r"[0-9a-f]{40}")
 KEYS = {"schema_version", "run", "cells", "artifact_sha256"}
-CELL_KEYS = {"rows", "chunk_size", "one_pass", "oracle", "actual", "elapsed_seconds", "memory"}
+CELL_KEYS = {
+    "family",
+    "rows",
+    "chunk_size",
+    "one_pass",
+    "oracle",
+    "actual",
+    "elapsed_seconds",
+    "throughput_rows_per_second",
+    "memory",
+}
 ONE_PASS_KEYS = {"iterator_acquisitions", "observation_yields"}
 ORACLE_KEYS = {"oracle_total_units", "oracle_total_units_bit_length", "bound_bits"}
 ACTUAL_KEYS = {"observation_count", "total_log_likelihood", "total_log_likelihood_hex"}
-MEMORY_KEYS = {"tracemalloc_peak_bytes"}
+MEMORY_KEYS = {"tracemalloc_peak_bytes", "rss_peak_bytes", "rss_delta_bytes"}
 
 
 def _digest(value: dict[str, object]) -> str:
@@ -31,8 +49,8 @@ def _digest(value: dict[str, object]) -> str:
     ).hexdigest()
 
 
-def _units(rows: int) -> int:
-    contribution = -0.5 * math.log(2.0 * math.pi)
+def _units(rows: int, family: str) -> int:
+    contribution = float.fromhex(CONTRIBUTIONS[family])
     numerator, denominator = contribution.as_integer_ratio()
     return rows * numerator * ((1 << 1074) // denominator)
 
@@ -43,7 +61,7 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
     errors: list[str] = []
     if not isinstance(value, dict) or set(value) != KEYS:
         return ["artifact schema keys invalid"]
-    if value["schema_version"] != "3" or value["artifact_sha256"] != _digest(value):
+    if value["schema_version"] != "4" or value["artifact_sha256"] != _digest(value):
         errors.append("artifact version or digest invalid")
     run = value["run"]
     if not isinstance(run, dict) or set(run) != {
@@ -52,6 +70,8 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
         "git_dirty",
         "generator",
         "source_contract",
+        "python",
+        "platform",
     }:
         return [*errors, "run schema invalid"]
     if (
@@ -64,10 +84,18 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
         errors.append("candidate Git SHA mismatch")
     if (
         run["git_dirty"] is not False
-        or run["generator"] != "normal-zero-v1"
+        or run["generator"] != "fixed-supported-family-v1"
         or run["source_contract"] != "public-iterable-data-source-v1"
     ):
         errors.append("run metadata invalid")
+    if (
+        not isinstance(run["python"], dict)
+        or set(run["python"]) != {"implementation", "version"}
+        or not all(isinstance(value, str) and value for value in run["python"].values())
+        or not isinstance(run["platform"], str)
+        or not run["platform"]
+    ):
+        errors.append("runtime platform metadata invalid")
     try:
         subprocess.run(
             ["git", "-C", str(repo_root), "merge-base", "--is-ancestor", expected_git_sha, "HEAD"],
@@ -77,18 +105,24 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
     except (OSError, subprocess.CalledProcessError):
         errors.append("frozen Git SHA is not an ancestor")
     cells = value["cells"]
-    if not isinstance(cells, list) or len(cells) != len(ROWS) * len(BUDGETS):
-        return [*errors, "full 10k/100k/1m by three-chunk matrix required"]
-    seen: set[tuple[int, int]] = set()
+    if not isinstance(cells, list) or len(cells) != len(FAMILIES) * len(ROWS) * len(BUDGETS):
+        return [*errors, "full five-family 10k/100k/1m by three-chunk matrix required"]
+    seen: set[tuple[str, int, int]] = set()
     for cell in cells:
         if not isinstance(cell, dict) or set(cell) != CELL_KEYS:
             errors.append("cell schema invalid")
             continue
-        rows, chunk = cell["rows"], cell["chunk_size"]
-        if type(rows) is not int or type(chunk) is not int or (rows, chunk) in seen:
+        family, rows, chunk = cell["family"], cell["rows"], cell["chunk_size"]
+        if (
+            not isinstance(family, str)
+            or family not in FAMILIES
+            or type(rows) is not int
+            or type(chunk) is not int
+            or (family, rows, chunk) in seen
+        ):
             errors.append("cell key invalid or duplicate")
             continue
-        seen.add((rows, chunk))
+        seen.add((family, rows, chunk))
         if rows not in ROWS or chunk not in BUDGETS:
             errors.append("cell scale or pass facts invalid")
         one_pass, oracle, actual, memory = (
@@ -106,12 +140,12 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
             errors.append("oracle schema invalid")
             continue
         if oracle != {
-            "oracle_total_units": _units(rows),
-            "oracle_total_units_bit_length": abs(_units(rows)).bit_length(),
+            "oracle_total_units": _units(rows, family),
+            "oracle_total_units_bit_length": abs(_units(rows, family)).bit_length(),
             "bound_bits": 2162,
         }:
             errors.append("independent exact oracle mismatch")
-        expected = float(Fraction(_units(rows), 1 << 1074))
+        expected = float(Fraction(_units(rows, family), 1 << 1074))
         if not isinstance(actual, dict) or set(actual) != ACTUAL_KEYS:
             errors.append("actual result schema invalid")
             continue
@@ -125,18 +159,26 @@ def validate(value: object, *, expected_git_sha: str, repo_root: Path) -> list[s
         if (
             not isinstance(memory, dict)
             or set(memory) != MEMORY_KEYS
-            or type(memory["tracemalloc_peak_bytes"]) is not int
-            or memory["tracemalloc_peak_bytes"] < 0
+            or any(type(memory[key]) is not int or memory[key] < 0 for key in MEMORY_KEYS)
         ):
             errors.append("descriptive memory fact invalid")
         if (
-            not isinstance(cell["elapsed_seconds"], (int, float))
+            not isinstance(cell["elapsed_seconds"], int | float)
             or isinstance(cell["elapsed_seconds"], bool)
             or not math.isfinite(cell["elapsed_seconds"])
-            or cell["elapsed_seconds"] < 0
+            or cell["elapsed_seconds"] <= 0
         ):
             errors.append("descriptive elapsed fact invalid")
-    if seen != {(row, budget) for row in ROWS for budget in BUDGETS}:
+        throughput = cell["throughput_rows_per_second"]
+        if (
+            not isinstance(throughput, int | float)
+            or isinstance(throughput, bool)
+            or not math.isfinite(throughput)
+            or throughput <= 0
+            or abs(throughput - rows / cell["elapsed_seconds"]) > max(1e-9, throughput * 1e-12)
+        ):
+            errors.append("throughput fact invalid")
+    if seen != {(family, row, budget) for family in FAMILIES for row in ROWS for budget in BUDGETS}:
         errors.append("matrix coverage invalid")
     return errors
 
