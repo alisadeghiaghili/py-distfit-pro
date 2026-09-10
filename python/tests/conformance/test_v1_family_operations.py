@@ -53,6 +53,40 @@ class V1FamilyOperationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             sample("normal", -1, {"mu": 0.0, "sigma": 1.0}, np.random.default_rng(4))
 
+    def test_all_public_family_paths_and_validation_boundaries(self) -> None:
+        """Exercise each documented family through public operation boundaries."""
+
+        from veridist.statistics.distributions import cdf, ppf, sample, sf
+
+        cases = {
+            "exponential": ({"rate": 2.0}, (-1.0, 1.0)),
+            "normal": ({"mu": 1.0, "sigma": 2.0}, (-1.0, 1.0)),
+            "gamma": ({"shape": 2.0, "scale": 3.0}, (1.0, 20.0)),
+            "weibull_min": ({"shape": 1.5, "scale": 4.0}, (0.0, 2.0)),
+            "lognormal": ({"mu_log": 0.5, "sigma_log": 0.75}, (0.0, 2.0)),
+            "gumbel_right": ({"location": 0.0, "scale": 2.0}, (-1.0, 1.0)),
+        }
+        for family, (parameters, points) in cases.items():
+            with self.subTest(family=family):
+                for point in points:
+                    self.assertGreaterEqual(cdf(family, point, parameters), 0.0)
+                    self.assertGreaterEqual(sf(family, point, parameters), 0.0)
+                value = ppf(family, 0.25, parameters)
+                self.assertAlmostEqual(cdf(family, value, parameters), 0.25, places=10)
+                values = sample(family, 3, parameters, np.random.default_rng(7))
+                self.assertEqual(values.shape, (3,))
+
+        with self.assertRaises(TypeError):
+            cdf("normal", 0.0, object())
+        with self.assertRaises(ValueError):
+            cdf("exponential", 0.0, {"rate": 0.0})
+        with self.assertRaises(ValueError):
+            cdf("normal", float("nan"), {"mu": 0.0, "sigma": 1.0})
+        with self.assertRaises(ValueError):
+            ppf("normal", 1.0, {"mu": 0.0, "sigma": 1.0})
+        with self.assertRaises(ValueError):
+            sample("normal", True, {"mu": 0.0, "sigma": 1.0}, np.random.default_rng(7))
+
 
 if __name__ == "__main__":
     unittest.main()
