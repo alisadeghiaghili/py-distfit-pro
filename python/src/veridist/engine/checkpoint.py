@@ -302,6 +302,36 @@ class SQLiteCheckpointStore:
         )
 
     @staticmethod
+    def _commit(connection: sqlite3.Connection) -> None:
+        """Commit one validated transaction; isolated for fault-injection evidence."""
+
+        connection.execute("COMMIT")
+
+    def _reconcile_uncertain_commit(
+        self,
+        expected_generation: int,
+        candidate: CheckpointRecord,
+    ) -> CheckpointRecord:
+        """Resolve a lost commit acknowledgement without replaying the transition."""
+
+        try:
+            observed = self.read()
+        except EngineContractError:
+            raise CheckpointCommitUncertain(
+                "checkpoint commit acknowledgement is uncertain"
+            ) from None
+        if (
+            observed.generation == candidate.generation
+            and observed.operation_token == candidate.operation_token
+            and observed.operation_digest == candidate.operation_digest
+            and observed.checksum == candidate.checksum
+        ):
+            return observed
+        if observed.generation != expected_generation:
+            raise EngineContractError(FailureCode.CHECKPOINT_CONFLICT)
+        raise CheckpointCommitUncertain("checkpoint commit acknowledgement is uncertain")
+
+    @staticmethod
     def _encode(record: CheckpointRecord) -> tuple[str, str]:
         if not record.has_valid_checksum():
             raise EngineContractError(FailureCode.CHECKPOINT_CHECKSUM_MISMATCH)
@@ -401,6 +431,7 @@ class SQLiteCheckpointStore:
         if candidate.generation != expected_generation + 1:
             raise EngineContractError(FailureCode.CHECKPOINT_CONFLICT)
         payload, checksum = self._encode(candidate)
+        acknowledgement_lost = False
         try:
             with self._opened() as connection:
                 connection.execute("BEGIN IMMEDIATE")
@@ -421,10 +452,19 @@ class SQLiteCheckpointStore:
                 if updated != 1:
                     connection.execute("ROLLBACK")
                     raise EngineContractError(FailureCode.CHECKPOINT_CONFLICT)
-                connection.execute("COMMIT")
+                try:
+                    self._commit(connection)
+                except sqlite3.Error:
+                    try:
+                        connection.execute("ROLLBACK")
+                    except sqlite3.Error:
+                        pass
+                    acknowledgement_lost = True
         except EngineContractError:
             raise
         except sqlite3.Error:
             raise EngineContractError(FailureCode.CHECKPOINT_STORAGE_FAILED) from None
+        if acknowledgement_lost:
+            return self._reconcile_uncertain_commit(expected_generation, candidate)
         return candidate
 
