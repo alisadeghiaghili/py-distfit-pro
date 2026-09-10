@@ -116,6 +116,25 @@ class EngineContractError(Exception):
         return f"{type(self).__name__}(code={self.code.value})"
 
 
+class CapabilityCode(StrEnum):
+    """Stable capability cells deliberately not admitted by the current API."""
+
+    ANALYTIC_WEIGHTS_UNSUPPORTED = "ANALYTIC_WEIGHTS_UNSUPPORTED"
+    INTERVAL_CENSORING_UNSUPPORTED = "INTERVAL_CENSORING_UNSUPPORTED"
+    LEFT_CENSORING_UNSUPPORTED = "LEFT_CENSORING_UNSUPPORTED"
+    TRUNCATION_UNSUPPORTED = "TRUNCATION_UNSUPPORTED"
+
+
+class CapabilityError(Exception):
+    """Typed request for a declared but unsupported statistical capability."""
+
+    def __init__(self, code: CapabilityCode) -> None:
+        if type(code) is not CapabilityCode:
+            raise TypeError("code must be a CapabilityCode")
+        super().__init__(code.value)
+        self.code = code
+
+
 def safe_exception_type(exc: Exception) -> str:
     """Return an allowlist-safe type label without exposing exception text."""
 
