@@ -105,7 +105,7 @@ class CheckpointRecord:
             _require_text("operation_token", operation_token)
             assert operation_digest is not None
             _require_text("operation_digest", operation_digest)
-        if not isinstance(state, (bytes, bytearray, memoryview)):
+        if not isinstance(state, bytes | bytearray | memoryview):
             raise TypeError("state must be bytes-like")
         for start, stop in committed_ranges:
             if (
@@ -236,3 +236,4 @@ class InMemoryCheckpointStore:
             self._record = candidate
             self._write_count += 1
             return self._record
+

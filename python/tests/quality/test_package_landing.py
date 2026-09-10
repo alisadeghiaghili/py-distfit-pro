@@ -74,12 +74,12 @@ class PackageLandingContractTests(unittest.TestCase):
         self.assertEqual(
             project["urls"],
             {
-                "Homepage": "https://github.com/alisadeghiaghili/py-distfit-pro",
+                "Homepage": "https://github.com/alisadeghiaghili/veridist",
                 "Documentation": (
-                    "https://github.com/alisadeghiaghili/py-distfit-pro/tree/main/python/docs"
+                    "https://github.com/alisadeghiaghili/veridist/tree/main/python/docs"
                 ),
-                "Repository": "https://github.com/alisadeghiaghili/py-distfit-pro",
-                "Issues": "https://github.com/alisadeghiaghili/py-distfit-pro/issues",
+                "Repository": "https://github.com/alisadeghiaghili/veridist",
+                "Issues": "https://github.com/alisadeghiaghili/veridist/issues",
             },
         )
 
