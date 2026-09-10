@@ -5,10 +5,17 @@ from __future__ import annotations
 import inspect
 import tempfile
 import unittest
+from dataclasses import replace
+from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId
+from veridist.adapters.csv_lifetimes import CsvLifetimeChunk
+from veridist.domain.lifetimes import ExactLifetime
 from veridist.engine.checkpoint import CheckpointRecord, SQLiteCheckpointStore
+from veridist.engine.delivery import ChunkEnvelope
+from veridist.engine.errors import EngineContractError, FailureCode
 
 
 class V1CheckpointedCsvTests(unittest.TestCase):
@@ -154,6 +161,112 @@ class V1CheckpointedCsvTests(unittest.TestCase):
                         cancel=None,
                     )
                     self.assertEqual(result.code, expected)
+
+    def test_checksum_mismatch_is_rejected_before_constructing_the_adapter(self) -> None:
+        from veridist.execution import fit_exponential_checkpointed_csv
+
+        class CorruptStore:
+            def read(self) -> CheckpointRecord:
+                return replace(self_record, checksum="not-a-valid-checksum")
+
+        with tempfile.TemporaryDirectory() as directory:
+            self_record = self._store(directory).read()
+            result = fit_exponential_checkpointed_csv(
+                path=Path(directory) / "unread.csv",
+                schema=CsvLifetimeSchema("time", "event_observed"),
+                source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
+                limits=CsvLifetimeLimits(32, 64),
+                store=CorruptStore(),
+                source_revision="revision-a",
+                cancel=None,
+            )
+        self.assertEqual(result.code, "CHECKPOINT_CHECKSUM_MISMATCH")
+
+    def test_range_gap_from_adapter_boundary_is_not_silently_repaired(self) -> None:
+        from veridist.execution import fit_exponential_checkpointed_csv
+
+        class StaticStore:
+            def read(self) -> CheckpointRecord:
+                return record
+
+        class GappedAdapter:
+            def __init__(self, *unused: object) -> None:
+                return None
+
+            def iter_chunks(self) -> object:
+                yield CsvLifetimeChunk(
+                    ChunkEnvelope(
+                        source_id="src_0123456789abcdef0123456789abcdef",
+                        chunk_id="chunk-gap",
+                        sequence_number=0,
+                        row_start=1,
+                        row_stop=2,
+                        byte_size=1,
+                    ),
+                    (ExactLifetime(Decimal("1")),),
+                    1,
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            record = self._store(directory).read()
+            with patch("veridist.execution.CsvLifetimeAdapter", GappedAdapter):
+                result = fit_exponential_checkpointed_csv(
+                    path=Path(directory) / "unused.csv",
+                    schema=CsvLifetimeSchema("time", "event_observed"),
+                    source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
+                    limits=CsvLifetimeLimits(32, 64),
+                    store=StaticStore(),
+                    source_revision="revision-a",
+                    cancel=None,
+                )
+        self.assertEqual(result.code, "RANGE_MISMATCH")
+
+    def test_engine_contract_error_from_checkpoint_boundary_is_returned_as_a_code(self) -> None:
+        from veridist.execution import fit_exponential_checkpointed_csv
+
+        class FailingStore:
+            def read(self) -> CheckpointRecord:
+                raise EngineContractError(FailureCode.CHECKPOINT_STORAGE_FAILED)
+
+        result = fit_exponential_checkpointed_csv(
+            path=Path("unread.csv"),
+            schema=CsvLifetimeSchema("time", "event_observed"),
+            source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
+            limits=CsvLifetimeLimits(32, 64),
+            store=FailingStore(),
+            source_revision="revision-a",
+            cancel=None,
+        )
+        self.assertEqual(result.code, "CHECKPOINT_STORAGE_FAILED")
+
+    def test_final_checkpoint_revision_is_rechecked_after_an_empty_source(self) -> None:
+        from veridist.execution import fit_exponential_checkpointed_csv
+
+        class RevisionChangingStore:
+            def __init__(self, initial: CheckpointRecord) -> None:
+                self._initial = initial
+                self._reads = 0
+
+            def read(self) -> CheckpointRecord:
+                self._reads += 1
+                if self._reads == 1:
+                    return self._initial
+                return replace(self._initial, source_revision="revision-b")
+
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "empty.csv"
+            source.write_text("time,event_observed\n", encoding="utf-8")
+            initial = self._store(directory).read()
+            result = fit_exponential_checkpointed_csv(
+                path=source,
+                schema=CsvLifetimeSchema("time", "event_observed"),
+                source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
+                limits=CsvLifetimeLimits(32, 64),
+                store=RevisionChangingStore(initial),
+                source_revision="revision-a",
+                cancel=None,
+            )
+        self.assertEqual(result.code, "SOURCE_REVISION_MISMATCH")
 
 
 if __name__ == "__main__":
