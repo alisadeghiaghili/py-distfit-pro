@@ -234,8 +234,8 @@ class PackageLandingContractTests(unittest.TestCase):
     def test_candidate_changelog_and_known_limits_are_complete_and_parallel(self) -> None:
         changelog = (PYTHON_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         for required in (
-            "## [0.5.0] - Unreleased",
-            "0.0.0.dev0",
+            "## [0.5.0] - 2026-09-10",
+            "package version is `0.5.0`",
             "ADR-0020",
             "KNOWN_LIMITS.md",
         ):
@@ -260,7 +260,7 @@ class PackageLandingContractTests(unittest.TestCase):
         )
         for locale, content in limits.items():
             with self.subTest(locale=locale):
-                self.assertIn("0.0.0.dev0", content)
+                self.assertIn("0.5.0", content)
                 self.assertIn("BUSL-1.1", content)
                 self.assertIn("Apache-2.0", content)
                 self.assertIn("2030-09-05", content)

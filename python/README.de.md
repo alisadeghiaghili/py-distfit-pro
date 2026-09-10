@@ -4,7 +4,7 @@
 
 ## Status
 
-`veridist` 0.0.0.dev0 ist ein Pre-Alpha-Vertragskern in aktiver Entwicklung.
+`veridist` 0.5.0 ist die erste öffentlich dokumentierte Vertragsversion mit überprüfbaren Nachweisen.
 Der aktuelle Stand spezifiziert und testet begrenzte Datenlieferung,
 Wiederholbarkeit, Pass-Budgets, transaktionale Wiederholungen,
 Checkpoint-Kompatibilität, typisierte Fehler, Ausführungsergebnisse und

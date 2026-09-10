@@ -4,7 +4,7 @@ This changelog covers only the nested `veridist` package. The repository-root
 legacy changelog describes the frozen `distfit_pro` history and is not a
 Veridist release record.
 
-## [0.5.0] - Unreleased
+## [0.5.0] - 2026-09-10
 
 ### Available in the candidate scope
 
@@ -21,9 +21,9 @@ Veridist release record.
 
 ### Release status
 
-`0.5.0` remains unreleased. The formal package version stays `0.0.0.dev0`
-until every candidate-specific gate in ADR-0020 passes on the exact tag
-candidate. Historical CI or scale artifacts do not satisfy that requirement.
+The package version is `0.5.0`. Its candidate-specific ADR-0020 gates passed
+on the exact release candidate; retained CI and scale artifacts bind to that
+candidate SHA.
 
 ### Known limits
 
