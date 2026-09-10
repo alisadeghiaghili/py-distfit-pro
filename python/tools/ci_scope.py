@@ -11,6 +11,7 @@ _VERIDIST_PREFIXES = ("python/", "docs/adr/", "docs/evidence/", "docs/migration/
 _VERIDIST_PATHS = frozenset(
     {
         "README.md",
+        "CHANGELOG.md",
         "README.fa.md",
         "README.de.md",
         "SECURITY.md",

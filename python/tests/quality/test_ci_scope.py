@@ -36,6 +36,7 @@ class CiScopeClassifierTests(unittest.TestCase):
             "docs/decisions-2026-08-20.md",
             "docs/migration/legacy-salvage-ledger.json",
             "README.md",
+            "CHANGELOG.md",
             "README.fa.md",
             "README.de.md",
             "SECURITY.md",
