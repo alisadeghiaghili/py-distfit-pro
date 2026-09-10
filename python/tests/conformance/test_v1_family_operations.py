@@ -80,6 +80,10 @@ class V1FamilyOperationTests(unittest.TestCase):
             cdf("normal", 0.0, object())
         with self.assertRaises(ValueError):
             cdf("exponential", 0.0, {"rate": 0.0})
+        with self.assertRaises(TypeError):
+            cdf("exponential", 0.0, {"scale": 1.0})
+        with self.assertRaises(ValueError):
+            cdf("exponential", 0.0, {"rate": "one"})
         with self.assertRaises(ValueError):
             cdf("normal", float("nan"), {"mu": 0.0, "sigma": 1.0})
         with self.assertRaises(ValueError):
