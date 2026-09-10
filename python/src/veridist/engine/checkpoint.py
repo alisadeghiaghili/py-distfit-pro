@@ -5,7 +5,12 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
+import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
+from pathlib import Path
 from threading import Lock
 from typing import Protocol
 
@@ -236,4 +241,230 @@ class InMemoryCheckpointStore:
             self._record = candidate
             self._write_count += 1
             return self._record
+
+
+class SQLiteCheckpointStore:
+    """A local SQLite checkpoint store with transactional generation CAS.
+
+    It is scoped to local filesystems and a single host. It is not an
+    encryption, authentication, network-filesystem, or distributed-store API.
+    """
+
+    __slots__ = ("_path", "_timeout")
+
+    def __init__(self, path: str | os.PathLike[str], *, timeout: float = 5.0) -> None:
+        if isinstance(timeout, bool) or timeout <= 0:
+            raise ValueError("timeout must be positive")
+        self._path = Path(path)
+        self._timeout = timeout
+
+    @property
+    def path(self) -> Path:
+        """Return the local database location without placing it in diagnostics."""
+
+        return self._path
+
+    def _connect(self) -> sqlite3.Connection:
+        connection: sqlite3.Connection | None = None
+        try:
+            connection = sqlite3.connect(
+                self._path,
+                timeout=self._timeout,
+                isolation_level=None,
+            )
+            connection.execute("PRAGMA synchronous = FULL")
+            return connection
+        except (OSError, sqlite3.Error):
+            if connection is not None:
+                connection.close()
+            raise EngineContractError(FailureCode.CHECKPOINT_STORAGE_FAILED) from None
+
+    @contextmanager
+    def _opened(self) -> Iterator[sqlite3.Connection]:
+        connection = self._connect()
+        try:
+            yield connection
+        finally:
+            connection.close()
+
+    @staticmethod
+    def _create_schema(connection: sqlite3.Connection) -> None:
+        connection.execute(
+            """
+            CREATE TABLE checkpoint (
+                singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+                format_version INTEGER NOT NULL,
+                generation INTEGER NOT NULL,
+                payload TEXT NOT NULL,
+                checksum TEXT NOT NULL
+            )
+            """
+        )
+
+    @staticmethod
+    def _commit(connection: sqlite3.Connection) -> None:
+        """Commit one validated transaction; isolated for fault-injection evidence."""
+
+        connection.execute("COMMIT")
+
+    def _reconcile_uncertain_commit(
+        self,
+        expected_generation: int,
+        candidate: CheckpointRecord,
+    ) -> CheckpointRecord:
+        """Resolve a lost commit acknowledgement without replaying the transition."""
+
+        try:
+            observed = self.read()
+        except EngineContractError:
+            raise CheckpointCommitUncertain(
+                "checkpoint commit acknowledgement is uncertain"
+            ) from None
+        if (
+            observed.generation == candidate.generation
+            and observed.operation_token == candidate.operation_token
+            and observed.operation_digest == candidate.operation_digest
+            and observed.checksum == candidate.checksum
+        ):
+            return observed
+        if observed.generation != expected_generation:
+            raise EngineContractError(FailureCode.CHECKPOINT_CONFLICT)
+        raise CheckpointCommitUncertain("checkpoint commit acknowledgement is uncertain")
+
+    @staticmethod
+    def _encode(record: CheckpointRecord) -> tuple[str, str]:
+        if not record.has_valid_checksum():
+            raise EngineContractError(FailureCode.CHECKPOINT_CHECKSUM_MISMATCH)
+        return _canonical_payload(record).decode("utf-8"), record.checksum
+
+    @staticmethod
+    def _decode(
+        format_version: object,
+        generation: object,
+        payload: object,
+        checksum: object,
+    ) -> CheckpointRecord:
+        if type(format_version) is not int or format_version != CHECKPOINT_FORMAT_VERSION:
+            raise EngineContractError(FailureCode.CHECKPOINT_FORMAT_UNSUPPORTED)
+        if type(generation) is not int or type(payload) is not str or type(checksum) is not str:
+            raise EngineContractError(FailureCode.CHECKPOINT_DECODE_FAILED)
+        try:
+            value = json.loads(payload)
+            if not isinstance(value, dict):
+                raise ValueError("checkpoint payload is not an object")
+            state = base64.b64decode(value["state"], validate=True)
+            record = CheckpointRecord.create(
+                format_version=value["format_version"],
+                source_id=value["source_id"],
+                source_schema=value["source_schema"],
+                source_revision=value["source_revision"],
+                reducer_id=value["reducer_id"],
+                accumulator_schema=value["accumulator_schema"],
+                plan_digest=value["plan_digest"],
+                cursor=value["cursor"],
+                committed_ranges=tuple(tuple(item) for item in value["committed_ranges"]),
+                generation=value["generation"],
+                operation_token=value["operation_token"],
+                operation_digest=value["operation_digest"],
+                state=state,
+            )
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            raise EngineContractError(FailureCode.CHECKPOINT_DECODE_FAILED) from None
+        if record.format_version != format_version or record.generation != generation:
+            raise EngineContractError(FailureCode.CHECKPOINT_DECODE_FAILED)
+        if record.checksum != checksum:
+            raise EngineContractError(FailureCode.CHECKPOINT_CHECKSUM_MISMATCH)
+        return record
+
+    @classmethod
+    def create(
+        cls,
+        path: str | os.PathLike[str],
+        initial: CheckpointRecord,
+        *,
+        timeout: float = 5.0,
+    ) -> SQLiteCheckpointStore:
+        store = cls(path, timeout=timeout)
+        payload, checksum = store._encode(initial)
+        if store._path.exists():
+            raise EngineContractError(FailureCode.CHECKPOINT_ALREADY_EXISTS)
+        try:
+            store._path.parent.mkdir(parents=True, exist_ok=True)
+            with store._opened() as connection:
+                store._create_schema(connection)
+                connection.execute(
+                    "INSERT INTO checkpoint VALUES (1, ?, ?, ?, ?)",
+                    (initial.format_version, initial.generation, payload, checksum),
+                )
+        except sqlite3.IntegrityError:
+            raise EngineContractError(FailureCode.CHECKPOINT_ALREADY_EXISTS) from None
+        except sqlite3.OperationalError as error:
+            if "already exists" in str(error).casefold():
+                raise EngineContractError(FailureCode.CHECKPOINT_ALREADY_EXISTS) from None
+            raise EngineContractError(FailureCode.CHECKPOINT_STORAGE_FAILED) from None
+        except OSError:
+            raise EngineContractError(FailureCode.CHECKPOINT_STORAGE_FAILED) from None
+        return store
+
+    def read(self) -> CheckpointRecord:
+        if not self._path.exists():
+            raise EngineContractError(FailureCode.CHECKPOINT_NOT_FOUND)
+        try:
+            with self._opened() as connection:
+                row = connection.execute(
+                    "SELECT format_version, generation, payload, checksum "
+                    "FROM checkpoint WHERE singleton = 1"
+                ).fetchone()
+        except sqlite3.Error:
+            raise EngineContractError(FailureCode.CHECKPOINT_STORAGE_FAILED) from None
+        if row is None:
+            raise EngineContractError(FailureCode.CHECKPOINT_NOT_FOUND)
+        return self._decode(*row)
+
+    def compare_and_swap(
+        self,
+        expected_generation: int,
+        candidate: CheckpointRecord,
+    ) -> CheckpointRecord:
+        if isinstance(expected_generation, bool) or expected_generation < 0:
+            raise ValueError("expected_generation must be non-negative")
+        if candidate.generation != expected_generation + 1:
+            raise EngineContractError(FailureCode.CHECKPOINT_CONFLICT)
+        payload, checksum = self._encode(candidate)
+        acknowledgement_lost = False
+        try:
+            with self._opened() as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                updated = connection.execute(
+                    """
+                    UPDATE checkpoint
+                    SET format_version = ?, generation = ?, payload = ?, checksum = ?
+                    WHERE singleton = 1 AND generation = ?
+                    """,
+                    (
+                        candidate.format_version,
+                        candidate.generation,
+                        payload,
+                        checksum,
+                        expected_generation,
+                    ),
+                ).rowcount
+                if updated != 1:
+                    connection.execute("ROLLBACK")
+                    raise EngineContractError(FailureCode.CHECKPOINT_CONFLICT)
+                try:
+                    self._commit(connection)
+                except sqlite3.Error:
+                    try:
+                        connection.execute("ROLLBACK")
+                    except sqlite3.Error:
+                        pass
+                    acknowledgement_lost = True
+        except EngineContractError:
+            raise
+        except sqlite3.Error:
+            raise EngineContractError(FailureCode.CHECKPOINT_STORAGE_FAILED) from None
+        if acknowledgement_lost:
+            return self._reconcile_uncertain_commit(expected_generation, candidate)
+        return candidate
 

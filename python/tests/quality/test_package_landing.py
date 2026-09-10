@@ -12,9 +12,9 @@ PYTHON_ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY_ROOT = PYTHON_ROOT.parent
 PYPROJECT = PYTHON_ROOT / "pyproject.toml"
 LANGUAGE_NAVIGATION = (
-    "[English](https://github.com/alisadeghiaghili/py-distfit-pro/blob/main/python/README.md)"
-    " | [فارسی](https://github.com/alisadeghiaghili/py-distfit-pro/blob/main/python/README.fa.md)"
-    " | [Deutsch](https://github.com/alisadeghiaghili/py-distfit-pro/blob/main/python/README.de.md)"
+    "[English](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.md)"
+    " | [فارسی](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.fa.md)"
+    " | [Deutsch](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.de.md)"
 )
 README_PATHS = {
     "en": PYTHON_ROOT / "README.md",
@@ -96,7 +96,7 @@ class PackageLandingContractTests(unittest.TestCase):
                 self.assertIn(LANGUAGE_NAVIGATION, content)
                 self.assertIn("veridist", content.casefold())
                 self.assertIn("0.0.0.dev0", content)
-                self.assertIn("cd py-distfit-pro/python", content)
+                self.assertIn("cd veridist/python", content)
                 self.assertIn("python -m pip install .", content)
                 self.assertIn("python -m pip install /path/to/veridist-", content)
                 self.assertIsNone(re.search(r"(?m)^python -m pip install veridist\s*$", content))

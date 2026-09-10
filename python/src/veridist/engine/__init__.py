@@ -5,6 +5,7 @@ from veridist.engine.checkpoint import (
     CheckpointRecord,
     CheckpointStore,
     InMemoryCheckpointStore,
+    SQLiteCheckpointStore,
 )
 from veridist.engine.data_source import (
     CheckpointMetadata,
@@ -128,6 +129,7 @@ __all__ = [
     "ExecutionObservation",
     "IdempotentSink",
     "InMemoryCheckpointStore",
+    "SQLiteCheckpointStore",
     "OrderingGuarantee",
     "KnownCoverage",
     "KnownExtent",

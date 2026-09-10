@@ -37,6 +37,7 @@ needed.
 | 0020 | Veridist 0.5 release contract and fail-closed publication | Accepted |
 | 0021 | Exact-state streaming log-likelihood reduction | Accepted |
 | 0022 | Public stream sources and lease-accounted delivery bounds | Accepted |
+| 0023 | Local SQLite checkpoint store | Accepted |
 
 ## Dependency notes
 
