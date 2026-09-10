@@ -2,9 +2,9 @@
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-`veridist` is an evidence-first, pre-alpha distribution-fitting package. Its
-formal package version is `0.0.0.dev0`; it is not a released distribution and
-is not available from a public package index.
+`veridist` 0.5.0 is an evidence-first distribution-fitting package. Its first
+public release binds its stated scope to retained CI, mutation, release, and
+cross-platform scale evidence.
 
 The current public scope is deliberately narrow: a strict UTF-8 CSV,
 fixed-location, rate-only exponential MLE for exact and independently
@@ -25,7 +25,7 @@ limits in [English](python/README.md), [Persian](python/README.fa.md), and
 [German](python/README.de.md). The candidate [changelog](python/CHANGELOG.md)
 and [known limits](python/KNOWN_LIMITS.md) are maintained separately. The binding release contract is
 [ADR-0020](docs/adr/ADR-0020-veridist-0.5-release-contract.md); it keeps the
-version at `0.0.0.dev0` until its candidate-specific gates pass.
+candidate-specific gates passed for this release.
 
 ## Security and license
 

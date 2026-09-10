@@ -1,7 +1,7 @@
 # Known limits for Veridist 0.5
 
 This document describes the intended 0.5 release boundary. While the package
-version is `0.0.0.dev0`, the release remains a candidate and these statements
+version is `0.5.0`, these statements
 must not be read as a publication claim.
 
 - `FIT-CSV-EXP`: fitting is limited to a fixed-location, rate-only

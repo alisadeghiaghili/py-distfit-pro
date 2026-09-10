@@ -4,7 +4,7 @@
 
 ## Status
 
-`veridist` 0.0.0.dev0 is a pre-alpha contract kernel under active development.
+`veridist` 0.5.0 is the first evidence-backed public contract release.
 It specifies and tests bounded delivery, replayability, pass budgets,
 transactional retry, checkpoint compatibility, typed failures, execution
 outcomes, and redacted provenance.

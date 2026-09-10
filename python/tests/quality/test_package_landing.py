@@ -24,12 +24,12 @@ README_PATHS = {
 
 
 class PackageLandingContractTests(unittest.TestCase):
-    def test_repository_landing_and_security_policy_describe_the_pre_release_package(self) -> None:
+    def test_repository_landing_and_security_policy_describe_the_release_package(self) -> None:
         required = {
             REPOSITORY_ROOT / "README.md": (
                 "# veridist",
-                "0.0.0.dev0",
-                "not a released distribution",
+                "0.5.0",
+                "first public release",
                 "python/README.md",
                 "README.fa.md",
                 "README.de.md",
@@ -38,21 +38,18 @@ class PackageLandingContractTests(unittest.TestCase):
             ),
             REPOSITORY_ROOT / "README.fa.md": (
                 "# veridist",
-                "0.0.0.dev0",
-                "انتشار رسمی نیست",
+                "0.5.0",
                 "python/README.fa.md",
                 "python/KNOWN_LIMITS.fa.md",
             ),
             REPOSITORY_ROOT / "README.de.md": (
                 "# veridist",
-                "0.0.0.dev0",
-                "keine veroeffentlichte Distribution",
+                "0.5.0",
                 "python/README.de.md",
                 "python/KNOWN_LIMITS.de.md",
             ),
             REPOSITORY_ROOT / "SECURITY.md": (
                 "# Security policy",
-                "not a released distribution",
                 "GitHub Security Advisory",
             ),
         }
@@ -107,7 +104,7 @@ class PackageLandingContractTests(unittest.TestCase):
     def test_each_locale_states_the_same_experimental_vertical_and_limits(self) -> None:
         required = {
             "en": (
-                "pre-alpha contract kernel",
+                "0.5.0 is the first evidence-backed public contract release",
                 "experimental rate-only exponential MLE",
                 "exact and independently right-censored lifetimes",
                 "Inference is not provided",
@@ -118,7 +115,7 @@ class PackageLandingContractTests(unittest.TestCase):
                 "BUSL-1.1 with an Apache-2.0 additional-use grant",
             ),
             "fa": (
-                "هستهٔ قراردادی پیش‌آلفا",
+                "نخستین انتشار عمومی با شواهد قابل‌بازبینی",
                 "برآوردگر آزمایشی MLE نمایی فقط برای پارامتر نرخ",
                 "طول عمرهای دقیق و راست‌سانسورشدهٔ مستقل",
                 "استنباط ارائه نمی‌شود",
@@ -129,7 +126,7 @@ class PackageLandingContractTests(unittest.TestCase):
                 "BUSL-1.1 با مجوز استفادهٔ اضافی Apache-2.0",
             ),
             "de": (
-                "Pre-Alpha-Vertragskern",
+                "0.5.0 ist die erste öffentlich dokumentierte Vertragsversion",
                 "experimentellen, rein ratenparametrisierten exponentiellen MLE",
                 "exakte und unabhängig rechtszensierte Lebensdauern",
                 "Inferenz wird nicht bereitgestellt",
@@ -234,8 +231,8 @@ class PackageLandingContractTests(unittest.TestCase):
     def test_candidate_changelog_and_known_limits_are_complete_and_parallel(self) -> None:
         changelog = (PYTHON_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         for required in (
-            "## [0.5.0] - Unreleased",
-            "0.0.0.dev0",
+            "## [0.5.0] - 2026-09-10",
+            "package version is `0.5.0`",
             "ADR-0020",
             "KNOWN_LIMITS.md",
         ):
@@ -260,7 +257,7 @@ class PackageLandingContractTests(unittest.TestCase):
         )
         for locale, content in limits.items():
             with self.subTest(locale=locale):
-                self.assertIn("0.0.0.dev0", content)
+                self.assertIn("0.5.0", content)
                 self.assertIn("BUSL-1.1", content)
                 self.assertIn("Apache-2.0", content)
                 self.assertIn("2030-09-05", content)

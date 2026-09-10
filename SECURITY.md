@@ -2,8 +2,7 @@
 
 ## Supported versions
 
-`veridist` is currently `0.0.0.dev0`. It is not a released distribution, so
-there is no supported public release line.
+`veridist` 0.5.0 is the supported public release line.
 
 ## Reporting a vulnerability
 

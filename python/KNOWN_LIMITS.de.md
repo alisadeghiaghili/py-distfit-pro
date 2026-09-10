@@ -1,7 +1,7 @@
 # Bekannte Grenzen von Veridist 0.5
 
 Dieses Dokument beschreibt die vorgesehene Release-Grenze für 0.5. Solange die
-Paketversion `0.0.0.dev0` lautet, bleibt das Release ein Kandidat; diese Aussagen
+Paketversion `0.5.0` lautet, sind diese Aussagen
 sind keine Veröffentlichungsbehauptung.
 
 - `FIT-CSV-EXP`: Die Anpassung ist auf ein Exponentialmodell mit festem Ort und
