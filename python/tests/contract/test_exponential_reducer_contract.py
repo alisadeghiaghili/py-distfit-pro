@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import hashlib
-import tracemalloc
 import tempfile
+import tracemalloc
 import unittest
 from dataclasses import FrozenInstanceError, replace
 from decimal import Decimal
@@ -14,6 +14,8 @@ from unittest.mock import PropertyMock, patch
 
 import veridist.families.exponential as exponential_module
 from veridist.domain.lifetimes import ExactLifetime, RightCensoredLifetime
+from veridist.engine.checkpoint import CheckpointRecord, SQLiteCheckpointStore
+from veridist.engine.retry import apply_pure_update
 from veridist.families.exponential import (
     ExponentialFitFailure,
     ExponentialFitFailureCode,
@@ -23,8 +25,6 @@ from veridist.families.exponential import (
     fit_exponential_chunks,
     fit_exponential_reduction_state,
 )
-from veridist.engine.checkpoint import CheckpointRecord, SQLiteCheckpointStore
-from veridist.engine.retry import apply_pure_update
 from veridist.statistics.exponential import (
     ExponentialCheckpointReducer,
     ExponentialReductionState,
