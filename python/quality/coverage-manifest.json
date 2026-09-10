@@ -47,7 +47,7 @@
     "src/veridist/engine/errors.py": {"statements": 84, "branches": 22},
     "src/veridist/engine/outcome.py": {"statements": 194, "branches": 72},
     "src/veridist/engine/pass_budget.py": {"statements": 51, "branches": 10},
-    "src/veridist/engine/provenance.py": {"statements": 325, "branches": 116},
+    "src/veridist/engine/provenance.py": {"statements": 326, "branches": 116},
     "src/veridist/engine/resume.py": {"statements": 78, "branches": 30},
     "src/veridist/engine/retry.py": {"statements": 107, "branches": 40},
     "src/veridist/engine/streaming.py": {"statements": 53, "branches": 22},
