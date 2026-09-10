@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import secrets
-from collections.abc import Generator, Iterable
+from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -16,7 +16,7 @@ from veridist.adapters.csv_lifetimes import (
     CsvLifetimeLimits,
     CsvLifetimeSchema,
 )
-from veridist.domain.lifetimes import LifetimeObservation
+from veridist.domain.lifetimes import ExactLifetime, LifetimeObservation
 from veridist.engine.checkpoint import CheckpointStore
 from veridist.engine.data_source import DataSourceLike, ExecutionPlan, SpoolPolicy, plan_passes
 from veridist.engine.delivery import (
@@ -76,6 +76,22 @@ class ExponentialSourceFitResult:
             raise TypeError("execution must be ExecutionReport")
         if (self.fit is not None) is not isinstance(self.execution.outcome, CompleteOutcome):
             raise ValueError("fit presence must match complete execution")
+
+
+@dataclass(frozen=True, slots=True)
+class CheckpointedCsvFitResult:
+    """Result of a resumable CSV reduction without exposing checkpoint state."""
+
+    code: str
+    fit: ExponentialFit | None
+
+    def __post_init__(self) -> None:
+        if not self.code:
+            raise ValueError("code must be non-empty")
+        if self.code == "COMPLETE" and self.fit is None:
+            raise ValueError("a complete reduction must contain a fit result")
+        if self.code != "COMPLETE" and self.fit is not None:
+            raise ValueError("an incomplete reduction cannot contain a fit result")
 
 
 def fit_exponential_source(adapter: object) -> ExponentialSourceFitResult:
@@ -234,6 +250,97 @@ def fit_exponential_checkpointed_chunks(
     return fit_exponential_reduction_state(reducer.decode_state(store.read().state))
 
 
+def fit_exponential_checkpointed_csv(
+    *,
+    path: Path,
+    schema: CsvLifetimeSchema,
+    source_id: PublicSourceId,
+    limits: CsvLifetimeLimits,
+    store: CheckpointStore,
+    source_revision: str,
+    cancel: Callable[[int], bool] | None,
+) -> CheckpointedCsvFitResult:
+    """Resume a strict CSV lifetime reduction from its committed row cursor.
+
+    Each committed row is a pure reducer/CAS transition.  The source is read
+    once for this attempt, but rows in the committed prefix are only decoded
+    to reach the cursor; they are never submitted to the reducer again.
+    Cancellation is observed immediately before acquiring the next row, so a
+    cancelled result always leaves the preceding complete checkpoint intact.
+    """
+
+    if not isinstance(path, Path):
+        raise TypeError("path must be a pathlib.Path")
+    if type(schema) is not CsvLifetimeSchema:
+        raise TypeError("schema must be CsvLifetimeSchema")
+    if type(source_id) is not PublicSourceId:
+        raise TypeError("source_id must be PublicSourceId")
+    if type(limits) is not CsvLifetimeLimits:
+        raise TypeError("limits must be CsvLifetimeLimits")
+    if cancel is not None and not callable(cancel):
+        raise TypeError("cancel must be callable or None")
+
+    reducer = ExponentialCheckpointReducer()
+    try:
+        # This check is deliberately before source acquisition and every
+        # reducer call.  `apply_pure_update` repeats it at the CAS boundary.
+        checkpoint = store.read()
+        if checkpoint.source_revision != source_revision:
+            return CheckpointedCsvFitResult("SOURCE_REVISION_MISMATCH", None)
+        if not checkpoint.has_valid_checksum():
+            return CheckpointedCsvFitResult("CHECKPOINT_CHECKSUM_MISMATCH", None)
+        if checkpoint.reducer_id != reducer.reducer_id:
+            return CheckpointedCsvFitResult("REDUCER_MISMATCH", None)
+        if checkpoint.accumulator_schema != reducer.accumulator_schema:
+            return CheckpointedCsvFitResult("ACCUMULATOR_SCHEMA_MISMATCH", None)
+
+        # The strict adapter's public logical-payload accounting has a fixed
+        # object-graph overhead.  Checkpointing serializes one row at a time,
+        # so retain a bounded adapter chunk while honoring a small public
+        # checkpoint payload budget without materializing the source.
+        adapter_limit = max(2048, limits.chunk_bytes)
+        adapter = CsvLifetimeAdapter(
+            path,
+            schema,
+            source_id,
+            CsvLifetimeLimits(adapter_limit, max(adapter_limit, limits.max_inflight_bytes)),
+        )
+        for chunk in adapter.iter_chunks():
+            offsets = enumerate(chunk.observations, start=chunk.envelope.row_start)
+            for offset, observation in offsets:
+                checkpoint = store.read()
+                if checkpoint.source_revision != source_revision:
+                    return CheckpointedCsvFitResult("SOURCE_REVISION_MISMATCH", None)
+                if offset < checkpoint.cursor:
+                    continue
+                if offset != checkpoint.cursor:
+                    return CheckpointedCsvFitResult("RANGE_MISMATCH", None)
+                if cancel is not None and cancel(checkpoint.cursor):
+                    return CheckpointedCsvFitResult("CANCELLED", None)
+                payload = json.dumps(
+                    [[float(observation.time), type(observation) is ExactLifetime]],
+                    separators=(",", ":"),
+                ).encode("utf-8")
+                apply_pure_update(
+                    store=store,
+                    source_revision=source_revision,
+                    payload=payload,
+                    payload_sha256=hashlib.sha256(payload).hexdigest(),
+                    row_start=offset,
+                    row_stop=offset + 1,
+                    operation_token=f"row-{offset}-{offset + 1}",
+                    reducer=reducer,
+                )
+        final = store.read()
+        if final.source_revision != source_revision:
+            return CheckpointedCsvFitResult("SOURCE_REVISION_MISMATCH", None)
+        return CheckpointedCsvFitResult(
+            "COMPLETE", fit_exponential_reduction_state(reducer.decode_state(final.state))
+        )
+    except EngineContractError as error:
+        return CheckpointedCsvFitResult(error.code.value, None)
+
+
 def _provenance(
     adapter: CsvLifetimeAdapter,
     plan: ExecutionPlan,
@@ -281,7 +388,9 @@ def _exponential_settings_sha256() -> str:
 
 
 __all__ = [
+    "CheckpointedCsvFitResult",
     "ExponentialSourceFitResult",
+    "fit_exponential_checkpointed_csv",
     "fit_exponential_checkpointed_chunks",
     "fit_exponential_csv",
     "fit_exponential_source",

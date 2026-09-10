@@ -51,7 +51,7 @@
     "src/veridist/engine/resume.py": {"statements": 78, "branches": 30},
     "src/veridist/engine/retry.py": {"statements": 107, "branches": 40},
     "src/veridist/engine/streaming.py": {"statements": 53, "branches": 22},
-    "src/veridist/execution.py": {"statements": 114, "branches": 28},
+    "src/veridist/execution.py": {"statements": 169, "branches": 66},
     "src/veridist/families/__init__.py": {"statements": 2, "branches": 0},
     "src/veridist/families/exponential.py": {"statements": 115, "branches": 40},
     "src/veridist/families/registry.py": {"statements": 152, "branches": 62},
