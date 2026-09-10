@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from veridist.engine.checkpoint import (
+    CheckpointCommitUncertain,
     CheckpointRecord,
     SQLiteCheckpointStore,
 )
@@ -261,6 +262,85 @@ class SQLiteCheckpointStoreContractTests(unittest.TestCase):
                 store.compare_and_swap(1, candidate)
             self.assertIs(mismatch.exception.code, FailureCode.CHECKPOINT_CONFLICT)
             self.assertEqual(store.read(), initial_record())
+
+    def test_ckpt_sql05_reconciles_lost_commit_acknowledgement(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "checkpoint.sqlite3"
+            initial = initial_record()
+            candidate = next_record(initial)
+            store = SQLiteCheckpointStore.create(path, initial)
+            original_commit = SQLiteCheckpointStore._commit
+
+            def commit_then_lose_acknowledgement(connection: sqlite3.Connection) -> None:
+                original_commit(connection)
+                raise sqlite3.OperationalError("acknowledgement unavailable")
+
+            with patch.object(
+                SQLiteCheckpointStore,
+                "_commit",
+                side_effect=commit_then_lose_acknowledgement,
+            ):
+                self.assertEqual(store.compare_and_swap(0, candidate), candidate)
+            self.assertEqual(SQLiteCheckpointStore(path).read(), candidate)
+
+    def test_ckpt_sql05_reports_uncommitted_lost_acknowledgement_without_leaks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "private-checkpoint.sqlite3"
+            initial = initial_record()
+            store = SQLiteCheckpointStore.create(path, initial)
+            with patch.object(
+                SQLiteCheckpointStore,
+                "_commit",
+                side_effect=sqlite3.OperationalError("private failure text"),
+            ):
+                with self.assertRaises(CheckpointCommitUncertain) as uncertain:
+                    store.compare_and_swap(0, next_record(initial))
+            self.assertNotIn("private", str(uncertain.exception))
+            self.assertEqual(store.read(), initial)
+
+    def test_ckpt_sql06_terminated_writer_leaves_a_complete_old_record(self) -> None:
+        program = """
+import os
+import sqlite3
+import sys
+
+connection = sqlite3.connect(sys.argv[1], isolation_level=None)
+connection.execute('BEGIN IMMEDIATE')
+connection.execute('UPDATE checkpoint SET generation = 99 WHERE singleton = 1')
+os._exit(0)
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "checkpoint.sqlite3"
+            initial = initial_record()
+            SQLiteCheckpointStore.create(path, initial)
+            process = subprocess.run(
+                [sys.executable, "-c", program, str(path)],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+            self.assertEqual(process.returncode, 0)
+            self.assertEqual(SQLiteCheckpointStore(path).read(), initial)
+
+    def test_ckpt_sql06_lock_timeout_is_typed_and_does_not_mutate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "checkpoint.sqlite3"
+            initial = initial_record()
+            SQLiteCheckpointStore.create(path, initial)
+            lock_holder = sqlite3.connect(path, isolation_level=None)
+            try:
+                lock_holder.execute("BEGIN IMMEDIATE")
+                with self.assertRaises(EngineContractError) as locked:
+                    SQLiteCheckpointStore(path, timeout=0.01).compare_and_swap(
+                        0,
+                        next_record(initial),
+                    )
+            finally:
+                lock_holder.execute("ROLLBACK")
+                lock_holder.close()
+            self.assertIs(locked.exception.code, FailureCode.CHECKPOINT_STORAGE_FAILED)
+            self.assertEqual(SQLiteCheckpointStore(path).read(), initial)
 
     def test_ckpt_sql05_independent_processes_allow_one_generation_commit(self) -> None:
         program = """
