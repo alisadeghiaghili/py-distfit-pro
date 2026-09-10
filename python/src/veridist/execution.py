@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import secrets
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -17,6 +17,7 @@ from veridist.adapters.csv_lifetimes import (
     CsvLifetimeSchema,
 )
 from veridist.domain.lifetimes import LifetimeObservation
+from veridist.engine.checkpoint import CheckpointStore
 from veridist.engine.data_source import DataSourceLike, ExecutionPlan, SpoolPolicy, plan_passes
 from veridist.engine.delivery import (
     AdapterKind,
@@ -35,6 +36,7 @@ from veridist.engine.outcome import (
     classify_execution_outcome,
 )
 from veridist.engine.pass_budget import PassEnforcer
+from veridist.engine.retry import apply_pure_update
 from veridist.engine.provenance import (
     AdapterProvenance,
     CheckpointNotUsed,
@@ -54,7 +56,12 @@ from veridist.engine.provenance import (
     snapshot_execution_observation,
 )
 from veridist.engine.streaming import iter_stream
-from veridist.families.exponential import ExponentialFit, fit_exponential_chunks
+from veridist.families.exponential import (
+    ExponentialFit,
+    fit_exponential_chunks,
+    fit_exponential_reduction_state,
+)
+from veridist.statistics.exponential import ExponentialCheckpointReducer
 
 
 @dataclass(frozen=True, slots=True)
@@ -189,6 +196,44 @@ def fit_exponential_csv(
     return fit_exponential_source(CsvLifetimeAdapter(path, schema, source_id, limits))
 
 
+def fit_exponential_checkpointed_chunks(
+    *,
+    store: CheckpointStore,
+    source_revision: str,
+    chunks: object,
+) -> ExponentialFit:
+    """Reduce canonical JSON lifetime chunks through a durable checkpoint store.
+
+    The caller owns acquisition and must provide a store initialized for the
+    same source/reducer contract. Only one chunk is decoded at a time; the
+    checkpoint contains sufficient statistics, never raw input rows.
+    """
+
+    if not isinstance(chunks, Iterable):
+        raise TypeError("chunks must be an iterable")
+    reducer = ExponentialCheckpointReducer()
+    for payload in chunks:
+        if not isinstance(payload, bytes):
+            raise TypeError("checkpointed chunks must be bytes")
+        rows = json.loads(payload.decode("utf-8"))
+        if not isinstance(rows, list):
+            raise ValueError("checkpointed chunk must be a JSON array")
+        base = store.read()
+        row_start = base.cursor
+        row_stop = row_start + len(rows)
+        apply_pure_update(
+            store=store,
+            source_revision=source_revision,
+            payload=payload,
+            payload_sha256=hashlib.sha256(payload).hexdigest(),
+            row_start=row_start,
+            row_stop=row_stop,
+            operation_token=f"chunk-{row_start}-{row_stop}",
+            reducer=reducer,
+        )
+    return fit_exponential_reduction_state(reducer.decode_state(store.read().state))
+
+
 def _provenance(
     adapter: CsvLifetimeAdapter,
     plan: ExecutionPlan,
@@ -235,4 +280,9 @@ def _exponential_settings_sha256() -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-__all__ = ["ExponentialSourceFitResult", "fit_exponential_csv", "fit_exponential_source"]
+__all__ = [
+    "ExponentialSourceFitResult",
+    "fit_exponential_checkpointed_chunks",
+    "fit_exponential_csv",
+    "fit_exponential_source",
+]
