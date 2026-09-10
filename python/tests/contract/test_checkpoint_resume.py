@@ -95,6 +95,20 @@ def expectation(**overrides: object) -> ResumeExpectation:
 
 
 class CheckpointResumeContractTests(unittest.TestCase):
+    def test_ds09_checkpointed_chunks_reject_invalid_chunk_shapes(self) -> None:
+        with self.assertRaises(TypeError):
+            fit_exponential_checkpointed_chunks(
+                store=object(), source_revision=SOURCE_REVISION, chunks=1
+            )
+        with self.assertRaises(TypeError):
+            fit_exponential_checkpointed_chunks(
+                store=object(), source_revision=SOURCE_REVISION, chunks=("rows",)
+            )
+        with self.assertRaises(ValueError):
+            fit_exponential_checkpointed_chunks(
+                store=object(), source_revision=SOURCE_REVISION, chunks=(b"{}",)
+            )
+
     def test_ds09_checkpointed_exponential_chunks_return_a_fit(self) -> None:
         reducer_id = "exponential-reduction-v1"
         accumulator_schema = "exponential-reduction-v1"
