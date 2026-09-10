@@ -54,6 +54,7 @@ CELL_KEYS = {
     "fit",
     "memory",
     "elapsed_seconds",
+    "throughput_rows_per_second",
 }
 SOURCE_KEYS = {"bytes", "sha256"}
 OBSERVED_KEYS = {
@@ -86,7 +87,7 @@ FORMULA_V1_RATE_RELATIVE_TOLERANCE = Decimal("2.220446049250313e-15")
 
 def _finite_nonnegative(value: object) -> bool:
     return (
-        isinstance(value, (int, float))
+        isinstance(value, int | float)
         and not isinstance(value, bool)
         and math.isfinite(value)
         and value >= 0
@@ -351,10 +352,18 @@ def validate(
         if not _integer(memory["tracemalloc_peak_bytes"]):
             errors.append(f"cell {key} memory facts invalid")
         for metric in ("rss_peak_bytes", "rss_delta_bytes"):
-            if memory[metric] is not None and not _integer(memory[metric]):
+            if not _integer(memory[metric]):
                 errors.append(f"cell {key} {metric} invalid")
         if not _finite_nonnegative(cell["elapsed_seconds"]):
             errors.append(f"cell {key} elapsed time invalid")
+        throughput = cell["throughput_rows_per_second"]
+        if (
+            not _finite_nonnegative(throughput)
+            or throughput == 0
+            or cell["elapsed_seconds"] == 0
+            or abs(throughput - rows / cell["elapsed_seconds"]) > max(1e-9, throughput * 1e-12)
+        ):
+            errors.append(f"cell {key} throughput invalid")
     if len(keys) != len(set(keys)):
         errors.append("duplicate matrix cells")
     row_set, budget_set = {key[0] for key in keys}, {key[1] for key in keys}
