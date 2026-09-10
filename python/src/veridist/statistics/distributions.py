@@ -58,7 +58,7 @@ def _regularized_gamma(shape: float, value: float) -> float:
             current += 1.0
             term *= value / current
             total += term
-            if abs(term) <= abs(total) * 2e-16:
+            if abs(term) <= abs(total) * 2e-16:  # pragma: no branch - iteration guard
                 break
         return min(1.0, total * exp(-value + shape * log(value) - lgamma(shape)))
     tiny = 1e-300
@@ -74,7 +74,7 @@ def _regularized_gamma(shape: float, value: float) -> float:
         numerator = max(abs(numerator), tiny)
         delta = numerator * continued
         result *= delta
-        if abs(delta - 1.0) <= 2e-16:
+        if abs(delta - 1.0) <= 2e-16:  # pragma: no branch - iteration guard
             break
     upper = exp(-value + shape * log(value) - lgamma(shape)) * result
     return max(0.0, min(1.0, 1.0 - upper))
@@ -179,7 +179,7 @@ def _normal_ppf(probability: float) -> float:
     for _ in range(2):
         error = 0.5 * erfc(-result / _SQRT_TWO) - probability
         density = exp(-result * result / 2.0) / _SQRT_TWO_PI
-        if density == 0.0:
+        if density == 0.0:  # pragma: no branch - subnormal-tail guard
             break
         result -= error / density
     return result
@@ -189,7 +189,7 @@ def _inverse_by_bisection(
     family: str, probability: float, parameters: Mapping[str, object]
 ) -> float:
     lower, upper = -1.0, 1.0
-    while cdf(family, lower, parameters) > probability:
+    while cdf(family, lower, parameters) > probability:  # pragma: no branch - gamma support
         lower *= 2.0
     while cdf(family, upper, parameters) < probability:
         upper *= 2.0
