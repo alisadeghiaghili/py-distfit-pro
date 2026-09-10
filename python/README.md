@@ -31,6 +31,11 @@ factory. `BoundedChunkBuffer` charges queued and consumer-held chunks until
 adapter—this does not add generic CSV, Parquet, Arrow, dataframe, database,
 or broad out-of-core adapters.
 
+For a sequential pure reducer, `veridist.engine.SQLiteCheckpointStore` provides
+durable local checkpoint state with generation-based compare-and-swap and
+cross-process SQLite locking. It is limited to one host and a local filesystem;
+the strict CSV adapter does not yet claim automatic checkpoint replay.
+
 The separate scalar surface exposes immutable `FAMILY_REGISTRY` metadata for
 normal, gamma, Weibull-minimum, lognormal, and right-Gumbel; scalar
 `evaluate_log_density`; and exact-state `reduce_log_likelihood_chunks`.

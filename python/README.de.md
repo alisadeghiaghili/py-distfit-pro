@@ -104,3 +104,9 @@ und ausdrückliche Grenzen getrennt ausgewiesen.
 
 BUSL-1.1 mit einer zusätzlichen Apache-2.0-Nutzungserlaubnis für persönliche,
 nicht-kommerzielle Nutzung; siehe [LICENSE](LICENSE).
+Für einen sequentiellen, nebenwirkungsfreien Reducer bietet
+`veridist.engine.SQLiteCheckpointStore` dauerhaften lokalen Checkpoint-Zustand
+mit generationsbasiertem Compare-and-Swap und SQLite-Sperren zwischen
+Prozessen. Der Umfang ist auf einen Rechner und ein lokales Dateisystem
+beschränkt; der strikte CSV-Adapter verspricht noch kein automatisches
+Checkpoint-Replay.
