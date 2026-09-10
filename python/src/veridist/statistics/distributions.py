@@ -162,18 +162,18 @@ def _normal_ppf(probability: float) -> float:
     if probability < lower:
         q = sqrt(-2.0 * log(probability))
         numerator = (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5])
-        denominator = (((d[0] * q + d[1]) * q + d[2]) * q + 1.0)
-        result = -numerator / denominator
+        denominator = ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0)
+        result = numerator / denominator
     elif probability > upper:
         q = sqrt(-2.0 * log1p(-probability))
         numerator = (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5])
-        denominator = (((d[0] * q + d[1]) * q + d[2]) * q + 1.0)
-        result = numerator / denominator
+        denominator = ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0)
+        result = -numerator / denominator
     else:
         q = probability - 0.5
         r = q * q
         numerator = (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5])
-        denominator = ((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + 1.0)
+        denominator = (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0)
         result = numerator * q / denominator
     for _ in range(2):
         error = 0.5 * erfc(-result / _SQRT_TWO) - probability
