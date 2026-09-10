@@ -21,6 +21,7 @@ from veridist.families.exponential import (
     fit_exponential_reduction_state,
 )
 from veridist.statistics.exponential import (
+    ExponentialCheckpointReducer,
     ExponentialReductionState,
     _ReductionOverflow,
     reduce_exponential_chunks,
@@ -29,6 +30,21 @@ from veridist.statistics.exponential import (
 
 class ExponentialReducerContracts(unittest.TestCase):
     """Streaming, reproducibility, state, and provenance constraints."""
+
+    def test_checkpoint_reducer_round_trips_state_and_reduces_canonical_json(self) -> None:
+        reducer = ExponentialCheckpointReducer()
+        updated = reducer.reduce(ExponentialReductionState.empty(), b'[[1.5,true],[2.25,false]]')
+        restored = reducer.decode_state(reducer.encode_state(updated))
+        self.assertEqual(restored, updated)
+        self.assertEqual((restored.observation_count, restored.event_count), (2, 1))
+        self.assertEqual(restored.summed_time, 3.75)
+
+    def test_checkpoint_reducer_rejects_malformed_state_and_payload(self) -> None:
+        reducer = ExponentialCheckpointReducer()
+        with self.assertRaises((KeyError, ValueError, TypeError)):
+            reducer.decode_state(b"[]")
+        with self.assertRaises((ValueError, TypeError)):
+            reducer.reduce(ExponentialReductionState.empty(), b"{}")
 
     def test_exp09_ragged_and_empty_chunks_match_canonical_observation_order(self) -> None:
         chunks = (
