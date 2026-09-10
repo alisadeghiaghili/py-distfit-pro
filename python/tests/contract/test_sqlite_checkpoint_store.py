@@ -298,6 +298,26 @@ class SQLiteCheckpointStoreContractTests(unittest.TestCase):
             self.assertNotIn("private", str(uncertain.exception))
             self.assertEqual(store.read(), initial)
 
+    def test_ckpt_sql05_reconciliation_handles_unreadable_and_competing_state(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "checkpoint.sqlite3"
+            initial = initial_record()
+            candidate = next_record(initial)
+            store = SQLiteCheckpointStore.create(path, initial)
+            with patch.object(
+                SQLiteCheckpointStore,
+                "read",
+                side_effect=EngineContractError(FailureCode.CHECKPOINT_STORAGE_FAILED),
+            ):
+                with self.assertRaises(CheckpointCommitUncertain):
+                    store._reconcile_uncertain_commit(0, candidate)
+
+            competing = next_record(candidate)
+            with patch.object(SQLiteCheckpointStore, "read", return_value=competing):
+                with self.assertRaises(EngineContractError) as conflict:
+                    store._reconcile_uncertain_commit(0, candidate)
+            self.assertIs(conflict.exception.code, FailureCode.CHECKPOINT_CONFLICT)
+
     def test_ckpt_sql06_terminated_writer_leaves_a_complete_old_record(self) -> None:
         program = """
 import os
