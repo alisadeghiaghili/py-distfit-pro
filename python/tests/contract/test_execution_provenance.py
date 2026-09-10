@@ -729,6 +729,7 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
             retry_count=2,
             commit_count=1,
             store_version="1",
+            store_kind=CheckpointStoreKind.SQLITE_LOCAL,
         )
         error = EngineContractError(FailureCode.CANCELLED, {"expected": sentinel})
         failure = failure_record_from_error(error, FailureStage.CANCELLATION)
@@ -756,6 +757,7 @@ class ExecutionProvenanceContractTests(unittest.TestCase):
         self.assertNotIn(b"source_revision", encoded)
         self.assertNotIn(b"payload", encoded)
         self.assertEqual(json.loads(encoded)["checkpoint"]["initial_generation"], 7)
+        self.assertEqual(json.loads(encoded)["checkpoint"]["store_kind"], "sqlite_local")
         self.assertEqual(json.loads(encoded)["execution"]["required_passes"], 1)
         bounded_buffer_call(buffer, lambda: buffer.get(timeout=0.1)).release()
 
