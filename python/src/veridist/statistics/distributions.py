@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from importlib import import_module
 from math import erfc, exp, expm1, isfinite, lgamma, log, log1p, sqrt
 from typing import cast
 
@@ -222,7 +223,7 @@ def ppf(family: str, probability: float, parameters: Mapping[str, object]) -> fl
 def sample(family: str, size: int, parameters: Mapping[str, object], rng: object) -> object:
     """Sample with only the caller-owned NumPy generator as a randomness source."""
 
-    import numpy as np
+    np = import_module("numpy")
 
     if isinstance(size, bool) or not isinstance(size, int) or size < 0:
         raise ValueError("size must be a non-negative built-in integer")
