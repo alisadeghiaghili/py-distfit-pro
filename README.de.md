@@ -2,10 +2,9 @@
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-`veridist` ist ein evidenzorientiertes Pre-Alpha-Paket zur
-Verteilungsanpassung. Die formale Paketversion ist `0.0.0.dev0`; es ist keine
-veroeffentlichte Distribution und nicht ueber einen oeffentlichen Paketindex
-verfuegbar.
+`veridist` 0.5.0 ist ein evidenzorientiertes Paket zur Verteilungsanpassung.
+Die erste öffentliche Version wird durch CI-, Mutation-, Release- und
+plattformübergreifende Skalierungsnachweise gestützt.
 
 Der öffentliche Umfang ist absichtlich eng: striktes UTF-8-CSV, ein
 Exponential-MLE mit festem Ort und ausschließlich Rate für exakte sowie
