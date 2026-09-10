@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 from math import isfinite
 
 from veridist.domain.lifetimes import ExactLifetime, LifetimeObservation, RightCensoredLifetime
+from veridist.engine.retry import PureReducer
 
 
 class _ReductionOverflow(Exception):
@@ -105,6 +107,62 @@ class ExponentialReductionState:
         return combined._add_value(other.compensation, 0, 0)
 
 
+class ExponentialCheckpointReducer(PureReducer[ExponentialReductionState]):
+    """Pure reducer adapter for durable checkpointed exponential chunks.
+
+    State uses hexadecimal float spellings so checkpoint round trips preserve
+    the exact binary64 sufficient statistics without retaining raw rows.
+    Payloads are canonical JSON arrays of ``[time, event_observed]`` pairs.
+    """
+
+    reducer_id = "exponential-reduction-v1"
+    accumulator_schema = "exponential-reduction-v1"
+
+    def decode_state(self, state: bytes) -> ExponentialReductionState:
+        value = json.loads(state.decode("utf-8"))
+        if not isinstance(value, dict):
+            raise ValueError("reduction state must be an object")
+        return ExponentialReductionState(
+            int(value["observation_count"]),
+            int(value["event_count"]),
+            float.fromhex(value["total_time"]),
+            float.fromhex(value["compensation"]),
+        )
+
+    def reduce(
+        self,
+        accumulator: ExponentialReductionState,
+        payload: bytes,
+    ) -> ExponentialReductionState:
+        rows = json.loads(payload.decode("utf-8"))
+        if not isinstance(rows, list):
+            raise ValueError("reduction payload must be an array")
+        state = accumulator
+        for row in rows:
+            if not isinstance(row, list) or len(row) != 2:
+                raise ValueError("reduction row must contain time and event flag")
+            time, event_observed = row
+            observation: LifetimeObservation = (
+                ExactLifetime(time) if event_observed else RightCensoredLifetime(time)
+            )
+            state = state.add(observation)
+        return state
+
+    def encode_state(self, accumulator: ExponentialReductionState) -> bytes:
+        if type(accumulator) is not ExponentialReductionState:
+            raise TypeError("accumulator must be ExponentialReductionState")
+        return json.dumps(
+            {
+                "compensation": accumulator.compensation.hex(),
+                "event_count": accumulator.event_count,
+                "observation_count": accumulator.observation_count,
+                "total_time": accumulator.total_time.hex(),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+
+
 def reduce_exponential_chunks(
     chunks: Iterable[Iterable[LifetimeObservation]],
 ) -> ExponentialReductionState:
@@ -138,4 +196,4 @@ def reduce_exponential_chunks(
     return state
 
 
-__all__ = ["ExponentialReductionState", "reduce_exponential_chunks"]
+__all__ = ["ExponentialCheckpointReducer", "ExponentialReductionState", "reduce_exponential_chunks"]
