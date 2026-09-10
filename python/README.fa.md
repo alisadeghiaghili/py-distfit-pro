@@ -1,6 +1,6 @@
 # veridist
 
-[English](https://github.com/alisadeghiaghili/py-distfit-pro/blob/main/python/README.md) | [فارسی](https://github.com/alisadeghiaghili/py-distfit-pro/blob/main/python/README.fa.md) | [Deutsch](https://github.com/alisadeghiaghili/py-distfit-pro/blob/main/python/README.de.md)
+[English](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.md) | [فارسی](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.fa.md) | [Deutsch](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.de.md)
 
 <div lang="fa" dir="rtl">
 
@@ -54,8 +54,8 @@ artifact تاریخی به‌تنهایی شاهد یک candidate تازه نی�
 </div>
 
 ```console
-git clone https://github.com/alisadeghiaghili/py-distfit-pro.git
-cd py-distfit-pro/python
+git clone https://github.com/alisadeghiaghili/veridist.git
+cd veridist/python
 python -m pip install .
 ```
 
