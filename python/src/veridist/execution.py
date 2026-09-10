@@ -36,7 +36,6 @@ from veridist.engine.outcome import (
     classify_execution_outcome,
 )
 from veridist.engine.pass_budget import PassEnforcer
-from veridist.engine.retry import apply_pure_update
 from veridist.engine.provenance import (
     AdapterProvenance,
     CheckpointNotUsed,
@@ -55,6 +54,7 @@ from veridist.engine.provenance import (
     failure_record_from_error,
     snapshot_execution_observation,
 )
+from veridist.engine.retry import apply_pure_update
 from veridist.engine.streaming import iter_stream
 from veridist.families.exponential import (
     ExponentialFit,

@@ -98,7 +98,10 @@ class CheckpointResumeContractTests(unittest.TestCase):
     def test_ds09_checkpointed_exponential_chunks_return_a_fit(self) -> None:
         reducer_id = "exponential-reduction-v1"
         accumulator_schema = "exponential-reduction-v1"
-        state = b'{"compensation":"0x0.0p+0","event_count":0,"observation_count":0,"total_time":"0x0.0p+0"}'
+        state = (
+            b'{"compensation":"0x0.0p+0","event_count":0,'
+            b'"observation_count":0,"total_time":"0x0.0p+0"}'
+        )
         initial = CheckpointRecord.create(
             format_version=1,
             source_id="source",
