@@ -27,7 +27,7 @@ distributed coordination are outside this decision.
 
 The database contains one versioned checkpoint row. It stores serialized state
 as a BLOB and all `CheckpointRecord` fields needed to recompute its SHA-256
-integrity checksum. Connections set `PRAGMA journal_mode=WAL` and
+integrity checksum. Connections retain SQLite's default journal mode and set
 `PRAGMA synchronous=FULL`. Creation uses `BEGIN IMMEDIATE` and fails when a
 checkpoint already exists. Compare-and-swap uses `BEGIN IMMEDIATE`, validates
 the candidate before mutation, and updates only when the stored generation is
