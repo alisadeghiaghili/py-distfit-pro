@@ -139,10 +139,13 @@ as a statement about uninspected current files.
   one-pass counts and logical-payload observations remain historical context.
   A current candidate requires a clean schema-v2 run that binds both run and
   candidate SHA and declares paired timing provenance. Parquet/Arrow/dataframe/
-  database adapters, cancellation/retry orchestration, broad streaming
+  database adapters, cancellation orchestration, broad streaming
   equivalence and production-scale RSS bounds remain **NOT IMPLEMENTED**.
-  A local SQLite checkpoint backend and its resume/retry contracts are now
-  implemented, with scope limited to one host and local filesystems.
+  A local SQLite checkpoint backend, its resume/retry contracts, and an
+  end-to-end exponential chunk reducer are now implemented, with scope limited
+  to one host and local filesystems. The public helper consumes canonical JSON
+  chunks and retains only O(1) sufficient state; it does not yet claim a
+  checkpoint-replayable CSV adapter or a general orchestration API.
 - The package top level now exposes the narrow strict CSV/exponential API:
   `fit_exponential_csv`, `CsvLifetimeSchema`, `CsvLifetimeLimits`,
   `PublicSourceId`, and `ExponentialSourceFitResult`. It is deliberately not
