@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 from veridist.engine.checkpoint import (
     CheckpointRecord,
@@ -41,6 +44,15 @@ def next_record(record: CheckpointRecord) -> CheckpointRecord:
         operation_digest="digest-1",
         state=b"\xffnext-state",
     )
+
+
+def execute_database_update(path: Path, statement: str, parameters: tuple[object, ...]) -> None:
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute(statement, parameters)
+        connection.commit()
+    finally:
+        connection.close()
 
 
 class SQLiteCheckpointStoreContractTests(unittest.TestCase):
@@ -80,8 +92,11 @@ class SQLiteCheckpointStoreContractTests(unittest.TestCase):
             self.assertIs(candidate_error.exception.code, FailureCode.CHECKPOINT_CHECKSUM_MISMATCH)
             self.assertEqual(store.read(), initial)
 
-            with sqlite3.connect(path) as connection:
-                connection.execute("UPDATE checkpoint SET payload = ? WHERE singleton = 1", ("{}",))
+            execute_database_update(
+                path,
+                "UPDATE checkpoint SET payload = ? WHERE singleton = 1",
+                ("{}",),
+            )
             with self.assertRaises(EngineContractError) as malformed:
                 SQLiteCheckpointStore(path).read()
             self.assertIs(malformed.exception.code, FailureCode.CHECKPOINT_DECODE_FAILED)
@@ -95,11 +110,198 @@ class SQLiteCheckpointStoreContractTests(unittest.TestCase):
 
             initial = initial_record()
             store = SQLiteCheckpointStore.create(path, initial)
-            with sqlite3.connect(path) as connection:
-                connection.execute("UPDATE checkpoint SET format_version = 99 WHERE singleton = 1")
+            execute_database_update(
+                path,
+                "UPDATE checkpoint SET format_version = 99 WHERE singleton = 1",
+                (),
+            )
             with self.assertRaises(EngineContractError) as unsupported:
                 store.read()
             self.assertIs(unsupported.exception.code, FailureCode.CHECKPOINT_FORMAT_UNSUPPORTED)
+
+    def test_ckpt_sql04_rejects_invalid_storage_shape_and_checksum(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "checkpoint.sqlite3"
+            SQLiteCheckpointStore.create(path, initial_record())
+            execute_database_update(
+                path,
+                "UPDATE checkpoint SET generation = ? WHERE singleton = 1",
+                ("invalid",),
+            )
+            with self.assertRaises(EngineContractError) as malformed:
+                SQLiteCheckpointStore(path).read()
+            self.assertIs(malformed.exception.code, FailureCode.CHECKPOINT_DECODE_FAILED)
+
+            path.unlink()
+            SQLiteCheckpointStore.create(path, initial_record())
+            execute_database_update(
+                path,
+                "UPDATE checkpoint SET checksum = ? WHERE singleton = 1",
+                ("invalid",),
+            )
+            with self.assertRaises(EngineContractError) as corrupted:
+                SQLiteCheckpointStore(path).read()
+            self.assertIs(corrupted.exception.code, FailureCode.CHECKPOINT_CHECKSUM_MISMATCH)
+
+    def test_ckpt_sql04_rejects_non_object_and_inconsistent_payload_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "checkpoint.sqlite3"
+            SQLiteCheckpointStore.create(path, initial_record())
+            execute_database_update(
+                path,
+                "UPDATE checkpoint SET payload = ? WHERE singleton = 1",
+                ("[]",),
+            )
+            with self.assertRaises(EngineContractError) as non_object:
+                SQLiteCheckpointStore(path).read()
+            self.assertIs(non_object.exception.code, FailureCode.CHECKPOINT_DECODE_FAILED)
+
+            path.unlink()
+            SQLiteCheckpointStore.create(path, initial_record())
+            execute_database_update(
+                path,
+                "UPDATE checkpoint SET generation = ? WHERE singleton = 1",
+                (2,),
+            )
+            with self.assertRaises(EngineContractError) as inconsistent:
+                SQLiteCheckpointStore(path).read()
+            self.assertIs(inconsistent.exception.code, FailureCode.CHECKPOINT_DECODE_FAILED)
+
+    def test_ckpt_sql04_empty_row_and_storage_errors_are_typed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "checkpoint.sqlite3"
+            store = SQLiteCheckpointStore.create(path, initial_record())
+            self.assertEqual(store.path, path)
+            execute_database_update(path, "DELETE FROM checkpoint WHERE singleton = 1", ())
+            with self.assertRaises(EngineContractError) as empty:
+                store.read()
+            self.assertIs(empty.exception.code, FailureCode.CHECKPOINT_NOT_FOUND)
+
+            with self.assertRaises(EngineContractError) as invalid_database:
+                SQLiteCheckpointStore(root).read()
+            self.assertIs(invalid_database.exception.code, FailureCode.CHECKPOINT_STORAGE_FAILED)
+
+            broken_parent = root / "not-a-directory"
+            broken_parent.write_text("file", encoding="utf-8")
+            with self.assertRaises(EngineContractError) as create_error:
+                SQLiteCheckpointStore.create(broken_parent / "checkpoint.sqlite3", initial_record())
+            self.assertIs(create_error.exception.code, FailureCode.CHECKPOINT_STORAGE_FAILED)
+
+            path.unlink()
+            with self.assertRaises(EngineContractError) as update_error:
+                store.compare_and_swap(0, next_record(initial_record()))
+            self.assertIs(update_error.exception.code, FailureCode.CHECKPOINT_STORAGE_FAILED)
+
+    def test_ckpt_sql04_create_race_and_invalid_database_errors_are_typed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "checkpoint.sqlite3"
+            original_schema = SQLiteCheckpointStore._create_schema
+
+            def occupied_schema(connection: sqlite3.Connection) -> None:
+                original_schema(connection)
+                connection.execute(
+                    "INSERT INTO checkpoint VALUES (1, 1, 0, '{}', 'checksum')"
+                )
+
+            with patch.object(
+                SQLiteCheckpointStore,
+                "_create_schema",
+                staticmethod(occupied_schema),
+            ):
+                with self.assertRaises(EngineContractError) as collision:
+                    SQLiteCheckpointStore.create(path, initial_record())
+            self.assertIs(collision.exception.code, FailureCode.CHECKPOINT_ALREADY_EXISTS)
+
+            invalid_path = root / "not-a-database.sqlite3"
+            invalid_path.write_text("not a SQLite database", encoding="utf-8")
+            with self.assertRaises(EngineContractError) as read_error:
+                SQLiteCheckpointStore(invalid_path).read()
+            self.assertIs(read_error.exception.code, FailureCode.CHECKPOINT_STORAGE_FAILED)
+
+            path = root / "schema-error.sqlite3"
+            with patch.object(
+                SQLiteCheckpointStore,
+                "_create_schema",
+                side_effect=sqlite3.OperationalError("table checkpoint already exists"),
+            ):
+                with self.assertRaises(EngineContractError) as raced_schema:
+                    SQLiteCheckpointStore.create(path, initial_record())
+            self.assertIs(raced_schema.exception.code, FailureCode.CHECKPOINT_ALREADY_EXISTS)
+
+            path.unlink()
+            with patch.object(
+                SQLiteCheckpointStore,
+                "_create_schema",
+                side_effect=sqlite3.OperationalError("disk I/O error"),
+            ):
+                with self.assertRaises(EngineContractError) as storage_error:
+                    SQLiteCheckpointStore.create(path, initial_record())
+            self.assertIs(storage_error.exception.code, FailureCode.CHECKPOINT_STORAGE_FAILED)
+
+            path = root / "missing-table.sqlite3"
+            SQLiteCheckpointStore.create(path, initial_record())
+            execute_database_update(path, "DROP TABLE checkpoint", ())
+            with self.assertRaises(EngineContractError) as missing_table:
+                SQLiteCheckpointStore(path).read()
+            self.assertIs(missing_table.exception.code, FailureCode.CHECKPOINT_STORAGE_FAILED)
+
+    def test_ckpt_sql04_rejects_invalid_timeout_and_generation_before_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "checkpoint.sqlite3"
+            with self.assertRaises(ValueError):
+                SQLiteCheckpointStore(path, timeout=0)
+            store = SQLiteCheckpointStore.create(path, initial_record())
+            candidate = next_record(initial_record())
+            for generation in (-1, True):
+                with self.subTest(generation=generation), self.assertRaises(ValueError):
+                    store.compare_and_swap(generation, candidate)  # type: ignore[arg-type]
+            with self.assertRaises(EngineContractError) as mismatch:
+                store.compare_and_swap(1, candidate)
+            self.assertIs(mismatch.exception.code, FailureCode.CHECKPOINT_CONFLICT)
+            self.assertEqual(store.read(), initial_record())
+
+    def test_ckpt_sql05_independent_processes_allow_one_generation_commit(self) -> None:
+        program = """
+import sys
+from veridist.engine.checkpoint import CheckpointRecord, SQLiteCheckpointStore
+from veridist.engine.errors import EngineContractError
+
+store = SQLiteCheckpointStore(sys.argv[1])
+candidate = CheckpointRecord.create(
+    format_version=1, source_id='source', source_schema='schema',
+    source_revision='private-revision', reducer_id='reducer',
+    accumulator_schema='accumulator', plan_digest='plan', cursor=1,
+    committed_ranges=((0, 1),), generation=1, operation_token='chunk-1',
+    operation_digest='digest-1', state=b'\\xffnext-state',
+)
+try:
+    store.compare_and_swap(0, candidate)
+except EngineContractError as error:
+    print(error.code.value)
+else:
+    print('COMMITTED')
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "checkpoint.sqlite3"
+            SQLiteCheckpointStore.create(path, initial_record())
+            processes = [
+                subprocess.Popen(
+                    [sys.executable, "-c", program, str(path)],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+                for _ in range(2)
+            ]
+            outputs = [process.communicate(timeout=10) for process in processes]
+        self.assertTrue(all(process.returncode == 0 for process in processes))
+        self.assertEqual(
+            sorted(stdout.strip() for stdout, _ in outputs),
+            ["CHECKPOINT_CONFLICT", "COMMITTED"],
+        )
+        self.assertTrue(all(not stderr for _, stderr in outputs))
 
 
 if __name__ == "__main__":
