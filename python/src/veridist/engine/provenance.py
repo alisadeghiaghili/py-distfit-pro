@@ -271,6 +271,7 @@ ApproximationProvenance: TypeAlias = ExactComputation | ApproximateComputation
 
 class CheckpointStoreKind(StrEnum):
     IN_MEMORY_TEST_DOUBLE = "in_memory_test_double"
+    SQLITE_LOCAL = "sqlite_local"
 
 
 @dataclass(frozen=True, slots=True)
@@ -392,6 +393,7 @@ def checkpoint_observation_from_resume(
     retry_count: int,
     commit_count: int,
     store_version: str,
+    store_kind: CheckpointStoreKind = CheckpointStoreKind.IN_MEMORY_TEST_DOUBLE,
 ) -> CheckpointUsed:
     """Project only safe format/generation facts from internal resume metadata."""
 
@@ -405,7 +407,7 @@ def checkpoint_observation_from_resume(
         final_generation=final_generation,
         retry_count=retry_count,
         commit_count=commit_count,
-        store_kind=CheckpointStoreKind.IN_MEMORY_TEST_DOUBLE,
+        store_kind=store_kind,
         store_version=store_version,
     )
 
