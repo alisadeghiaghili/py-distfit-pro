@@ -41,9 +41,10 @@ needed.
 
 ## Dependency notes
 
-- ADR-0015 depends on Accepted ADR-0005, ADR-0006 and ADR-0010. Any public
-  durability, security or encryption claim also depends on a separate Accepted
-  persistent-backend/security ADR; that record does not yet exist.
+- ADR-0015 depends on Accepted ADR-0005, ADR-0006 and ADR-0010. Public
+  durability claims for the local SQLite scope are governed by ADR-0023;
+  security, encryption and remote-filesystem claims still require a separate
+  accepted ADR.
 - ADR-0016 partially supersedes ADR-0001 only by permitting evidence-gated
   legacy salvage. ADR-0001's Python-first, independent-golden, and
   no-legacy-oracle decisions remain binding.
