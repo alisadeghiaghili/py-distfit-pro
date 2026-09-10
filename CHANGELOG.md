@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- Durable exponential chunk orchestration backed by the local SQLite
+  checkpoint store, including resumable sufficient-statistics reduction and
+  validation of malformed chunk payloads.
+
 ## [1.0.0] - 2026-02-14
 
 ### Phase 4: Comprehensive Examples & Documentation (Complete) 🎉
