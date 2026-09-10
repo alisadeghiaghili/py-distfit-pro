@@ -1,6 +1,10 @@
 """Statistical primitives."""
 
-from veridist.statistics.exponential import ExponentialReductionState, reduce_exponential_chunks
+from veridist.statistics.exponential import (
+    ExponentialCheckpointReducer,
+    ExponentialReductionState,
+    reduce_exponential_chunks,
+)
 from veridist.statistics.log_likelihood import (
     LogLikelihoodErrorCode,
     LogLikelihoodFailure,
@@ -11,6 +15,7 @@ from veridist.statistics.log_likelihood import (
 )
 
 __all__ = [
+    "ExponentialCheckpointReducer",
     "ExponentialReductionState",
     "LogLikelihoodErrorCode",
     "LogLikelihoodFailure",
