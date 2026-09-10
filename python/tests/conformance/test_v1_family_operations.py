@@ -88,6 +88,12 @@ class V1FamilyOperationTests(unittest.TestCase):
             cdf("normal", float("nan"), {"mu": 0.0, "sigma": 1.0})
         with self.assertRaises(ValueError):
             ppf("normal", 1.0, {"mu": 0.0, "sigma": 1.0})
+        extreme_tail = ppf(
+            "normal",
+            float.fromhex("0x0.0000000000001p-1022"),
+            {"mu": 0.0, "sigma": 1.0},
+        )
+        self.assertTrue(math.isfinite(extreme_tail))
         with self.assertRaises(ValueError):
             sample("normal", True, {"mu": 0.0, "sigma": 1.0}, np.random.default_rng(7))
 

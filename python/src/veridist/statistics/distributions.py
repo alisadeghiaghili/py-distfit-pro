@@ -103,7 +103,7 @@ def cdf(family: str, value: object, parameters: Mapping[str, object]) -> float:
         )
     if family == "gumbel_right":
         return exp(-exp(-(point - parameter["location"]) / parameter["scale"]))
-    raise AssertionError("registry resolution must reject unknown families")
+    raise AssertionError("registry resolution must reject unknown families")  # pragma: no cover
 
 
 def sf(family: str, value: object, parameters: Mapping[str, object]) -> float:
@@ -128,7 +128,7 @@ def sf(family: str, value: object, parameters: Mapping[str, object]) -> float:
         )
     if family == "gumbel_right":
         return -expm1(-exp(-(point - parameter["location"]) / parameter["scale"]))
-    raise AssertionError("registry resolution must reject unknown families")
+    raise AssertionError("registry resolution must reject unknown families")  # pragma: no cover
 
 
 def _normal_ppf(probability: float) -> float:
@@ -242,7 +242,7 @@ def sample(family: str, size: int, parameters: Mapping[str, object], rng: object
         return rng.lognormal(parameter["mu_log"], parameter["sigma_log"], size=size)
     if family == "gumbel_right":
         return rng.gumbel(parameter["location"], parameter["scale"], size=size)
-    raise AssertionError("registry resolution must reject unknown families")
+    raise AssertionError("registry resolution must reject unknown families")  # pragma: no cover
 
 
 __all__ = ["cdf", "ppf", "sample", "sf"]
