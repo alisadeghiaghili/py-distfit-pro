@@ -27,6 +27,7 @@ class PublicCsvApiTests(unittest.TestCase):
             "StreamSource",
             "StreamSourceError",
             "fit_exponential_csv",
+            "fit_exponential_checkpointed_chunks",
             "reduce_log_likelihood_chunks",
         }
         self.assertEqual(set(veridist.__all__), expected)
