@@ -4,16 +4,19 @@
 
 ## Status
 
-`veridist` 0.5.0 ist die erste öffentlich dokumentierte Vertragsversion mit überprüfbaren Nachweisen.
+`veridist` 0.9.0 ist eine öffentlich dokumentierte Vertragsversion mit überprüfbaren Nachweisen.
 Der aktuelle Stand spezifiziert und testet begrenzte Datenlieferung,
 Wiederholbarkeit, Pass-Budgets, transaktionale Wiederholungen,
 Checkpoint-Kompatibilität, typisierte Fehler, Ausführungsergebnisse und
 redigierte Provenienz.
 
-Dieser Stand enthält einen experimentellen, rein ratenparametrisierten
-exponentiellen MLE für exakte und unabhängig rechtszensierte Lebensdauern.
-Wenn ein endlicher MLE existiert, wird eine Punktschätzung zurückgegeben;
-andernfalls entstehen typisierte Fehlschläge. Inferenz wird nicht bereitgestellt.
+Dieser Stand enthält Exponential-, Weibull-Minimum- und Lognormal-MLE-Zellen mit
+festem Ort für exakte und unabhängig rechtszensierte Lebensdauern. Wenn eine
+endliche Lösung existiert, wird eine Punktschätzung zurückgegeben; andernfalls
+entstehen typisierte Fehlschläge. Für die unzensierte Exponentialzelle gibt es
+außerdem Refit-Monte-Carlo-KS-, AD- und CvM-Tests, AIC/BIC,
+Kalibrierungszusammenfassungen und adequacy-gesteuerte Auswahl. Diese Inferenz
+ist auf diese deklarierte Zelle und einen aufruferseitigen Generator begrenzt.
 Der öffentliche CSV-Pfad ist strikt: UTF-8-CSV mit exakt
 `time,event_observed`, Ereignis-Token `1` und Rechtszensur-Token `0`. Er führt
 einen Iterator-Durchlauf mit einem deklarierten logischen Budget für behaltene
@@ -67,7 +70,7 @@ Alternativ kann ein selbst gebautes oder aus einem bestimmten geprüften Lauf
 bezogenes Wheel installiert werden:
 
 ```console
-python -m pip install /path/to/veridist-0.0.0.dev0-py3-none-any.whl
+python -m pip install /path/to/veridist-0.9.0-py3-none-any.whl
 ```
 
 Das Projekt fordert nicht zur Installation eines unveröffentlichten

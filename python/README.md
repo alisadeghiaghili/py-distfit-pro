@@ -4,14 +4,18 @@
 
 ## Status
 
-`veridist` 0.5.0 is the first evidence-backed public contract release.
+`veridist` 0.9.0 is an evidence-backed public contract release.
 It specifies and tests bounded delivery, replayability, pass budgets,
 transactional retry, checkpoint compatibility, typed failures, execution
 outcomes, and redacted provenance.
 
-This build includes an experimental rate-only exponential MLE for exact and
-independently right-censored lifetimes. It provides a point estimate when a
-finite MLE exists and typed failures otherwise. Inference is not provided.
+This build includes fixed-location Exponential, Weibull-minimum, and Lognormal
+MLE cells for exact and independently right-censored lifetimes. They provide
+point estimates when finite solutions exist and typed failures otherwise.
+The uncensored exponential cell also has refit Monte Carlo KS, AD, and CvM
+goodness-of-fit, AIC/BIC, calibration summaries, and adequacy-gated selection.
+Inference is restricted to that declared cell and requires a caller-owned NumPy
+generator.
 Its public CSV path is strict: UTF-8 CSV with exactly `time,event_observed`,
 event token `1`, and right-censoring token `0`. It executes one iterator pass
 with a declared logical retained-payload chunk budget and returns a closed,
@@ -34,13 +38,15 @@ or broad out-of-core adapters.
 For a sequential pure reducer, `veridist.engine.SQLiteCheckpointStore` provides
 durable local checkpoint state with generation-based compare-and-swap and
 cross-process SQLite locking. It is limited to one host and a local filesystem;
-the strict CSV adapter does not yet claim automatic checkpoint replay.
+`fit_exponential_checkpointed_csv` supports explicit source-revision-bound
+resume for the strict lifetime CSV path.
 
 The separate scalar surface exposes immutable `FAMILY_REGISTRY` metadata for
-normal, gamma, Weibull-minimum, lognormal, and right-Gumbel; scalar
-`evaluate_log_density`; and exact-state `reduce_log_likelihood_chunks`.
-It is not generic fitting, inference, goodness-of-fit, ranking, arrays, or
-censoring. The reducer represents successful binary64 terms exactly and rounds
+normal, gamma, Weibull-minimum, lognormal, and right-Gumbel; scalar log-density,
+CDF, survival, quantile, and caller-owned RNG sampling operations; and
+exact-state `reduce_log_likelihood_chunks`. These operations are scalar and the
+fit/inference capability matrix remains narrower than the operation registry.
+The reducer represents successful binary64 terms exactly and rounds
 the final total once; its unsigned-64 count cap implies a 2162-bit exact-total
 bound. Its retained 10k/100k/1m evidence is scoped to tested normal streams.
 
@@ -64,7 +70,7 @@ python -m pip install .
 Or install a wheel that you built or obtained from a specific verified run:
 
 ```console
-python -m pip install /path/to/veridist-0.0.0.dev0-py3-none-any.whl
+python -m pip install /path/to/veridist-0.9.0-py3-none-any.whl
 ```
 
 The project does not direct users to install an unreleased package name from a

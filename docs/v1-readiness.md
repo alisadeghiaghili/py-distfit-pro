@@ -4,11 +4,11 @@ This is a planning ledger, not a release checklist for `distfit_pro`. v1 uses
 the `veridist` namespace. Legacy assets count only after an explicit,
 evidence-backed disposition and validation under the v1 contracts.
 
-ADR-0020 is the narrower binding contract for a real `veridist` 0.5 release.
-It keeps the version at `0.0.0.dev0` until its release-safety, active-lease
-bound, cleanup, measured million-row, portability, localization, quality,
-artifact, and audit gates pass.  It does not claim v1 readiness or translated
-ADR parity.
+ADR-0020 records the completed `veridist` 0.5 release contract. Version 0.9.0
+adds local SQLite resume, Weibull-minimum and Lognormal reliability fits,
+scalar family operations, and the declared exponential inference/selection
+cell. This ledger tracks the remaining evidence required for 1.0; completion
+of a milestone does not expand any capability beyond the matrix.
 
 ## Evidence already obtained
 
@@ -149,9 +149,9 @@ as a statement about uninspected current files.
 - The package top level now exposes the narrow strict CSV/exponential API:
   `fit_exponential_csv`, `CsvLifetimeSchema`, `CsvLifetimeLimits`,
   `PublicSourceId`, and `ExponentialSourceFitResult`. It is deliberately not
-  a broad distribution-fitting API or an alpha release claim. The version stays
-  `0.0.0.dev0`: formal mutation execution evidence, PDF/release documentation
-  evidence, and release/publishing exits are still incomplete.
+  a broad distribution-fitting API. Version 0.9.0 additionally exposes the
+  bounded milestone modules documented in the capability matrix; formal v1
+  publication evidence and release exits remain incomplete.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free
   fail-closed semantic checker and a separate immutable source-lock policy that
   require the exact frozen source commit, `commit:path` blob, SHA-256, and
@@ -163,21 +163,21 @@ as a statement about uninspected current files.
 - Every exact numeric defect magnitude, benchmark, release status, competitor
   feature count, name/trademark availability, and SQL-export novelty remains
   unverified unless a current command or primary source is attached.
-- Statistical calibration, bootstrap coverage, production-adapter streaming
-  equivalence, production-scale memory bounds, and PyPI publication remain
-  unverified. Reference agreement is scoped only to the current
-  exponential point-estimation cell.
+- The declared exponential refit Monte Carlo calibration smoke contract is
+  implemented. Retained full calibration grids, bootstrap coverage,
+  production-adapter streaming equivalence, production-scale memory bounds,
+  and PyPI publication remain unverified.
 
 ## Remaining v1 work and release evidence
 
 | Area | Required v1 evidence |
 | --- | --- |
 | Core | Keep the current immutable exponential result/capability facts; extend the [capability matrix](capability-matrix.md) only with cited conformance evidence |
-| First vertical | The strict CSV/exponential cell has retained pass/byte evidence; add portable process-memory and the remaining reliability/scale evidence before calling a broad reliability + big-data vertical complete |
-| Families | Any family beyond the first reliability vertical passes support/CDF/PPF/log-density/reference tests with cited specifications |
-| Estimation | MLE applicability, convergence/restart diagnostics, and failures that remain visible |
+| First vertical | Exponential, Weibull-minimum, and Lognormal point-estimation cells exist; add portable process-memory and retained reliability/scale evidence before calling a broad reliability + big-data vertical complete |
+| Families | Preserve the tested scalar operations; any added family must pass support/CDF/PPF/log-density/reference tests with cited specifications |
+| Estimation | Retain MLE applicability, convergence/restart diagnostics, and visible failures; complete release evidence for the declared cells |
 | Scale | Keep the retained strict CSV/exponential matrix; add RSS/process-memory evidence and promote other advertised adapters/orchestrators only with their own measured traces |
-| Inference | Refit Monte-Carlo GoF and published calibration scope; no analytic p-value without a family/estimator source |
+| Inference | Retain implemented exponential refit Monte-Carlo GoF; publish the full calibration scope and add no analytic p-value without a family/estimator source |
 | Uncertainty | Bootstrap failure accounting and coverage evidence only for declared regular scenarios |
 | Censoring | Explicit likelihood semantics and reference tests; unsupported family combinations fail loudly |
 | Localization | Keep implemented EN/FA/DE parity, examples, local `-W`/linkcheck and `I18N-RTL-DOC-01` Sphinx HTML evidence; require remote pinned-Chromium evidence and separately specify PDF before claiming it |

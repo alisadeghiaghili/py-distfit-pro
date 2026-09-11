@@ -62,18 +62,19 @@ class RequiredQualityArtifactTests(unittest.TestCase):
             index,
         )
 
-    def test_capability_matrix_declares_the_only_callable_statistical_cell(self) -> None:
+    def test_capability_matrix_declares_the_release_cells_and_limits(self) -> None:
         content = " ".join(CAPABILITY_MATRIX.read_text(encoding="utf-8").split())
         for required in (
-            "0.0.0.dev0",
-            "rate-only exponential MLE",
+            "0.9.0",
+            "Exponential MLE",
+            "Weibull-minimum MLE",
+            "Lognormal MLE",
             "exact and independent right-censoring",
-            "inference=not_provided",
             "fixed O(1) reducer state",
-            "one CSV iterator and one pass",
-            "SCALE-CSV-EXP-01",
-            "current candidate scale evidence pending; no RSS ceiling",
-            "no cell is release-ready until that candidate-specific evidence is complete",
+            "Refit Monte Carlo KS/AD/CvM",
+            "local filesystem",
+            "no generic RSS or throughput claim",
+            "at least 95% global line and branch coverage",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, content)
