@@ -47,6 +47,7 @@ class CiScopeClassifierTests(unittest.TestCase):
             ".github/workflows/scale-evidence.yml",
             ".github/workflows/v1-ci.yml",
             ".github/workflows/v1-release-evidence.yml",
+            ".github/workflows/pypi-publish.yml",
             ".github/workflows/ci.yml",
         )
         self.assertFalse(classifier.legacy_relevant(paths))
@@ -73,9 +74,7 @@ class CiScopeClassifierTests(unittest.TestCase):
         for path in relevant_paths:
             with self.subTest(path=path):
                 self.assertTrue(classifier.legacy_relevant((path,)))
-        self.assertTrue(
-            classifier.legacy_relevant(("python/src/veridist/__init__.py", "setup.py"))
-        )
+        self.assertTrue(classifier.legacy_relevant(("python/src/veridist/__init__.py", "setup.py")))
         self.assertTrue(classifier.legacy_relevant(()))
 
     def test_classifier_accepts_unicode_spaces_and_inert_shell_metacharacters(self) -> None:
@@ -146,9 +145,7 @@ class CiScopeClassifierTests(unittest.TestCase):
             with self.subTest(
                 relevant=relevant, scope_result=scope_result, test_result=test_result
             ):
-                self.assertFalse(
-                    classifier.legacy_gate_allows(relevant, scope_result, test_result)
-                )
+                self.assertFalse(classifier.legacy_gate_allows(relevant, scope_result, test_result))
 
     def test_legacy_gate_cli_propagates_valid_and_invalid_terminal_states(self) -> None:
         cases = (

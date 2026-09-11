@@ -24,6 +24,7 @@ _VERIDIST_PATHS = frozenset(
         ".github/workflows/veridist-release.yml",
         ".github/workflows/v1-ci.yml",
         ".github/workflows/v1-release-evidence.yml",
+        ".github/workflows/pypi-publish.yml",
         "docs/adoption-and-reputation-strategy.md",
         "docs/capability-matrix.md",
         "docs/competitive-evidence-policy.md",
