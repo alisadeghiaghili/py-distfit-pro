@@ -158,7 +158,7 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             "mutation",
             '"also_copy": [',
             '"src/veridist/reporting",',
-            '"pytest_selection": ["tests/contract", "tests/reference", "tests/unit"]',
+            '"pytest_selection": list(MUTATION_TEST_SELECTION)',
         )
         for required in required_terms:
             with self.subTest(required=required):
@@ -214,7 +214,7 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
                 'source_paths = ["src/veridist/domain", "src/veridist/statistics", '
                 '"src/veridist/families", "src/veridist/engine"]\n'
                 'pytest_add_cli_args_test_selection = ["tests/contract", '
-                '"tests/reference", "tests/unit"]\n'
+                '"tests/reference", "tests/unit", "tests/conformance", "tests/property"]\n'
                 "mutate_only_covered_lines = false\n"
             )
             copy = (
@@ -234,7 +234,13 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             )
             self.assertEqual(
                 mutation_evidence.mutation_config(root)["pytest_add_cli_args_test_selection"],
-                ["tests/contract", "tests/reference", "tests/unit"],
+                [
+                    "tests/contract",
+                    "tests/reference",
+                    "tests/unit",
+                    "tests/conformance",
+                    "tests/property",
+                ],
             )
             for selection in (
                 '["tests"]',
@@ -244,7 +250,9 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
                 with self.subTest(selection=selection):
                     root.joinpath("pyproject.toml").write_text(
                         configuration.replace(
-                            '["tests/contract", "tests/reference", "tests/unit"]', selection
+                            '["tests/contract", "tests/reference", "tests/unit", '
+                            '"tests/conformance", "tests/property"]',
+                            selection,
                         )
                         + f"also_copy = {copy}\n",
                         encoding="utf-8",

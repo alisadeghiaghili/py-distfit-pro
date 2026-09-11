@@ -4,5 +4,11 @@
   "critical_modules": ["domain", "statistics", "families", "engine"],
   "mutmut_version": "3.7.0",
   "minimum_score": 0.8,
-  "pytest_selection": ["tests/contract", "tests/reference", "tests/unit"]
+  "pytest_selection": [
+    "tests/contract",
+    "tests/reference",
+    "tests/unit",
+    "tests/conformance",
+    "tests/property"
+  ]
 }

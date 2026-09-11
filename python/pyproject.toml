@@ -13,7 +13,7 @@ authors = [
     { name = "Ali Sadeghi Aghili", email = "alisadeghiaghili@gmail.com" },
 ]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["numpy>=1.26,<3"]
 
 [project.urls]
 Homepage = "https://github.com/alisadeghiaghili/veridist"
@@ -88,7 +88,16 @@ source_paths = [
     "src/veridist/families",
     "src/veridist/engine",
 ]
-pytest_add_cli_args_test_selection = ["tests/contract", "tests/reference", "tests/unit"]
+# Mutation evidence must exercise every test layer that specifies a critical
+# production operation.  The distribution-operation contracts live in the
+# conformance and property suites rather than the legacy unit directories.
+pytest_add_cli_args_test_selection = [
+    "tests/contract",
+    "tests/reference",
+    "tests/unit",
+    "tests/conformance",
+    "tests/property",
+]
 also_copy = [
     "tools",
     "src/veridist/__init__.py",
