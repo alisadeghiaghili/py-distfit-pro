@@ -42,11 +42,20 @@ jobs:
           version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
           test "${{ inputs.release_tag }}" = "v$version" || { echo "release tag does not match package version" >&2; exit 1; }
       - name: Build and inspect distributions
+        shell: bash
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install "build>=1.2,<2" "twine>=6,<7"
-          python -m build --sdist --wheel
+          python -m pip install "build>=1.2,<2" "twine>=6,<7" "PyYAML>=6,<7"
+          release_epoch="$(python -c 'import datetime, json; value=json.load(open("../.zenodo.json", encoding="utf-8"))["publication_date"]; print(int(datetime.datetime.fromisoformat(value).replace(tzinfo=datetime.timezone.utc).timestamp()))')"
+          python tools/build_reproducible.py --project . --output dist-a --epoch "$release_epoch"
+          python tools/build_reproducible.py --project . --output dist-b --epoch "$release_epoch"
+          cmp dist-a/*.whl dist-b/*.whl
+          cmp dist-a/*.tar.gz dist-b/*.tar.gz
+          mkdir dist
+          cp dist-a/* dist/
           python -m twine check dist/*
+          python tools/check_release_metadata.py --repository-root .. --sdist dist/*.tar.gz
           python tools/check_release_artifacts.py \
             --project-root . \
             --release-tag "${{ inputs.release_tag }}" \
@@ -60,3 +69,9 @@ jobs:
           "$RUNNER_TEMP/veridist-release-wheel/bin/python" -m pip install dist/*.whl
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/veridist-release-wheel/bin/python" -c 'import importlib.metadata as metadata; import veridist; assert metadata.version("veridist") == veridist.__version__'
+      - name: Retain validated release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: veridist-${{ inputs.release_tag }}-${{ inputs.candidate_sha }}
+          path: python/dist
+          retention-days: 90

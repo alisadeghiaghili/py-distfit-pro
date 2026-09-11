@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import tempfile
 import unittest
@@ -39,15 +40,22 @@ class ReleaseMetadataTests(unittest.TestCase):
             zenodo_path.write_text(json.dumps(zenodo), encoding="utf-8")
             recipe_path = root / "conda-forge-recipe/meta.yaml"
             recipe_path.write_text(
-                recipe_path.read_text("utf-8").replace(
-                    "e778525dcc2536fb9748d626487137c57ccdc6c65a2a5adeee2ce773ba585fee",
-                    "replace-me",
+                re.sub(
+                    r"sha256: [0-9a-f]{64}",
+                    "sha256: replace-me",
+                    recipe_path.read_text("utf-8"),
                 ),
                 encoding="utf-8",
             )
             errors = " ".join(validate(root))
             self.assertIn("Zenodo version", errors)
             self.assertIn("SHA-256", errors)
+
+    def test_rejects_a_built_sdist_that_differs_from_the_recipe_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            artifact = Path(directory) / "veridist.tar.gz"
+            artifact.write_bytes(b"different")
+            self.assertIn("built source distribution", " ".join(validate(ROOT, artifact)))
 
 
 if __name__ == "__main__":

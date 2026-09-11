@@ -4,7 +4,7 @@
 
 ## Status
 
-`veridist` 0.9.0 is an evidence-backed public contract release.
+`veridist` 0.9.1 is an evidence-backed public contract release.
 It specifies and tests bounded delivery, replayability, pass budgets,
 transactional retry, checkpoint compatibility, typed failures, execution
 outcomes, and redacted provenance.
@@ -71,7 +71,7 @@ python -m pip install .
 Or install a wheel that you built or obtained from a specific verified run:
 
 ```console
-python -m pip install /path/to/veridist-0.9.0-py3-none-any.whl
+python -m pip install /path/to/veridist-0.9.1-py3-none-any.whl
 ```
 
 The project does not direct users to install an unreleased package name from a

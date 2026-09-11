@@ -2,7 +2,7 @@
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-`veridist` 0.9.0 is an evidence-first distribution-fitting package whose stated
+`veridist` 0.9.1 is an evidence-first distribution-fitting package whose stated
 scope is bound to executable CI, coverage, mutation, release, and scale
 contracts.
 
