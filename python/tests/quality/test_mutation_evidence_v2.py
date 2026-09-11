@@ -219,7 +219,8 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             )
             copy = (
                 '["tools", "src/veridist/__init__.py", "src/veridist/execution.py", '
-                '"src/veridist/py.typed", "src/veridist/adapters", "src/veridist/reporting"]'
+                '"src/veridist/inference.py", "src/veridist/py.typed", '
+                '"src/veridist/adapters", "src/veridist/reporting"]'
             )
             root.joinpath("pyproject.toml").write_text(
                 configuration + f"also_copy = {copy}\n",
@@ -228,8 +229,13 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             self.assertEqual(
                 mutation_evidence.mutation_config(root)["also_copy"],
                 [
-                    "tools", "src/veridist/__init__.py", "src/veridist/execution.py",
-                    "src/veridist/py.typed", "src/veridist/adapters", "src/veridist/reporting",
+                    "tools",
+                    "src/veridist/__init__.py",
+                    "src/veridist/execution.py",
+                    "src/veridist/inference.py",
+                    "src/veridist/py.typed",
+                    "src/veridist/adapters",
+                    "src/veridist/reporting",
                 ],
             )
             self.assertEqual(

@@ -184,6 +184,7 @@ def mutation_config(project_root: Path) -> dict[str, Any]:
             "tools",
             "src/veridist/__init__.py",
             "src/veridist/execution.py",
+            "src/veridist/inference.py",
             "src/veridist/py.typed",
             "src/veridist/adapters",
             "src/veridist/reporting",
