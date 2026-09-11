@@ -8,7 +8,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from tools.check_v1_execution_evidence import validate, validate_raw_fragment
+try:
+    from tools.check_v1_execution_evidence import validate, validate_raw_fragment
+except ModuleNotFoundError:  # Direct execution from the tools directory.
+    from check_v1_execution_evidence import validate, validate_raw_fragment
 
 
 def assemble(paths: list[Path], expected_sha: str) -> tuple[dict[str, object] | None, list[str]]:
