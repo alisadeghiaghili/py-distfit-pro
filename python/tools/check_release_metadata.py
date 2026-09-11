@@ -92,7 +92,10 @@ def validate(repository: Path, sdist: Path | None = None) -> list[str]:
             errors.append(f"source distribution is unreadable: {error}")
         else:
             if actual_digest != digest.group(1):
-                errors.append("conda-forge SHA-256 differs from the built source distribution")
+                errors.append(
+                    "conda-forge SHA-256 differs from the built source distribution "
+                    f"(recipe={digest.group(1)}, built={actual_digest})"
+                )
     required_recipe_text = (
         "releases/download/v{{ version }}/veridist-{{ version }}.tar.gz",
         "--no-deps",
