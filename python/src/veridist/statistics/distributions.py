@@ -189,10 +189,18 @@ def _inverse_by_bisection(
     family: str, probability: float, parameters: Mapping[str, object]
 ) -> float:
     lower, upper = -1.0, 1.0
-    while cdf(family, lower, parameters) > probability:  # pragma: no branch - gamma support
+    for _ in range(1024):
+        if cdf(family, lower, parameters) <= probability:  # pragma: no branch - gamma support
+            break
         lower *= 2.0
-    while cdf(family, upper, parameters) < probability:
+    else:  # pragma: no cover - finite distribution support guarantees a bracket
+        raise ArithmeticError("unable to bracket distribution quantile")
+    for _ in range(1024):
+        if cdf(family, upper, parameters) >= probability:
+            break
         upper *= 2.0
+    else:  # pragma: no cover - finite distribution support guarantees a bracket
+        raise ArithmeticError("unable to bracket distribution quantile")
     for _ in range(120):
         midpoint = (lower + upper) / 2.0
         if cdf(family, midpoint, parameters) < probability:
