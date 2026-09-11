@@ -6,13 +6,13 @@ package:
   version: {{ version }}
 
 source:
-  # The release automation must replace this placeholder with the immutable
-  # PyPI sdist URL and its SHA-256 before a feedstock PR is opened.
-  path: ../python
+  url: https://github.com/alisadeghiaghili/veridist/releases/download/v{{ version }}/veridist-{{ version }}.tar.gz
+  sha256: e778525dcc2536fb9748d626487137c57ccdc6c65a2a5adeee2ce773ba585fee
 
 build:
   noarch: python
-  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   host:
@@ -30,7 +30,7 @@ test:
 about:
   home: https://github.com/alisadeghiaghili/veridist
   license: BUSL-1.1
-  license_file: ../python/LICENSE
+  license_file: LICENSE
   summary: Evidence-first distribution fitting with explicit execution contracts
 
 extra:

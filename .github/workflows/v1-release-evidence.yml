@@ -110,3 +110,37 @@ jobs:
           path: python/v1-execution-collected.json
           if-no-files-found: error
           retention-days: 90
+
+  validate-release-metadata:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate citation, Zenodo, and conda-forge metadata
+        run: |
+          python -m pip install "PyYAML>=6,<7"
+          python tools/check_release_metadata.py --repository-root ..
+
+  v1-release-evidence-gate:
+    name: veridist / v1 release evidence gate
+    needs: [validate-collected-execution, validate-release-metadata]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce aggregate result
+        shell: bash
+        env:
+          EXECUTION_RESULT: ${{ needs.validate-collected-execution.result }}
+          METADATA_RESULT: ${{ needs.validate-release-metadata.result }}
+        run: |
+          set -euo pipefail
+          test "$EXECUTION_RESULT" = "success"
+          test "$METADATA_RESULT" = "success"
