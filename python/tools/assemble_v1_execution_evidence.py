@@ -39,6 +39,19 @@ def assemble(paths: list[Path], expected_sha: str) -> tuple[dict[str, object] | 
         "candidate_git_sha": expected_sha,
         "cells": cells,
     }
+    source_digests: dict[int, set[object]] = {}
+    result_digests: dict[int, set[object]] = {}
+    for cell in cells:
+        if not isinstance(cell, dict) or not isinstance(cell.get("rows"), int):
+            continue
+        rows = cell["rows"]
+        source_digests.setdefault(rows, set()).add(cell.get("source_sha256"))
+        if cell.get("scenario") in {"complete", "retry_resume"}:
+            result_digests.setdefault(rows, set()).add(cell.get("result_sha256"))
+    if any(len(digests) != 1 for digests in source_digests.values()):
+        errors.append("source digests differ across platforms")
+    if any(len(digests) != 1 for digests in result_digests.values()):
+        errors.append("result digests differ across complete, resumed, or platform runs")
     errors.extend(validate(value, expected_sha))
     return (None, errors) if errors else (value, [])
 

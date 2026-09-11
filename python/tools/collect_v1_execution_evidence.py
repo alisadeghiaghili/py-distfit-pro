@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 import hashlib
+import importlib.metadata
 import json
 import platform as host_platform
 import subprocess
@@ -92,7 +93,7 @@ def _rss_bytes() -> int:
             ctypes.windll.kernel32.GetCurrentProcess(), ctypes.byref(counters), counters.cb
         ):
             raise RuntimeError("cannot obtain Windows process RSS")
-        return int(counters.WorkingSetSize)
+        return int(counters.PeakWorkingSetSize)
     import resource
 
     value = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -117,8 +118,7 @@ def _write_fixture(path: Path, rows: int) -> tuple[str, int]:
 
 def _initial_store(path: Path, source_revision: str) -> SQLiteCheckpointStore:
     state = (
-        b'{"compensation":"0x0.0p+0","event_count":0,'
-        b'"observation_count":0,"total_time":"0x0.0p+0"}'
+        b'{"compensation":"0x0.0p+0","event_count":0,"observation_count":0,"total_time":"0x0.0p+0"}'
     )
     record = CheckpointRecord.create(
         format_version=1,
@@ -173,18 +173,14 @@ def _run_scenario(
         root = Path(directory)
         source = root / "lifetimes.csv"
         revision, source_bytes = _write_fixture(source, rows)
-        max_payload = max(
-            len(
-                json.dumps(
-                    [[float((index % 997 + 1) / 1000), index % 3 != 0]], separators=(",", ":")
-                ).encode()
-            )
-            for index in range(min(rows, 997))
-        )
         before_rss = _rss_bytes()
         resources_released = False
+        attempt_count = 0
+        interrupted_cursor = 0
+        final_cursor = 0
         if scenario == "complete":
             store = _initial_store(root / "complete.sqlite3", revision)
+            attempt_count += 1
             result = fit_exponential_checkpointed_csv(
                 path=source,
                 schema=_SCHEMA,
@@ -195,7 +191,8 @@ def _run_scenario(
                 cancel=None,
             )
             result_digest = _fit_digest(result)
-            actual_passes, cancellation_observed, retry_initial_code = 1, False, None
+            final_cursor = store.read().cursor
+            cancellation_observed, retry_initial_code = False, None
         elif scenario == "retry_resume":
             if baseline_digest is None:
                 baseline_store = _initial_store(root / "baseline.sqlite3", revision)
@@ -210,6 +207,8 @@ def _run_scenario(
                 )
                 baseline_digest = _fit_digest(baseline)
             store = _initial_store(root / "retry.sqlite3", revision)
+            interrupt_at = max(1, rows // 2)
+            attempt_count += 1
             interrupted = fit_exponential_checkpointed_csv(
                 path=source,
                 schema=_SCHEMA,
@@ -217,10 +216,12 @@ def _run_scenario(
                 limits=_LIMITS,
                 store=store,
                 source_revision=revision,
-                cancel=lambda cursor: cursor == 0,
+                cancel=lambda cursor: cursor >= interrupt_at,
             )
-            if interrupted.code != "CANCELLED" or store.read().cursor != 0:
-                raise RuntimeError("retry/resume interruption was not observed before a commit")
+            interrupted_cursor = store.read().cursor
+            if interrupted.code != "CANCELLED" or interrupted_cursor != interrupt_at:
+                raise RuntimeError("retry/resume interruption did not retain a nonzero checkpoint")
+            attempt_count += 1
             result = fit_exponential_checkpointed_csv(
                 path=source,
                 schema=_SCHEMA,
@@ -231,9 +232,12 @@ def _run_scenario(
                 cancel=None,
             )
             result_digest = _fit_digest(result)
-            actual_passes, cancellation_observed, retry_initial_code = 2, True, interrupted.code
+            final_cursor = store.read().cursor
+            cancellation_observed, retry_initial_code = True, interrupted.code
         else:
             store = _initial_store(root / "cancel.sqlite3", revision)
+            interrupt_at = max(1, rows // 2)
+            attempt_count += 1
             result = fit_exponential_checkpointed_csv(
                 path=source,
                 schema=_SCHEMA,
@@ -241,12 +245,14 @@ def _run_scenario(
                 limits=_LIMITS,
                 store=store,
                 source_revision=revision,
-                cancel=lambda cursor: cursor == 0,
+                cancel=lambda cursor: cursor >= interrupt_at,
             )
-            if result.code != "CANCELLED" or store.read().cursor != 0:
-                raise RuntimeError("cancellation was not observed before a commit")
+            interrupted_cursor = store.read().cursor
+            if result.code != "CANCELLED" or interrupted_cursor != interrupt_at:
+                raise RuntimeError("cancellation did not retain the expected nonzero checkpoint")
             result_digest = None
-            actual_passes, cancellation_observed, retry_initial_code = 1, True, None
+            final_cursor = interrupted_cursor
+            cancellation_observed, retry_initial_code = True, None
             resources_released = _delete_and_verify(
                 (
                     source,
@@ -264,10 +270,10 @@ def _run_scenario(
         cell: dict[str, object] = {
             "rows": rows,
             "scenario": scenario,
-            "actual_passes": actual_passes,
-            "peak_rss_bytes": peak_rss,
-            "max_inflight_bytes": _LIMITS.max_inflight_bytes,
-            "observed_inflight_bytes": max_payload,
+            "attempt_count": attempt_count,
+            "process_peak_rss_bytes": peak_rss,
+            "interrupted_cursor": interrupted_cursor,
+            "final_cursor": final_cursor,
             "canonical_result_equal": canonical_equal,
             "cancellation_observed": cancellation_observed,
             "resources_released": resources_released,
@@ -275,6 +281,7 @@ def _run_scenario(
             "retry_initial_code": retry_initial_code,
             "source_bytes": source_bytes,
             "source_sha256": revision,
+            "result_sha256": result_digest,
         }
         if scenario == "complete":
             assert result_digest is not None
@@ -297,8 +304,10 @@ def collect_platform(
         digest = complete.pop("_completed_result_digest")
         assert isinstance(digest, str)
         for scenario in SCENARIOS:
-            cell = complete if scenario == "complete" else _run_scenario(
-                row_count, scenario, baseline_digest=digest
+            cell = (
+                complete
+                if scenario == "complete"
+                else _run_scenario(row_count, scenario, baseline_digest=digest)
             )
             cell["platform"] = platform
             cell["candidate_git_sha"] = candidate_sha
@@ -309,6 +318,9 @@ def collect_platform(
         "candidate_git_sha": candidate_sha,
         "platform": platform,
         "host_platform": host_platform.platform(),
+        "python_version": host_platform.python_version(),
+        "numpy_version": importlib.metadata.version("numpy"),
+        "veridist_version": importlib.metadata.version("veridist"),
         "collected_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "cells": cells,
     }

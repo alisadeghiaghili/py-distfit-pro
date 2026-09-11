@@ -288,8 +288,7 @@ class V1CheckpointedCsvTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "lifetimes.csv"
             source.write_text(
-                "time,event_observed\n"
-                + "".join(f"{index + 1},1\n" for index in range(200)),
+                "time,event_observed\n" + "".join(f"{index + 1},1\n" for index in range(200)),
                 encoding="utf-8",
             )
             store = CountingStore(self._store(directory))

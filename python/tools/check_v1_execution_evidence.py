@@ -52,23 +52,10 @@ def validate(payload: object, expected_sha: str) -> list[str]:
         observed.add(key)
         if cell.get("candidate_git_sha") != expected_sha:
             errors.append(f"cell {index} is not bound to the reviewed candidate")
-        if not _valid_positive_int(cell.get("actual_passes")):
-            errors.append(f"cell {index} has no measured pass count")
-        if not _valid_positive_int(cell.get("peak_rss_bytes")):
-            errors.append(f"cell {index} has no measured RSS")
-        maximum, observed_bytes = (
-            cell.get("max_inflight_bytes"),
-            cell.get("observed_inflight_bytes"),
-        )
-        if not (
-            isinstance(maximum, int)
-            and not isinstance(maximum, bool)
-            and maximum > 0
-            and isinstance(observed_bytes, int)
-            and not isinstance(observed_bytes, bool)
-            and 0 <= observed_bytes <= maximum
-        ):
-            errors.append(f"cell {index} has invalid inflight-byte observation")
+        if not _valid_positive_int(cell.get("attempt_count")):
+            errors.append(f"cell {index} has no measured attempt count")
+        if not _valid_positive_int(cell.get("process_peak_rss_bytes")):
+            errors.append(f"cell {index} has no measured process peak RSS")
         if (
             cell.get("scenario") == "retry_resume"
             and cell.get("canonical_result_equal") is not True
@@ -104,6 +91,9 @@ def validate_raw_fragment(payload: object, expected_sha: str) -> list[str]:
         errors.append("raw evidence candidate SHA does not match the reviewed candidate")
     if not isinstance(payload.get("host_platform"), str) or not payload["host_platform"].strip():
         errors.append("raw evidence lacks host-platform provenance")
+    for field in ("python_version", "numpy_version", "veridist_version"):
+        if not isinstance(payload.get(field), str) or not payload[field].strip():
+            errors.append(f"raw evidence lacks {field.replace('_', '-')} provenance")
     collected_at = payload.get("collected_at")
     if not isinstance(collected_at, str) or not collected_at.endswith("Z"):
         errors.append("raw evidence lacks UTC collection provenance")
@@ -121,9 +111,7 @@ def validate_raw_fragment(payload: object, expected_sha: str) -> list[str]:
             errors.append(f"raw cell {index} must be an object")
             continue
         key = (cell.get("platform"), cell.get("rows"), cell.get("scenario"))
-        if not (
-            isinstance(key[0], str) and isinstance(key[1], int) and isinstance(key[2], str)
-        ):
+        if not (isinstance(key[0], str) and isinstance(key[1], int) and isinstance(key[2], str)):
             errors.append(f"raw cell {index} has an invalid matrix key")
             continue
         if key in observed:
@@ -136,26 +124,33 @@ def validate_raw_fragment(payload: object, expected_sha: str) -> list[str]:
         source_sha = cell.get("source_sha256")
         if not isinstance(source_sha, str) or re.fullmatch(r"[0-9a-f]{64}", source_sha) is None:
             errors.append(f"raw cell {index} lacks a deterministic source digest")
-        actual_passes = cell.get("actual_passes")
+        attempt_count = cell.get("attempt_count")
         scenario = cell.get("scenario")
-        required_passes = 2 if scenario == "retry_resume" else 1
-        if actual_passes != required_passes:
-            errors.append(f"raw cell {index} has an invalid observed pass count")
-        if not _valid_positive_int(cell.get("peak_rss_bytes")):
-            errors.append(f"raw cell {index} has no measured RSS")
-        maximum, observed_bytes = (
-            cell.get("max_inflight_bytes"),
-            cell.get("observed_inflight_bytes"),
-        )
-        if not (
-            isinstance(maximum, int)
-            and not isinstance(maximum, bool)
-            and maximum > 0
-            and isinstance(observed_bytes, int)
-            and not isinstance(observed_bytes, bool)
-            and 0 <= observed_bytes <= maximum
+        required_attempts = 2 if scenario == "retry_resume" else 1
+        if attempt_count != required_attempts:
+            errors.append(f"raw cell {index} has an invalid observed attempt count")
+        if not _valid_positive_int(cell.get("process_peak_rss_bytes")):
+            errors.append(f"raw cell {index} has no measured process peak RSS")
+        rows = cell.get("rows")
+        interrupted_cursor = cell.get("interrupted_cursor")
+        final_cursor = cell.get("final_cursor")
+        if scenario in {"retry_resume", "cancel"} and not (
+            isinstance(rows, int)
+            and isinstance(interrupted_cursor, int)
+            and 0 < interrupted_cursor < rows
         ):
-            errors.append(f"raw cell {index} has invalid inflight-byte observation")
+            errors.append(f"raw cell {index} lacks a nonzero partial checkpoint")
+        if scenario in {"complete", "retry_resume"} and final_cursor != rows:
+            errors.append(f"raw cell {index} lacks a complete final cursor")
+        if scenario == "cancel" and final_cursor != interrupted_cursor:
+            errors.append(f"raw cell {index} changed cursor after cancellation")
+        result_sha = cell.get("result_sha256")
+        if scenario in {"complete", "retry_resume"} and not (
+            isinstance(result_sha, str) and re.fullmatch(r"[0-9a-f]{64}", result_sha)
+        ):
+            errors.append(f"raw cell {index} lacks a deterministic result digest")
+        if scenario == "cancel" and result_sha is not None:
+            errors.append(f"raw cell {index} reports a result after cancellation")
         if scenario == "complete" and cell.get("result_code") != "COMPLETE":
             errors.append(f"raw cell {index} lacks a complete result")
         if scenario == "retry_resume" and not (
