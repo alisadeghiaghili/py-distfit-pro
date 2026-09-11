@@ -54,7 +54,7 @@ jobs:
       - name: Collect complete retry-resume and cancellation facts
         run: >
           python tools/collect_v1_execution_evidence.py
-          --candidate-git-sha "$CANDIDATE_SHA"
+          --candidate-git-sha "${{ env.CANDIDATE_SHA }}"
           --platform "${{ matrix.platform }}"
           --output "../v1-execution-${{ matrix.platform }}.json"
       - name: Upload executed raw platform artifact
