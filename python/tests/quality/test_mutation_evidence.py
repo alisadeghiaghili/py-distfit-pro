@@ -21,7 +21,13 @@ from mutation_evidence import (  # noqa: E402
 CHECKER = PYTHON_ROOT / "tools" / "check_mutation_evidence.py"
 RUNNER = PYTHON_ROOT / "tools" / "run_mutation.py"
 COUNT_KEYS = ("generated", "killed", "survived", "unresolved")
-MUTATION_SELECTION = ["tests/contract", "tests/reference", "tests/unit"]
+MUTATION_SELECTION = [
+    "tests/contract",
+    "tests/reference",
+    "tests/unit",
+    "tests/conformance",
+    "tests/property",
+]
 MUTATION_COPY = [
     "tools",
     "src/veridist/__init__.py",
@@ -77,7 +83,8 @@ def fixture(root: Path) -> dict[str, object]:
         "[tool.mutmut]\n"
         'source_paths = ["src/veridist/domain", "src/veridist/statistics", '
         '"src/veridist/families", "src/veridist/engine"]\n'
-        'pytest_add_cli_args_test_selection = ["tests/contract", "tests/reference", "tests/unit"]\n'
+        'pytest_add_cli_args_test_selection = ["tests/contract", "tests/reference", "tests/unit", '
+        '"tests/conformance", "tests/property"]\n'
         'also_copy = ["tools", "src/veridist/__init__.py", "src/veridist/execution.py", '
         '"src/veridist/py.typed", "src/veridist/adapters", "src/veridist/reporting"]\n'
         'mutate_only_covered_lines = false\n',
