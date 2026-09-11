@@ -20,7 +20,7 @@ requirements:
     - python >=3.11
     - setuptools >=77
   run:
-    - numpy >=1.26,<3
+    - numpy >=1.26,<2.4
     - python >=3.11
 
 test:
