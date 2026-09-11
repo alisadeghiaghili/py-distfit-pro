@@ -262,11 +262,12 @@ def fit_exponential_checkpointed_csv(
 ) -> CheckpointedCsvFitResult:
     """Resume a strict CSV lifetime reduction from its committed row cursor.
 
-    Each committed row is a pure reducer/CAS transition.  The source is read
-    once for this attempt, but rows in the committed prefix are only decoded
-    to reach the cursor; they are never submitted to the reducer again.
-    Cancellation is observed immediately before acquiring the next row, so a
-    cancelled result always leaves the preceding complete checkpoint intact.
+    Each adapter chunk, or its prefix before cancellation, is one pure
+    reducer/CAS transition. The source is read once for this attempt, but rows
+    in the committed prefix are only decoded to reach the cursor; they are
+    never submitted to the reducer again. Cancellation is observed before
+    each row is added to a batch, and any preceding batch prefix is committed
+    before the cancelled result is returned.
     """
 
     if not isinstance(path, Path):
@@ -295,9 +296,8 @@ def fit_exponential_checkpointed_csv(
             return CheckpointedCsvFitResult("ACCUMULATOR_SCHEMA_MISMATCH", None)
 
         # The strict adapter's public logical-payload accounting has a fixed
-        # object-graph overhead.  Checkpointing serializes one row at a time,
-        # so retain a bounded adapter chunk while honoring a small public
-        # checkpoint payload budget without materializing the source.
+        # object-graph overhead. Retain and checkpoint one bounded adapter
+        # chunk at a time without materializing the source.
         adapter_limit = max(2048, limits.chunk_bytes)
         adapter = CsvLifetimeAdapter(
             path,
@@ -306,29 +306,45 @@ def fit_exponential_checkpointed_csv(
             CsvLifetimeLimits(adapter_limit, max(adapter_limit, limits.max_inflight_bytes)),
         )
         for chunk in adapter.iter_chunks():
-            offsets = enumerate(chunk.observations, start=chunk.envelope.row_start)
-            for offset, observation in offsets:
-                checkpoint = store.read()
-                if checkpoint.source_revision != source_revision:
-                    return CheckpointedCsvFitResult("SOURCE_REVISION_MISMATCH", None)
-                if offset < checkpoint.cursor:
-                    continue
-                if offset != checkpoint.cursor:
-                    return CheckpointedCsvFitResult("RANGE_MISMATCH", None)
-                if cancel is not None and cancel(checkpoint.cursor):
+            checkpoint = store.read()
+            if checkpoint.source_revision != source_revision:
+                return CheckpointedCsvFitResult("SOURCE_REVISION_MISMATCH", None)
+            row_start = chunk.envelope.row_start
+            row_stop = chunk.envelope.row_stop
+            if checkpoint.cursor >= row_stop:
+                continue
+            if checkpoint.cursor < row_start:
+                return CheckpointedCsvFitResult("RANGE_MISMATCH", None)
+            batch_start = checkpoint.cursor
+            batch: list[list[float | bool]] = []
+            observations = chunk.observations[batch_start - row_start :]
+            for observation in observations:
+                cursor = batch_start + len(batch)
+                if cancel is not None and cancel(cursor):
+                    if batch:
+                        payload = json.dumps(batch, separators=(",", ":")).encode("utf-8")
+                        apply_pure_update(
+                            store=store,
+                            source_revision=source_revision,
+                            payload=payload,
+                            payload_sha256=hashlib.sha256(payload).hexdigest(),
+                            row_start=batch_start,
+                            row_stop=cursor,
+                            operation_token=f"rows-{batch_start}-{cursor}",
+                            reducer=reducer,
+                        )
                     return CheckpointedCsvFitResult("CANCELLED", None)
-                payload = json.dumps(
-                    [[float(observation.time), type(observation) is ExactLifetime]],
-                    separators=(",", ":"),
-                ).encode("utf-8")
+                batch.append([float(observation.time), type(observation) is ExactLifetime])
+            if batch:
+                payload = json.dumps(batch, separators=(",", ":")).encode("utf-8")
                 apply_pure_update(
                     store=store,
                     source_revision=source_revision,
                     payload=payload,
                     payload_sha256=hashlib.sha256(payload).hexdigest(),
-                    row_start=offset,
-                    row_stop=offset + 1,
-                    operation_token=f"row-{offset}-{offset + 1}",
+                    row_start=batch_start,
+                    row_stop=batch_start + len(batch),
+                    operation_token=f"rows-{batch_start}-{batch_start + len(batch)}",
                     reducer=reducer,
                 )
         final = store.read()

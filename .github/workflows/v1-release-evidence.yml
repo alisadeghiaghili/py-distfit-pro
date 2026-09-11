@@ -1,0 +1,146 @@
+name: veridist-v1-release-evidence
+
+on:
+  push:
+    tags:
+      - "v1.*"
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact full candidate SHA to collect and validate
+        required: true
+        type: string
+
+env:
+  CANDIDATE_SHA: ${{ inputs.candidate_sha || github.sha }}
+
+permissions:
+  contents: read
+
+jobs:
+  collect-execution-evidence:
+    name: collect-${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux
+          - runner: macos-latest
+            platform: macos
+          - runner: windows-latest
+            platform: windows
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Bind candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Install candidate
+        run: python -m pip install --disable-pip-version-check -e .
+      - name: Collect complete retry-resume and cancellation facts
+        run: >
+          python tools/collect_v1_execution_evidence.py
+          --candidate-git-sha "$CANDIDATE_SHA"
+          --platform "${{ matrix.platform }}"
+          --output "../v1-execution-${{ matrix.platform }}.json"
+      - name: Upload executed raw platform artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-execution-${{ matrix.platform }}-${{ env.CANDIDATE_SHA }}
+          path: v1-execution-${{ matrix.platform }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  validate-collected-execution:
+    needs: collect-execution-evidence
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Bind candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Download all executed platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: v1-execution-*-${{ env.CANDIDATE_SHA }}
+          path: raw-execution
+          merge-multiple: true
+      - name: Assemble and validate the executed cross-platform matrix
+        run: |
+          python tools/assemble_v1_execution_evidence.py \
+            --input ../raw-execution/v1-execution-linux.json \
+            --input ../raw-execution/v1-execution-macos.json \
+            --input ../raw-execution/v1-execution-windows.json \
+            --output v1-execution-collected.json \
+            --expected-git-sha "$CANDIDATE_SHA"
+          python tools/check_v1_execution_evidence.py \
+            --artifact v1-execution-collected.json \
+            --expected-git-sha "$CANDIDATE_SHA"
+      - name: Upload assembled run evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-execution-collected-${{ env.CANDIDATE_SHA }}
+          path: python/v1-execution-collected.json
+          if-no-files-found: error
+          retention-days: 90
+
+  validate-release-metadata:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate citation, Zenodo, and conda-forge metadata
+        run: |
+          python -m pip install "PyYAML>=6,<7"
+          python tools/check_release_metadata.py --repository-root ..
+
+  v1-release-evidence-gate:
+    name: veridist / v1 release evidence gate
+    needs: [validate-collected-execution, validate-release-metadata]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce aggregate result
+        shell: bash
+        env:
+          EXECUTION_RESULT: ${{ needs.validate-collected-execution.result }}
+          METADATA_RESULT: ${{ needs.validate-release-metadata.result }}
+        run: |
+          set -euo pipefail
+          test "$EXECUTION_RESULT" = "success"
+          test "$METADATA_RESULT" = "success"

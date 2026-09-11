@@ -1,0 +1,38 @@
+{% set name = "veridist" %}
+{% set version = "0.9.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/alisadeghiaghili/veridist/releases/download/v{{ version }}/veridist-{{ version }}.tar.gz
+  sha256: e778525dcc2536fb9748d626487137c57ccdc6c65a2a5adeee2ce773ba585fee
+
+build:
+  noarch: python
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - pip
+    - python >=3.11
+    - setuptools >=77
+  run:
+    - numpy >=1.26,<3
+    - python >=3.11
+
+test:
+  imports:
+    - veridist
+
+about:
+  home: https://github.com/alisadeghiaghili/veridist
+  license: BUSL-1.1
+  license_file: LICENSE
+  summary: Evidence-first distribution fitting with explicit execution contracts
+
+extra:
+  recipe-maintainers:
+    - alisadeghiaghili

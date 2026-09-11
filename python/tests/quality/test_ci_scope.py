@@ -40,9 +40,13 @@ class CiScopeClassifierTests(unittest.TestCase):
             "README.fa.md",
             "README.de.md",
             "SECURITY.md",
+            ".zenodo.json",
+            "CITATION.cff",
+            "conda-forge-recipe/meta.yaml",
             ".github/workflows/mutation.yml",
             ".github/workflows/scale-evidence.yml",
             ".github/workflows/v1-ci.yml",
+            ".github/workflows/v1-release-evidence.yml",
             ".github/workflows/ci.yml",
         )
         self.assertFalse(classifier.legacy_relevant(paths))
