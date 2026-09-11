@@ -4,6 +4,35 @@ This changelog covers only the nested `veridist` package. The repository-root
 legacy changelog describes the frozen `distfit_pro` history and is not a
 Veridist release record.
 
+## [0.9.0] - 2026-09-11
+
+### Added
+
+- Durable local SQLite checkpoints with generation-based compare-and-swap,
+  corruption detection, source-revision checks, and resumable exponential CSV
+  and canonical-chunk execution.
+- Fixed-location Weibull-minimum and lognormal MLE cells for exact and
+  independently right-censored lifetimes, including typed failures and
+  frequency-weight contracts.
+- Scalar CDF, survival, quantile, and caller-owned RNG sampling operations for
+  the declared continuous-family registry.
+- AIC/BIC, adequacy-gated model selection, and refit Monte Carlo KS, AD, and
+  CvM goodness-of-fit for the uncensored exponential cell. Monte Carlo output
+  reports requested, successful, and failed refits plus sampling uncertainty.
+
+### Quality
+
+- Python 3.11 through 3.14 CI, package, documentation, RTL browser, coverage,
+  and fail-closed mutation gates pass on the release line.
+- The inference module is registered with 129 statements and 46 branches and
+  is fully exercised by its contract and calibration tests.
+
+### Known limits
+
+See [Known limits](KNOWN_LIMITS.md). Inference remains limited to uncensored
+exponential samples, checkpoints remain local SQLite, operations are scalar,
+and no general performance, RSS, or universal best-fit claim is made.
+
 ## [0.5.0] - 2026-09-10
 
 ### Available in the candidate scope

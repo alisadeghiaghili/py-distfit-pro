@@ -2,31 +2,31 @@
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-`veridist` 0.5.0 ist ein evidenzorientiertes Paket zur Verteilungsanpassung.
-Die erste öffentliche Version wird durch CI-, Mutation-, Release- und
-plattformübergreifende Skalierungsnachweise gestützt.
+`veridist` 0.9.0 ist ein evidenzorientiertes Paket zur Verteilungsanpassung.
+Sein deklarierter Umfang wird durch ausführbare CI-, Coverage-, Mutation-,
+Release- und Skalierungsverträge abgesichert.
 
-Der öffentliche Umfang ist absichtlich eng: striktes UTF-8-CSV, ein
-Exponential-MLE mit festem Ort und ausschließlich Rate für exakte sowie
-unabhaengig rechtszensierte Lebensdauern, fuenf skalare Log-Dichte-Auswerter und
-exakte Streaming-Likelihood-Reduktion. Es bietet keine allgemeine Anpassung,
-Inferenz, Guetepruefung, Rangfolge, breite Zensierung, allgemeinen CSV-Leser
-oder allgemeine Out-of-Core- und Leistungsbehauptung.
+Der öffentliche Umfang enthält striktes UTF-8-CSV und fortsetzbare lokale
+SQLite-Ausführung, Exponential-, Weibull-Minimum- und Lognormal-MLE-Zellen mit
+festem Ort für exakte und unabhängig rechtszensierte Lebensdauern, skalare
+Operationen sowie Refit-Monte-Carlo-Anpassungstests und adequacy-gesteuerte
+Modellauswahl für unzensierte Exponentialdaten. Die bekannten Grenzen sind
+verbindlich; diese Version behauptet keine allgemeinen RSS-, Durchsatz-,
+breiten Zensierungs- oder universellen Best-Fit-Eigenschaften.
 
 Einen Evaluierungs-Build nach dem Klonen installieren:
 
 ```console
-cd py-distfit-pro/python
+cd veridist/python
 python -m pip install .
 ```
 
 Die Paket-Landingpages enthalten ausfuehrbares Beispiel, Adapter-Vertraege und
 Grenzen auf [English](python/README.md), [فارسی](python/README.fa.md) und
 [Deutsch](python/README.de.md). Das [Kandidaten-Changelog](python/CHANGELOG.md)
-und die [bekannten Grenzen](python/KNOWN_LIMITS.de.md) werden getrennt gepflegt.
-Der verbindliche Release-Vertrag in
-[ADR-0020](docs/adr/ADR-0020-veridist-0.5-release-contract.md) belaesst die
-Version bei `0.0.0.dev0`, bis alle kandidatspezifischen Gates erfuellt sind.
+und die [bekannten Grenzen](python/KNOWN_LIMITS.de.md) sowie die
+[v1-Roadmap](docs/v1-roadmap.md) definieren die Release-Grenze und die
+verbleibende Arbeit bis 1.0.
 
 ## Sicherheit und Lizenz
 

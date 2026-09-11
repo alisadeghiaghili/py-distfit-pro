@@ -3,6 +3,13 @@
 This is a 90-day delivery plan.  It intentionally narrows scope so that v1 can
 prove a few difficult capabilities rather than advertise many unvalidated ones.
 
+**Status at 0.9.0 (2026-09-11):** foundations, the three-family reliability
+vertical, strict CSV execution, local SQLite resume, scalar family operations,
+and the declared exponential inference cell are implemented. The final 1.0
+stage is evidence and release work: retained calibration and portable scale
+reports, release metadata, multilingual parity for the expanded scope, and the
+fail-closed v1 release gates.
+
 ## Days 1-14: foundations
 
 Create Python-only greenfield package boundaries, spec/provenance schema,
@@ -12,19 +19,19 @@ structure with a translation-parity manifest.  Freeze legacy as an audited
 reference; do not port its statistical core. Establish DataSource replayability,
 chunk-ID/offset, max-pass, bounded-inflight, failure/checkpoint and redacted
 provenance contracts. Start scale-contract, docs/i18n and example CI gates now.
-The DS-01--DS-12 harness and in-memory contract fixtures now exist, but real
-source adapters, persistent checkpoints, orchestration and retained production
-pass/byte evidence do not. Make no production scale claim. Start the competitive claim-cell
-registry/source-lock design now as well; no competitive landscape is publishable
+The DS-01--DS-12 harness, strict CSV adapter, persistent local SQLite
+checkpoints, orchestration, and retained pass/byte evidence now exist. No
+portable process-memory or general production-scale claim follows. The
+competitive claim-cell registry/source-lock design remains required; no
+competitive landscape is publishable
 until its 100% required lock coverage checker exists and passes.
 
 ## Days 15-35: first domain vertical -- reliability, censoring and big data
 
-Branch status on 2026-08-25: the accepted scope review narrowed the first
-callable cell to a fixed-location, rate-only Exponential MLE for exact and
-independently right-censored lifetimes. Its O(1) reducer state is implemented;
-Weibull, Lognormal and production adapter/out-of-core evidence remain future
-work. The package is still pre-alpha `0.0.0.dev0`.
+Release status on 2026-09-11: fixed-location Exponential, Weibull-minimum, and
+Lognormal MLE cells for exact and independently right-censored lifetimes are
+implemented with typed failures. The Exponential path has strict CSV and local
+SQLite resume. Broader adapters and portable RSS evidence remain future work.
 
 Implement and cite the narrow reliability set needed for the vertical
 (Exponential, Weibull and Lognormal unless a capability review narrows it

@@ -21,12 +21,10 @@ compressed cells, is the publication/export record.
 ## Current veridist branch boundary
 
 This is a project-status note, not a competitor claim and not a new
-`supported` CSV cell. The `0.0.0.dev0` development branch has one experimental
-callable statistical cell: fixed-location, rate-only exponential MLE for exact
-and independently right-censored lifetimes, with typed failures and
-`inference=not_provided`. Its reducer has fixed O(1) state. There is no
-production adapter, external-memory benchmark, out-of-core claim, release, or
-remote-CI result. The complete project matrix is
+`supported` CSV cell. Release 0.9.0 has the bounded reliability, scalar-family,
+checkpoint, and exponential-inference cells listed in the project capability
+matrix. It does not establish an external-memory, distributed, universal
+best-fit, or broad out-of-core claim. The complete project matrix is
 [capability-matrix.md](capability-matrix.md).
 
 ## Python and Julia
