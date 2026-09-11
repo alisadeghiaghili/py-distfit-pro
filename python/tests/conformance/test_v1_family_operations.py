@@ -97,6 +97,68 @@ class V1FamilyOperationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             sample("normal", True, {"mu": 0.0, "sigma": 1.0}, np.random.default_rng(7))
 
+    def test_distribution_reference_values_are_numerically_specific(self) -> None:
+        """Pin independent reference points across every public distribution formula."""
+
+        from veridist.statistics.distributions import cdf, ppf, sf
+
+        self.assertAlmostEqual(
+            cdf("normal", 1.0, {"mu": 0.0, "sigma": 1.0}), 0.8413447461, places=9
+        )
+        self.assertAlmostEqual(
+            ppf("normal", 0.025, {"mu": 0.0, "sigma": 1.0}), -1.9599639845, places=8
+        )
+        self.assertAlmostEqual(
+            cdf("gamma", 6.0, {"shape": 2.0, "scale": 3.0}), 0.5939941503, places=9
+        )
+        self.assertAlmostEqual(
+            sf("gamma", 6.0, {"shape": 2.0, "scale": 3.0}), 0.4060058497, places=9
+        )
+        self.assertAlmostEqual(
+            cdf("weibull_min", 4.0, {"shape": 1.5, "scale": 4.0}), 0.6321205588, places=9
+        )
+        self.assertAlmostEqual(
+            ppf("weibull_min", 0.5, {"shape": 1.5, "scale": 4.0}), 3.1328920255, places=8
+        )
+        self.assertEqual(cdf("lognormal", math.exp(0.5), {"mu_log": 0.5, "sigma_log": 0.75}), 0.5)
+        self.assertAlmostEqual(
+            ppf("gumbel_right", 0.5, {"location": 0.0, "scale": 2.0}),
+            -2.0 * math.log(math.log(2.0)),
+            places=14,
+        )
+
+    def test_sampling_matches_numpy_family_oracles(self) -> None:
+        """The caller generator must receive the canonical NumPy family parameters."""
+
+        from veridist.statistics.distributions import sample
+
+        cases = (
+            ("exponential", {"rate": 2.0}, lambda rng: rng.exponential(0.5, size=4)),
+            ("normal", {"mu": 1.0, "sigma": 2.0}, lambda rng: rng.normal(1.0, 2.0, size=4)),
+            ("gamma", {"shape": 2.0, "scale": 3.0}, lambda rng: rng.gamma(2.0, 3.0, size=4)),
+            (
+                "weibull_min",
+                {"shape": 1.5, "scale": 4.0},
+                lambda rng: 4.0 * rng.weibull(1.5, size=4),
+            ),
+            (
+                "lognormal",
+                {"mu_log": 0.5, "sigma_log": 0.75},
+                lambda rng: rng.lognormal(0.5, 0.75, size=4),
+            ),
+            (
+                "gumbel_right",
+                {"location": 1.0, "scale": 2.0},
+                lambda rng: rng.gumbel(1.0, 2.0, size=4),
+            ),
+        )
+        for family, parameters, oracle in cases:
+            with self.subTest(family=family):
+                self.assertEqual(
+                    sample(family, 4, parameters, np.random.default_rng(91)).tolist(),
+                    oracle(np.random.default_rng(91)).tolist(),
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
