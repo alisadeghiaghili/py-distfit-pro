@@ -244,6 +244,7 @@ def check(
             "tools",
             "src/veridist/__init__.py",
             "src/veridist/execution.py",
+            "src/veridist/inference.py",
             "src/veridist/py.typed",
             "src/veridist/adapters",
             "src/veridist/reporting",

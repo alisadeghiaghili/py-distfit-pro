@@ -32,6 +32,7 @@ MUTATION_COPY = [
     "tools",
     "src/veridist/__init__.py",
     "src/veridist/execution.py",
+    "src/veridist/inference.py",
     "src/veridist/py.typed",
     "src/veridist/adapters",
     "src/veridist/reporting",
@@ -86,7 +87,8 @@ def fixture(root: Path) -> dict[str, object]:
         'pytest_add_cli_args_test_selection = ["tests/contract", "tests/reference", "tests/unit", '
         '"tests/conformance", "tests/property"]\n'
         'also_copy = ["tools", "src/veridist/__init__.py", "src/veridist/execution.py", '
-        '"src/veridist/py.typed", "src/veridist/adapters", "src/veridist/reporting"]\n'
+        '"src/veridist/inference.py", "src/veridist/py.typed", "src/veridist/adapters", '
+        '"src/veridist/reporting"]\n'
         'mutate_only_covered_lines = false\n',
         encoding="utf-8",
     )
