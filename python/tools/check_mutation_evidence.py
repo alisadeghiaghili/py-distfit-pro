@@ -12,8 +12,8 @@ from typing import Any, cast
 
 from mutation_evidence import (
     CRITICAL_MODULES,
-    MUTATION_TEST_SELECTION,
     META_KEYS,
+    MUTATION_TEST_SELECTION,
     MUTMUT_VERSION,
     config_digest,
     input_digest,

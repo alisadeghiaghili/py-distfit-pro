@@ -234,7 +234,13 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             )
             self.assertEqual(
                 mutation_evidence.mutation_config(root)["pytest_add_cli_args_test_selection"],
-                ["tests/contract", "tests/reference", "tests/unit", "tests/conformance", "tests/property"],
+                [
+                    "tests/contract",
+                    "tests/reference",
+                    "tests/unit",
+                    "tests/conformance",
+                    "tests/property",
+                ],
             )
             for selection in (
                 '["tests"]',
@@ -244,7 +250,8 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
                 with self.subTest(selection=selection):
                     root.joinpath("pyproject.toml").write_text(
                         configuration.replace(
-                            '["tests/contract", "tests/reference", "tests/unit", "tests/conformance", "tests/property"]',
+                            '["tests/contract", "tests/reference", "tests/unit", '
+                            '"tests/conformance", "tests/property"]',
                             selection,
                         )
                         + f"also_copy = {copy}\n",
