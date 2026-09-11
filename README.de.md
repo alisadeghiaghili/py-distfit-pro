@@ -2,7 +2,7 @@
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-`veridist` 0.9.1 ist ein evidenzorientiertes Paket zur Verteilungsanpassung.
+`veridist` 1.0.0 ist ein evidenzorientiertes Paket zur Verteilungsanpassung.
 Sein deklarierter Umfang wird durch ausführbare CI-, Coverage-, Mutation-,
 Release- und Skalierungsverträge abgesichert.
 
@@ -14,10 +14,18 @@ Modellauswahl für unzensierte Exponentialdaten. Die bekannten Grenzen sind
 verbindlich; diese Version behauptet keine allgemeinen RSS-, Durchsatz-,
 breiten Zensierungs- oder universellen Best-Fit-Eigenschaften.
 
-Einen Evaluierungs-Build nach dem Klonen installieren:
+## Installation
+
+Das veröffentlichte Paket von PyPI installieren:
 
 ```console
-cd veridist/python
+python -m pip install veridist
+```
+
+Für Entwicklung aus einem Repository-Checkout:
+
+```console
+cd python
 python -m pip install .
 ```
 
@@ -26,11 +34,10 @@ Grenzen auf [English](python/README.md), [فارسی](python/README.fa.md) und
 [Deutsch](python/README.de.md). Das [Kandidaten-Changelog](python/CHANGELOG.md)
 und die [bekannten Grenzen](python/KNOWN_LIMITS.de.md) sowie die
 [v1-Roadmap](docs/v1-roadmap.md) definieren die Release-Grenze und die
-verbleibende Arbeit bis 1.0.
+verbleibende Arbeit.
 
 ## Sicherheit und Lizenz
 
 Schwachstellen gemaess [SECURITY.md](SECURITY.md) melden. Repository und
 verschachteltes Paket verwenden BUSL-1.1 mit der in [LICENSE](LICENSE)
-beschriebenen zusaetzlichen Apache-2.0-Nutzungserlaubnis. Diese
-Pre-Alpha-Dokumentation aendert keine Lizenz.
+beschriebenen zusaetzlichen Apache-2.0-Nutzungserlaubnis.

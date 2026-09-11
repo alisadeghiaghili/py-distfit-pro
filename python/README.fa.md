@@ -6,7 +6,7 @@
 
 ## وضعیت
 
-`veridist` با نسخهٔ 0.9.1 یک انتشار عمومی با شواهد قابل‌بازبینی است.
+`veridist` با نسخهٔ 1.0.0 یک انتشار عمومی با شواهد قابل‌بازبینی است.
 این نسخه قراردادهای تحویل کران‌دار، بازپخش‌پذیری، بودجهٔ گذر، تلاش مجدد
 تراکنشی، سازگاری checkpoint، شکست‌های نوع‌دار، پیامدهای اجرا و منشأ دادهٔ
 پالایش‌شده از اطلاعات حساس را تعریف و آزمایش می‌کند.
@@ -77,7 +77,7 @@ python -m pip install .
 </div>
 
 ```console
-python -m pip install /path/to/veridist-0.9.1-py3-none-any.whl
+python -m pip install /path/to/veridist-1.0.0-py3-none-any.whl
 ```
 
 <div lang="fa" dir="rtl">

@@ -4,6 +4,32 @@ This changelog covers only the nested `veridist` package. The repository-root
 legacy changelog describes the frozen `distfit_pro` history and is not a
 Veridist release record.
 
+## [1.0.0] - 2026-09-11
+
+### Added
+
+- Candidate-bound execution evidence for complete, retry-resume, and
+  cancellation scenarios at 10k, 100k, and 1m rows on Linux, macOS, and
+  Windows. The release gate validates all 27 collected cells and their source
+  and result digests.
+- Reproducible release validation that builds artifacts twice, canonicalizes
+  archive metadata, verifies byte equality, and retains the validated wheel
+  and source distribution.
+- Isolated PyPI Trusted Publishing through GitHub OIDC and the protected
+  `pypi` environment. Published GitHub Release assets are the only artifacts
+  eligible for upload.
+
+### Changed
+
+- Checkpointed CSV execution persists bounded adapter chunks in one
+  transaction and retains a committed prefix on cancellation for nonzero-
+  cursor resume.
+
+### Quality
+
+- Python 3.11 through 3.14, documentation, RTL browser, package, 95%
+  coverage, and fail-closed mutation gates remain release requirements.
+
 ## [0.9.1] - 2026-09-11
 
 ### Changed

@@ -21,7 +21,7 @@ compressed cells, is the publication/export record.
 ## Current veridist branch boundary
 
 This is a project-status note, not a competitor claim and not a new
-`supported` CSV cell. Release 0.9.1 has the bounded reliability, scalar-family,
+`supported` CSV cell. Release 1.0.0 has the bounded reliability, scalar-family,
 checkpoint, and exponential-inference cells listed in the project capability
 matrix. It does not establish an external-memory, distributed, universal
 best-fit, or broad out-of-core claim. The complete project matrix is

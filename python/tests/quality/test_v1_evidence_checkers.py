@@ -67,7 +67,7 @@ def _raw_payload(platform: str) -> dict[str, object]:
         "host_platform": "fixture",
         "python_version": "3.11.0",
         "numpy_version": "2.0.0",
-        "veridist_version": "0.9.1",
+        "veridist_version": "1.0.0",
         "collected_at": "2026-09-10T00:00:00Z",
         "cells": cells,
     }

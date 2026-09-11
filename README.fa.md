@@ -4,7 +4,7 @@
 
 <div lang="fa" dir="rtl">
 
-`veridist` 0.9.1 یک بستهٔ evidence-first برای برازش توزیع است که دامنهٔ اعلام‌شدهٔ
+`veridist` 1.0.0 یک بستهٔ evidence-first برای برازش توزیع است که دامنهٔ اعلام‌شدهٔ
 آن با قراردادهای اجرایی CI، پوشش تست، mutation، انتشار و مقیاس کنترل می‌شود.
 
 دامنهٔ عمومی فعلی شامل CSV سخت‌گیرانهٔ UTF-8 و اجرای قابل‌ادامه با SQLite محلی،
@@ -16,10 +16,18 @@ Monte Carlo با refit و انتخاب مدل adequacy-gated برای نمونه
 
 </div>
 
-برای نصب build ارزیابی پس از clone کردن مخزن:
+## نصب
+
+برای نصب بستهٔ منتشرشده از PyPI:
 
 ```console
-cd veridist/python
+python -m pip install veridist
+```
+
+برای توسعه از clone مخزن:
+
+```console
+cd python
 python -m pip install .
 ```
 
@@ -27,11 +35,10 @@ python -m pip install .
 [English](python/README.md)، [فارسی](python/README.fa.md) و
 [Deutsch](python/README.de.md) هستند. [تغییرات candidate](python/CHANGELOG.md) و
 [محدودیت‌های شناخته‌شده](python/KNOWN_LIMITS.fa.md) و
-[نقشهٔ راه v1](docs/v1-roadmap.md) مرز انتشار و کار باقی‌مانده تا 1.0 را مشخص
-می‌کنند.
+[نقشهٔ راه v1](docs/v1-roadmap.md) مرز انتشار و کار باقی‌مانده را مشخص می‌کنند.
 
 ## امنیت و مجوز
 
 آسیب‌پذیری را مطابق [SECURITY.md](SECURITY.md) گزارش کنید. مجوز مخزن و بستهٔ
 تو در تو BUSL-1.1 با مجوز استفادهٔ اضافی Apache-2.0 است که در
-[LICENSE](LICENSE) آمده است. این مستندات پیش‌آلفا مجوز را تغییر نمی‌دهد.
+[LICENSE](LICENSE) آمده است.
