@@ -158,7 +158,7 @@ class MutationEvidenceV2Contracts(unittest.TestCase):
             "mutation",
             '"also_copy": [',
             '"src/veridist/reporting",',
-            '"pytest_selection": ["tests/contract", "tests/reference", "tests/unit", "tests/conformance", "tests/property"]',
+            '"pytest_selection": list(MUTATION_TEST_SELECTION)',
         )
         for required in required_terms:
             with self.subTest(required=required):
