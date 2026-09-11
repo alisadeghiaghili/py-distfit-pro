@@ -4,7 +4,7 @@ This is a planning ledger, not a release checklist for `distfit_pro`. v1 uses
 the `veridist` namespace. Legacy assets count only after an explicit,
 evidence-backed disposition and validation under the v1 contracts.
 
-ADR-0020 records the completed `veridist` 0.5 release contract. Version 0.9.1
+ADR-0020 records the completed `veridist` 0.5 release contract. Version 1.0.0
 adds local SQLite resume, Weibull-minimum and Lognormal reliability fits,
 scalar family operations, and the declared exponential inference/selection
 cell. This ledger tracks the remaining evidence required for 1.0; completion
@@ -149,7 +149,7 @@ as a statement about uninspected current files.
 - The package top level now exposes the narrow strict CSV/exponential API:
   `fit_exponential_csv`, `CsvLifetimeSchema`, `CsvLifetimeLimits`,
   `PublicSourceId`, and `ExponentialSourceFitResult`. It is deliberately not
-  a broad distribution-fitting API. Version 0.9.1 additionally exposes the
+  a broad distribution-fitting API. Version 1.0.0 additionally exposes the
   bounded milestone modules documented in the capability matrix; formal v1
   publication evidence and release exits remain incomplete.
 - ADR-0016 now provides an evidence-gated migration ledger, a dependency-free

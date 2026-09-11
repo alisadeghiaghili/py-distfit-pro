@@ -3,7 +3,7 @@
 This is a 90-day delivery plan.  It intentionally narrows scope so that v1 can
 prove a few difficult capabilities rather than advertise many unvalidated ones.
 
-**Status at 0.9.1 (2026-09-11):** foundations, the three-family reliability
+**Status at 1.0.0 (2026-09-11):** foundations, the three-family reliability
 vertical, strict CSV execution, local SQLite resume, scalar family operations,
 and the declared exponential inference cell are implemented. The final 1.0
 stage is evidence and release work: retained calibration and portable scale

@@ -4,7 +4,7 @@
 
 ## Status
 
-`veridist` 0.9.1 ist eine öffentlich dokumentierte Vertragsversion mit überprüfbaren Nachweisen.
+`veridist` 1.0.0 ist eine öffentlich dokumentierte Vertragsversion mit überprüfbaren Nachweisen.
 Der aktuelle Stand spezifiziert und testet begrenzte Datenlieferung,
 Wiederholbarkeit, Pass-Budgets, transaktionale Wiederholungen,
 Checkpoint-Kompatibilität, typisierte Fehler, Ausführungsergebnisse und
@@ -70,7 +70,7 @@ Alternativ kann ein selbst gebautes oder aus einem bestimmten geprüften Lauf
 bezogenes Wheel installiert werden:
 
 ```console
-python -m pip install /path/to/veridist-0.9.1-py3-none-any.whl
+python -m pip install /path/to/veridist-1.0.0-py3-none-any.whl
 ```
 
 Das Projekt fordert nicht zur Installation eines unveröffentlichten
