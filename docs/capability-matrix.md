@@ -1,6 +1,6 @@
 # veridist capability matrix
 
-This matrix records the callable scope of `veridist` 0.9.0. A listed cell is
+This matrix records the callable scope of `veridist` 0.9.1. A listed cell is
 supported only within its stated data and execution contracts. Historical
 evidence remains useful context, but release claims require checks on the exact
 candidate revision.

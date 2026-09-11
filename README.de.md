@@ -2,7 +2,7 @@
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-`veridist` 0.9.0 ist ein evidenzorientiertes Paket zur Verteilungsanpassung.
+`veridist` 0.9.1 ist ein evidenzorientiertes Paket zur Verteilungsanpassung.
 Sein deklarierter Umfang wird durch ausführbare CI-, Coverage-, Mutation-,
 Release- und Skalierungsverträge abgesichert.
 

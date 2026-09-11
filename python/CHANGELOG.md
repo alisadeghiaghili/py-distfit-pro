@@ -4,6 +4,26 @@ This changelog covers only the nested `veridist` package. The repository-root
 legacy changelog describes the frozen `distfit_pro` history and is not a
 Veridist release record.
 
+## [0.9.1] - 2026-09-11
+
+### Changed
+
+- Checkpointed CSV execution commits bounded adapter chunks instead of opening
+  a SQLite transaction for every row. Cancellation persists the completed
+  prefix for nonzero-cursor resume.
+- Candidate-bound 1.0 evidence collection verifies complete, resumed, and
+  cancelled 10k, 100k, and 1m-row runs on Linux, macOS, and Windows and rejects
+  digest drift.
+- Citation File Format, Zenodo, and conda-forge release metadata is
+  version-aligned and validated in CI.
+
+### Quality
+
+- The 95% global line and branch coverage contract remains enforced; the
+  execution-module denominator is frozen at 179 statements and 70 branches.
+- Competitive source-lock validation remains outside the package release gate
+  while ADR-0014 is Proposed; competitive drafts remain non-publishable.
+
 ## [0.9.0] - 2026-09-11
 
 ### Added

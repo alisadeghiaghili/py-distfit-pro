@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -27,7 +28,7 @@ def _date(value: object) -> str | None:
     return None
 
 
-def validate(repository: Path) -> list[str]:
+def validate(repository: Path, sdist: Path | None = None) -> list[str]:
     """Return every cross-file release-metadata violation."""
 
     errors: list[str] = []
@@ -84,6 +85,14 @@ def validate(repository: Path) -> list[str]:
     digest = re.search(r"^\s*sha256:\s*([0-9a-f]+)\s*$", recipe, re.MULTILINE)
     if digest is None or _SHA256.fullmatch(digest.group(1)) is None:
         errors.append("conda-forge recipe lacks an immutable SHA-256")
+    elif sdist is not None:
+        try:
+            actual_digest = hashlib.sha256(sdist.read_bytes()).hexdigest()
+        except OSError as error:
+            errors.append(f"source distribution is unreadable: {error}")
+        else:
+            if actual_digest != digest.group(1):
+                errors.append("conda-forge SHA-256 differs from the built source distribution")
     required_recipe_text = (
         "releases/download/v{{ version }}/veridist-{{ version }}.tar.gz",
         "--no-deps",
@@ -99,8 +108,11 @@ def validate(repository: Path) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository-root", type=Path, required=True)
+    parser.add_argument("--sdist", type=Path)
     args = parser.parse_args()
-    errors = validate(args.repository_root.resolve())
+    errors = validate(
+        args.repository_root.resolve(), args.sdist.resolve() if args.sdist is not None else None
+    )
     if errors:
         print("FAIL: " + "; ".join(errors), file=sys.stderr)
         return 1

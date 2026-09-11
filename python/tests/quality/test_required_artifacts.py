@@ -65,7 +65,7 @@ class RequiredQualityArtifactTests(unittest.TestCase):
     def test_capability_matrix_declares_the_release_cells_and_limits(self) -> None:
         content = " ".join(CAPABILITY_MATRIX.read_text(encoding="utf-8").split())
         for required in (
-            "0.9.0",
+            "0.9.1",
             "Exponential MLE",
             "Weibull-minimum MLE",
             "Lognormal MLE",
