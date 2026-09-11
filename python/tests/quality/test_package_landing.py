@@ -99,7 +99,7 @@ class PackageLandingContractTests(unittest.TestCase):
                 self.assertIn("cd veridist/python", content)
                 self.assertIn("python -m pip install .", content)
                 self.assertIn("python -m pip install /path/to/veridist-", content)
-                self.assertIsNone(re.search(r"(?m)^python -m pip install veridist\s*$", content))
+                self.assertRegex(content, r"(?m)^python -m pip install veridist\s*$")
 
     def test_each_locale_states_the_same_experimental_vertical_and_limits(self) -> None:
         required = {

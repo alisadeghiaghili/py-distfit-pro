@@ -57,7 +57,17 @@ artifact تاریخی به‌تنهایی شاهد یک candidate تازه نی�
 
 <div lang="fa" dir="rtl">
 
-## نصب نسخهٔ ارزیابی
+## نصب
+
+نسخهٔ منتشرشده از PyPI:
+
+</div>
+
+```console
+python -m pip install veridist
+```
+
+<div lang="fa" dir="rtl">
 
 پس از clone کردن مخزن، پروژهٔ تو‌در‌توی Python را نصب کنید:
 

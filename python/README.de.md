@@ -56,7 +56,13 @@ Schema-Validierung aufbewahrt. Das bloße Vorhandensein dieses Workflows oder ei
 historischen Artefakts ist kein Beleg für einen neuen Kandidaten und keine
 Durchsatz- oder RSS-Behauptung.
 
-## Evaluierungsstand installieren
+## Installation
+
+Veröffentlichte Version von PyPI installieren:
+
+```console
+python -m pip install veridist
+```
 
 Nach dem Klonen wird das verschachtelte Python-Projekt installiert:
 
