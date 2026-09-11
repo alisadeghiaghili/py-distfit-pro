@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
+from importlib import import_module
 from math import expm1, isfinite, log, sqrt
 
 
@@ -125,7 +126,7 @@ def refit_monte_carlo_gof(
 ) -> RefitMonteCarloGof:
     """Calibrate admitted exponential EDF statistics by refitting every replicate."""
 
-    import numpy as np
+    np = import_module("numpy")
 
     if family != "exponential":
         raise ValueError("only the uncensored exponential refit cell is admitted")
