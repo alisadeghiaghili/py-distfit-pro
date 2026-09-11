@@ -268,6 +268,45 @@ class V1CheckpointedCsvTests(unittest.TestCase):
             )
         self.assertEqual(result.code, "SOURCE_REVISION_MISMATCH")
 
+    def test_large_csv_commits_bounded_batches_instead_of_each_row(self) -> None:
+        from veridist.execution import fit_exponential_checkpointed_csv
+
+        class CountingStore:
+            def __init__(self, delegate: SQLiteCheckpointStore) -> None:
+                self.delegate = delegate
+                self.compare_and_swap_calls = 0
+
+            def read(self) -> CheckpointRecord:
+                return self.delegate.read()
+
+            def compare_and_swap(
+                self, expected_generation: int, candidate: CheckpointRecord
+            ) -> CheckpointRecord:
+                self.compare_and_swap_calls += 1
+                return self.delegate.compare_and_swap(expected_generation, candidate)
+
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "lifetimes.csv"
+            source.write_text(
+                "time,event_observed\n"
+                + "".join(f"{index + 1},1\n" for index in range(200)),
+                encoding="utf-8",
+            )
+            store = CountingStore(self._store(directory))
+            result = fit_exponential_checkpointed_csv(
+                path=source,
+                schema=CsvLifetimeSchema("time", "event_observed"),
+                source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
+                limits=CsvLifetimeLimits(4096, 4096),
+                store=store,
+                source_revision="revision-a",
+                cancel=None,
+            )
+
+        self.assertEqual(result.code, "COMPLETE")
+        self.assertEqual(result.fit.observation_count, 200)
+        self.assertLess(store.compare_and_swap_calls, 20)
+
 
 if __name__ == "__main__":
     unittest.main()
