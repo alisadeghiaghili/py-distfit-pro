@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
 [![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
 [![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
-[![Coverage](https://codecov.io/gh/alisadeghiaghili/veridist/graph/badge.svg)](https://app.codecov.io/gh/alisadeghiaghili/veridist)
+[![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
 [![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
 [![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
 [![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
@@ -96,8 +96,8 @@ Inferenz bleibt auf die deklarierte Zelle und einen aufruferseitigen Generator
 beschränkt.
 
 Die Haupt-CI testet unterstützte Python-Versionen und erzwingt mindestens 95 %
-Line- und Branch-Coverage. Das Coverage-Badge zeigt den live von Codecov
-veröffentlichten Python-3.11-Bericht, keinen fest geschriebenen README-Wert.
+Line- und Branch-Coverage. Das Badge Coverage ≥95% zeigt den Pass/Fail-Status
+dieses erzwungenen Vertrags auf `main`, keine erfundene Prozentzahl.
 
 ## Evidenz, Skalierung und Produktionsgrenzen
 

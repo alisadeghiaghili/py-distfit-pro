@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
 [![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
 [![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
-[![Coverage](https://codecov.io/gh/alisadeghiaghili/veridist/graph/badge.svg)](https://app.codecov.io/gh/alisadeghiaghili/veridist)
+[![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
 [![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
 [![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
 [![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
@@ -93,11 +93,11 @@ fit conclusion. The uncensored exponential cell has refit Monte Carlo KS, AD,
 and CvM assessment plus AIC/BIC and adequacy-gated selection; that inference is
 limited to its declared cell and caller-owned generator.
 
-The main CI runs supported Python versions, enforces global line and branch
-coverage of at least 95%, and publishes the Python 3.11 coverage report behind
-the Coverage badge. The badge is a live Codecov result, not a README value.
-The [quality contract](python/tools/check_coverage.py) rejects weak or
-incomplete coverage evidence.
+The main CI runs supported Python versions and enforces global line and branch
+coverage of at least 95%. The Coverage ≥95% badge reports the pass/fail state
+of that enforced contract on `main`; it does not invent a percentage. The
+[quality contract](python/tools/check_coverage.py) rejects weak or incomplete
+coverage evidence.
 
 ## Evidence, scale, and production boundaries
 

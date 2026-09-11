@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
 [![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
 [![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
-[![Coverage](https://codecov.io/gh/alisadeghiaghili/veridist/graph/badge.svg)](https://app.codecov.io/gh/alisadeghiaghili/veridist)
+[![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
 [![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
 [![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
 [![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
@@ -100,8 +100,8 @@ Monte Carlo از نوع KS، AD و CvM، AIC/BIC و انتخاب مدل adequacy
 استنباط به همان سلول اعلام‌شده و generator متعلق به فراخواننده محدود است.
 
 CI اصلی همهٔ نسخه‌های پشتیبانی‌شدهٔ Python را اجرا و دست‌کم ۹۵٪ پوشش line و
-branch را الزام می‌کند. بج Coverage خروجی زندهٔ Codecov برای گزارش Python 3.11
-است، نه عددی نوشته‌شده در README.
+branch را الزام می‌کند. بج Coverage ≥95% وضعیت گذر/شکست همین قرارداد الزام‌شده
+را روی `main` نشان می‌دهد و درصدی ساختگی نشان نمی‌دهد.
 
 ## شواهد، مقیاس و مرزهای تولید
 

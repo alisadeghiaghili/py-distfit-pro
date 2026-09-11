@@ -33,9 +33,6 @@ jobs:
   tests:
     name: veridist / tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
     defaults:
       run:
         working-directory: python
@@ -64,14 +61,6 @@ jobs:
           python tools/check_coverage.py --project-root .
           --manifest quality/coverage-manifest.json
           --coverage-json coverage.json
-      - name: Publish coverage report
-        if: matrix.python-version == '3.11'
-        uses: codecov/codecov-action@v5
-        with:
-          use_oidc: true
-          files: python/coverage.json
-          flags: unit
-          fail_ci_if_error: true
 
   package:
     name: veridist / package
