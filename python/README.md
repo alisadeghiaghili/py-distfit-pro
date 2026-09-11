@@ -1,72 +1,23 @@
 # veridist
 
+[![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
+[![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
+[![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
+[![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
+[![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
+
 [English](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.md) | [فارسی](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.fa.md) | [Deutsch](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.de.md)
 
-## What Veridist is for
+## Fit declared lifetime models without hiding the contract
 
-Veridist helps reliability and data-science teams fit a small, explicitly
-defined set of lifetime distributions from strict CSV input, retain an
-auditable execution record, and resume compatible local work after an
-interruption. It is designed for decisions where stated statistical and
-operational boundaries matter as much as a point estimate.
+`veridist` 1.0.0 is an evidence-backed public contract release. It helps a
+reliability or data-science team turn a strict lifetime CSV into a typed fit and
+an execution record that makes the model, input, and operational boundaries
+visible.
 
-## Release status
-
-`veridist` 1.0.0 is an evidence-backed public contract release.
-It specifies and tests bounded delivery, replayability, pass budgets,
-transactional retry, checkpoint compatibility, typed failures, execution
-outcomes, and redacted provenance.
-
-This build includes fixed-location Exponential, Weibull-minimum, and Lognormal
-MLE cells for exact and independently right-censored lifetimes. They provide
-point estimates when finite solutions exist and typed failures otherwise.
-The uncensored exponential cell also has refit Monte Carlo KS, AD, and CvM
-goodness-of-fit, AIC/BIC, calibration summaries, and adequacy-gated selection.
-Inference is restricted to that declared cell and requires a caller-owned NumPy
-generator.
-Its public CSV path is strict: UTF-8 CSV with exactly `time,event_observed`,
-event token `1`, and right-censoring token `0`. It executes one iterator pass
-with a declared logical retained-payload chunk budget and returns a closed,
-typed execution result. This is not a generic CSV reader or a portable RSS,
-throughput, cancellation, retry, checkpoint, or broad out-of-core claim.
-Retained evidence establishes bounded internal payload only for the measured
-10k/100k/1m by 32KiB/64KiB/128KiB matrix; it does not establish a general
-big-data or high-throughput capability.
-
-`IterableDataSource` is the reusable public stream adapter for caller-owned
-chunk iterables. Its immutable metadata explicitly declares one-pass or
-replayable acquisition: a single-pass source fails with a typed pass-budget
-error if acquired twice, while a replayable source requires an iterator
-factory. `BoundedChunkBuffer` charges queued and consumer-held chunks until
-`BufferedChunk.release()`; callers must release received chunks, normally in
-`finally`. The only shipped file adapter remains the strict CSV lifetime
-adapter—this does not add generic CSV, Parquet, Arrow, dataframe, database,
-or broad out-of-core adapters.
-
-For a sequential pure reducer, `veridist.engine.SQLiteCheckpointStore` provides
-durable local checkpoint state with generation-based compare-and-swap and
-cross-process SQLite locking. It is limited to one host and a local filesystem;
-`fit_exponential_checkpointed_csv` supports explicit source-revision-bound
-resume for the strict lifetime CSV path.
-
-The separate scalar surface exposes immutable `FAMILY_REGISTRY` metadata for
-normal, gamma, Weibull-minimum, lognormal, and right-Gumbel; scalar
-`evaluate_log_density`, CDF, survival, quantile, and caller-owned RNG sampling
-operations; and
-exact-state `reduce_log_likelihood_chunks`. These operations are scalar and the
-fit/inference capability matrix remains narrower than the operation registry.
-The reducer represents successful binary64 terms exactly and rounds
-the final total once; its unsigned-64 count cap implies a 2162-bit exact-total
-bound. Its retained 10k/100k/1m evidence is scoped to tested normal streams.
-
-Candidate scale measurement is deliberately manual: the `veridist-scale-evidence`
-workflow first binds a clean, full candidate SHA and runs the evidence contracts,
-then measures the public iterable likelihood and strict CSV/exponential paths on
-Linux and Windows. It retains artifacts only after their own fail-closed SHA and
-schema validation. Merely having this workflow, or a historical artifact, is not
-evidence for a new candidate and is not a throughput or RSS claim.
-
-## Install
+## Install and first success
 
 Install the released package:
 
@@ -74,9 +25,7 @@ Install the released package:
 python -m pip install veridist
 ```
 
-For development from a repository checkout:
-
-Install from the nested source project after cloning the repository:
+For a source checkout:
 
 ```console
 git clone https://github.com/alisadeghiaghili/veridist.git
@@ -84,29 +33,18 @@ cd veridist/python
 python -m pip install .
 ```
 
-Or install a wheel that you built or obtained from a specific verified run:
+Or install a wheel from a verified run:
 
 ```console
 python -m pip install /path/to/veridist-1.0.0-py3-none-any.whl
 ```
 
-## Choose the right entry point
-
-| If you need to… | Start with… |
-| --- | --- |
-| Fit a strict lifetime CSV once | `fit_exponential_csv` |
-| Resume a compatible interrupted CSV fit | `fit_exponential_checkpointed_csv` and `SQLiteCheckpointStore` |
-| Process caller-owned chunks | `IterableDataSource` and `reduce_log_likelihood_chunks` |
-| Evaluate a declared distribution | the scalar distribution operations and `FAMILY_REGISTRY` |
-
-Every result should be read with its execution report and the declared
-limitations below; a successful API call is not a universal suitability claim.
-
-## Quick start: fit a lifetime CSV
+Run this complete CSV fit after installation:
 
 ```python
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
 from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
 from veridist.families import ExponentialFitSuccess
 
@@ -114,7 +52,8 @@ with TemporaryDirectory() as directory:
     path = Path(directory) / "lifetimes.csv"
     path.write_text("time,event_observed\n1,1\n1,0\n", encoding="utf-8")
     fit = fit_exponential_csv(
-        path, schema=CsvLifetimeSchema("time", "event_observed"),
+        path,
+        schema=CsvLifetimeSchema("time", "event_observed"),
         source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
         limits=CsvLifetimeLimits(32768, 32768),
     ).fit
@@ -124,18 +63,55 @@ assert fit.inference == "not_provided"
 assert fit.censoring_assumption == "independent_right_censoring"
 ```
 
-## Before production use
+## Pick the right path
 
-Review [known limits](KNOWN_LIMITS.md) and the repository
-[evidence ledger](../docs/v1-readiness.md). In particular, checkpoints are
-local SQLite state, public file input is strict UTF-8 lifetime CSV, and the
-inference matrix is deliberately narrower than the distribution-operation
-registry. The package does not promise a universal best distribution, general
-throughput, or portable distributed execution.
+| Need | Use |
+| --- | --- |
+| A strict CSV lifetime fit | `fit_exponential_csv` and the [CSV tutorial](docs/source/exponential-right-censoring.md) |
+| A declared scalar distribution operation | `FAMILY_REGISTRY` and `evaluate_log_density`; see the [family guide](docs/source/families-log-density-likelihood.md) |
+| An exact-state reducer over caller-owned chunks | `reduce_log_likelihood_chunks`; see the [stream source API](docs/source/api.md#generic-stream-source-api) |
+| Local checkpoint and resume design | `SQLiteCheckpointStore` plus the [checkpoint CSV contract](tests/contract/test_v1_checkpointed_csv.py) |
 
-See the [documentation toolchain](docs/README.md) for contributor docs.
+## Capability and evidence
 
-## License
+The fitting surface contains fixed-location Exponential, Weibull-minimum, and
+Lognormal MLE cells for exact and independently right-censored lifetimes. A
+finite solution yields a point estimate; invalid statistical or operational
+conditions yield typed failures. Inference is restricted to that declared cell:
+the uncensored exponential cell supports refit Monte Carlo KS, AD, and CvM,
+AIC/BIC, and adequacy-gated selection with a caller-owned generator.
 
-BUSL-1.1 with an Apache-2.0 additional-use grant for personal,
+The public CSV path is strict: UTF-8 with exactly `time,event_observed`, event
+token `1`, and right-censoring token `0`. It uses one iterator pass. It is not
+a generic CSV reader. A successful call should be read with its execution
+record and model assumptions.
+
+The CI gate checks supported Python versions, at least 95% global line and
+branch coverage, quality checks, package installation, and documentation. The
+Coverage ≥95% badge shows the pass/fail status of that enforced contract on
+`main`; this page does not claim a static percentage. The mutation and release-
+evidence badges link to their own verifiable workflows.
+
+## Scale and production boundaries
+
+Retained evidence covers a measured 10k/100k/1m by 32KiB/64KiB/128KiB matrix
+for the declared paths. It does not establish general big-data support,
+throughput, portable RSS, dataframe, Parquet, Arrow, database, distributed
+execution, broad censoring, vectorized operations, or universal model choice.
+`SQLiteCheckpointStore` is durable local state, not a distributed service.
+
+Read [KNOWN_LIMITS.md](KNOWN_LIMITS.md) and the repository
+[evidence ledger](../docs/v1-readiness.md) before production use.
+
+## Documentation, contribution, and support
+
+Use the [API reference](docs/source/api.md) to integrate, the
+[family guide](docs/source/families-log-density-likelihood.md) to assess the
+statistical surface, and the [documentation toolchain](docs/README.md) to work
+on docs. For changes, start with the repository [contribution guide](../CONTRIBUTING.md)
+and [engineering conventions](../docs/conventions.md). Report reproducible
+defects through [GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues)
+and vulnerabilities through [SECURITY.md](../SECURITY.md).
+
+The package uses BUSL-1.1 with an Apache-2.0 additional-use grant for personal,
 non-commercial use; see [LICENSE](LICENSE).

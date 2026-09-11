@@ -1,65 +1,26 @@
 # veridist
 
+[![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
+[![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
+[![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
+[![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
+[![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
+
 [English](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.md) | [فارسی](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.fa.md) | [Deutsch](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.de.md)
 
 <div lang="fa" dir="rtl">
 
-## وضعیت
+## مدل طول‌عمر مشخص را با قرارداد روشن برازش دهید
 
-`veridist` با نسخهٔ 1.0.0 یک انتشار عمومی با شواهد قابل‌بازبینی است.
-این نسخه قراردادهای تحویل کران‌دار، بازپخش‌پذیری، بودجهٔ گذر، تلاش مجدد
-تراکنشی، سازگاری checkpoint، شکست‌های نوع‌دار، پیامدهای اجرا و منشأ دادهٔ
-پالایش‌شده از اطلاعات حساس را تعریف و آزمایش می‌کند.
+نسخهٔ 1.0.0 یک انتشار عمومی با شواهد قابل‌بازبینی است. `veridist` CSV طول‌عمر
+سخت‌گیرانه را به برازش نوع‌دار و گزارش اجرا تبدیل می‌کند تا مدل، ورودی و مرزهای
+عملیاتی روشن بمانند.
 
-این نسخه سلول‌های MLE نمایی، Weibull-minimum و Lognormal با مکان ثابت برای
-طول عمرهای دقیق و راست‌سانسورشدهٔ مستقل دارد. هرگاه راه‌حل متناهی وجود داشته
-باشد، برآورد نقطه‌ای برمی‌گرداند و در غیر این صورت شکست‌های نوع‌دار می‌دهد.
-برای سلول نمایی بدون سانسور، آزمون‌های KS، AD و CvM با Monte Carlo و refit،
-AIC/BIC، خلاصهٔ calibration و انتخاب مدل adequacy-gated نیز ارائه می‌شود؛ این
-استنباط به همین سلول اعلام‌شده و generator متعلق به فراخواننده محدود است.
-مسیر CSV عمومی آن سخت‌گیرانه است: CSV با UTF-8 و دقیقاً سرستون‌های
-`time,event_observed`، توکن رخداد `1` و توکن راست‌سانسوری `0`. این مسیر یک
-گذر از iterator با بودجهٔ منطقی payload نگه‌داشته‌شده اجرا و نتیجهٔ اجرایی
-بسته و نوع‌دار برمی‌گرداند. شواهد نگه‌داری‌شده فقط payload داخلی کران‌دار را
-برای ماتریس اندازه‌گیری‌شدهٔ 10k/100k/1m ردیف و بودجه‌های
-32KiB/64KiB/128KiB نشان می‌دهند؛ از آن‌ها پشتیبانی عمومی از دادهٔ بزرگ یا
-توان عملیاتی بالا نتیجه نمی‌شود. این ادعای سقف RSS قابل‌حمل، لغو، retry،
-checkpoint یا برون‌حافظه‌ای عمومی هم نیست.
+## نصب و نخستین موفقیت
 
-`IterableDataSource` آداپتور عمومیِ قابل‌استفاده‌مجدد برای iterableهای chunk
-متعلق به فراخواننده است. فرادادهٔ تغییرناپذیر آن تک‌گذر یا بازپخش‌پذیر بودن را
-صریح اعلام می‌کند: دریافت دوبارهٔ منبع تک‌گذر با خطای نوع‌دار بودجهٔ گذر شکست
-می‌خورد و منبع بازپخش‌پذیر به iterator factory نیاز دارد. `BoundedChunkBuffer`
-بایت‌های chunkهای صف‌شده و در اختیار مصرف‌کننده را تا `BufferedChunk.release()`
-حساب می‌کند؛ فراخواننده باید chunk دریافت‌شده را، معمولاً در `finally`، آزاد کند.
-تنها آداپتور فایلِ ارائه‌شده همچنان آداپتور سخت‌گیرانهٔ طول‌عمر CSV است؛ این
-قابلیت آداپتورهای عمومی CSV، Parquet، Arrow، dataframe یا out-of-core نیست.
-
-برای یک reducer خالص و ترتیبی، `veridist.engine.SQLiteCheckpointStore` وضعیت
-checkpoint محلی پایدار را با compare-and-swap نسلی و قفل‌گذاری SQLite بین
-فرایندها فراهم می‌کند. این قابلیت فقط برای یک میزبان و filesystem محلی است؛
-`fit_exponential_checkpointed_csv` ادامهٔ صریح و وابسته به source revision را
-برای مسیر CSV طول‌عمر سخت‌گیرانه فراهم می‌کند.
-این کار ادعای CSV عمومی، Parquet، Arrow، dataframe، پایگاه‌داده یا out-of-core
-گسترده ایجاد نمی‌کند.
-
-سطح اسکالر جداگانه فراداده‌های تغییرناپذیر `FAMILY_REGISTRY` را برای پنج خانوادهٔ `normal`، `gamma`، `weibull_min`، `lognormal` و `gumbel_right`، عملیات `evaluate_log_density`، CDF، survival، quantile و نمونه‌گیری با RNG متعلق به فراخواننده و کاهش‌دهندهٔ حالتِ دقیق `reduce_log_likelihood_chunks` دارد. عملیات آرایه‌ای نیستند و ماتریس برازش و استنباط از registry محدودتر است. هر چگالیِ لگاریتمی binary64 موفق متناهی است؛ کاهش‌دهنده آن را به‌صورت تعداد صحیحِ دقیقِ واحدهای زیرنرمال انباشته می‌کند و فقط مجموع نهایی را یک‌بار به binary64 گرد می‌کند. کران شمارش unsigned-64 به کران ۲۱۶۲ بیت برای مجموع صحیحِ دقیق می‌انجامد. شواهد ۱۰k/۱۰۰k/۱m فقط مخصوص جریان‌های `normal` آزمایش‌شده است.
-
-اندازه‌گیری scale برای candidate عمداً دستی است: workflow با نام
-`veridist-scale-evidence` ابتدا SHA کامل و checkout تمیزِ candidate را bind و
-قراردادهای شواهد را اجرا می‌کند؛ سپس مسیر likelihood با iterable عمومی و مسیر
-سخت‌گیرانهٔ CSV/نمایی را روی Linux و Windows اندازه می‌گیرد. artifact فقط پس از
-اعتبارسنجی fail-closedِ SHA و schema خود نگه‌داری می‌شود. وجود این workflow یا
-artifact تاریخی به‌تنهایی شاهد یک candidate تازه نیست و ادعای throughput یا RSS
-ایجاد نمی‌کند.
-
-</div>
-
-<div lang="fa" dir="rtl">
-
-## نصب
-
-نسخهٔ منتشرشده از PyPI:
+نسخهٔ منتشرشده را نصب کنید:
 
 </div>
 
@@ -69,7 +30,7 @@ python -m pip install veridist
 
 <div lang="fa" dir="rtl">
 
-پس از clone کردن مخزن، پروژهٔ تو‌در‌توی Python را نصب کنید:
+برای source checkout:
 
 </div>
 
@@ -81,8 +42,7 @@ python -m pip install .
 
 <div lang="fa" dir="rtl">
 
-یا wheel مشخصی را که خودتان ساخته‌اید یا از یک اجرای تأییدشده گرفته‌اید نصب
-کنید:
+یا wheel یک اجرای تأییدشده را نصب کنید:
 
 </div>
 
@@ -92,16 +52,14 @@ python -m pip install /path/to/veridist-1.0.0-py3-none-any.whl
 
 <div lang="fa" dir="rtl">
 
-این پروژه کاربران را به نصب نام یک بستهٔ منتشرنشده از public index هدایت
-نمی‌کند.
-
-## آزمودن عمودی آزمایشی
+پس از نصب، این برازش کامل CSV را اجرا کنید:
 
 </div>
 
 ```python
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
 from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
 from veridist.families import ExponentialFitSuccess
 
@@ -109,7 +67,8 @@ with TemporaryDirectory() as directory:
     path = Path(directory) / "lifetimes.csv"
     path.write_text("time,event_observed\n1,1\n1,0\n", encoding="utf-8")
     fit = fit_exponential_csv(
-        path, schema=CsvLifetimeSchema("time", "event_observed"),
+        path,
+        schema=CsvLifetimeSchema("time", "event_observed"),
         source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
         limits=CsvLifetimeLimits(32768, 32768),
     ).fit
@@ -121,13 +80,58 @@ assert fit.censoring_assumption == "independent_right_censoring"
 
 <div lang="fa" dir="rtl">
 
-برای جزئیات، [زنجیرهٔ مستندسازی](docs/README.md) و
-[دفتر شواهد](../docs/v1-readiness.md) را ببینید؛ قابلیت‌های پیاده‌شده و
-محدودیت‌ها در آن‌ها جدا شده‌اند.
+## مسیر درست را انتخاب کنید
 
-## مجوز
+| نیاز | ابزار |
+| --- | --- |
+| برازش CSV طول‌عمر سخت‌گیرانه | `fit_exponential_csv` و [آموزش CSV](docs/source/exponential-right-censoring.md) |
+| محاسبهٔ توزیع اسکالر اعلام‌شده | `FAMILY_REGISTRY` و `evaluate_log_density`؛ [راهنمای خانواده‌ها](docs/source/families-log-density-likelihood.md) |
+| کاهش حالت‌دقیق روی chunkهای متعلق به فراخواننده | `reduce_log_likelihood_chunks`؛ [API جریان](docs/source/api.md#generic-stream-source-api) |
+| طراحی checkpoint و resume محلی | `SQLiteCheckpointStore` و [قرارداد CSV](tests/contract/test_v1_checkpointed_csv.py) |
+
+## قابلیت و شواهد
+
+سطح برازش، سلول‌های MLE نمایی، Weibull-minimum و Lognormal با مکان ثابت برای
+طول عمرهای دقیق و راست‌سانسورشدهٔ مستقل دارد. راه‌حل متناهی برآورد نقطه‌ای و
+شرایط آماری یا عملیاتی نامعتبر شکست‌های نوع‌دار برمی‌گردانند. استنباط به همین
+سلول اعلام‌شده محدود است: سلول نماییِ بدون سانسور KS، AD و CvM با refit Monte
+Carlo، AIC/BIC و انتخاب adequacy-gated با generator فراخواننده دارد.
+
+مسیر CSV عمومی آن سخت‌گیرانه است: UTF-8 و دقیقاً `time,event_observed`، توکن
+رخداد `1` و توکن راست‌سانسوری `0`. یک گذر از iterator انجام می‌دهد و CSV عمومی
+نیست. نتیجه را همراه با گزارش اجرا و فرض‌های مدل بخوانید.
+
+CI نسخه‌های پشتیبانی‌شدهٔ Python، حداقل ۹۵٪ پوشش line و branch، کیفیت، نصب بسته
+و مستندات را کنترل می‌کند. بج Coverage ≥95% گذر/شکست همین قرارداد الزام‌شده را
+روی `main` نشان می‌دهد؛ در این صفحه عدد ثابت coverage وجود ندارد.
+
+## مقیاس و مرزهای تولید
+
+شواهد نگه‌داری‌شده ماتریس اندازه‌گیری‌شدهٔ 10k/100k/1m ردیف و بودجه‌های
+32KiB/64KiB/128KiB را برای مسیرهای اعلام‌شده پوشش می‌دهند. این شواهد، پشتیبانی
+کلی از big-data، throughput، RSS قابل‌حمل، dataframe، Parquet، Arrow،
+پایگاه‌داده، اجرای توزیع‌شده، سانسور گسترده، عملیات برداری یا انتخاب عمومی مدل
+را ثابت نمی‌کنند. `SQLiteCheckpointStore` وضعیت محلی پایدار است، نه سرویس
+توزیع‌شده.
+
+پیش از استفادهٔ عملیاتی [KNOWN_LIMITS.fa.md](KNOWN_LIMITS.fa.md) و
+[دفتر شواهد](../docs/v1-readiness.md) را بخوانید.
+
+خانواده‌های `normal`، `gamma`، `weibull_min`، `lognormal` و `gumbel_right` در
+registry اسکالر هستند. چگالیِ لگاریتمی binary64 موفق و `reduce_log_likelihood_chunks`
+مجموع صحیحِ دقیق را برای سطح اعلام‌شده نگه می‌دارند؛ این‌ها API عمومی برازش یا
+آرایه نیستند.
+
+## مستندات، مشارکت و پشتیبانی
+
+[مرجع API](docs/source/api.md)، [راهنمای خانواده‌ها](docs/source/families-log-density-likelihood.md)
+و [toolchain مستندات](docs/README.md) مسیرهای اصلی‌اند. برای تغییرات از
+[راهنمای مشارکت](../CONTRIBUTING.md) و [قراردادهای مهندسی](../docs/conventions.md)
+شروع کنید. خطاهای بازتولیدپذیر را در
+[GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues) و
+آسیب‌پذیری‌ها را مطابق [SECURITY.md](../SECURITY.md) گزارش کنید.
 
 BUSL-1.1 با مجوز استفادهٔ اضافی Apache-2.0 برای استفادهٔ شخصی و غیرتجاری؛
-متن کامل در [LICENSE](LICENSE) است.
+[LICENSE](LICENSE) را ببینید.
 
 </div>

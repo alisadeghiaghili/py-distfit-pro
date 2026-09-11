@@ -1,70 +1,30 @@
 # veridist
 
+[![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
+[![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
+[![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
+[![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
+[![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
+
 [English](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.md) | [فارسی](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.fa.md) | [Deutsch](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.de.md)
 
-## Status
+## Deklarierte Lebensdauermodelle mit klarem Vertrag anpassen
 
-`veridist` 1.0.0 ist eine öffentlich dokumentierte Vertragsversion mit überprüfbaren Nachweisen.
-Der aktuelle Stand spezifiziert und testet begrenzte Datenlieferung,
-Wiederholbarkeit, Pass-Budgets, transaktionale Wiederholungen,
-Checkpoint-Kompatibilität, typisierte Fehler, Ausführungsergebnisse und
-redigierte Provenienz.
+`veridist` 1.0.0 ist eine öffentlich dokumentierte Vertragsversion. Es macht
+aus einer strikten Lebensdauer-CSV einen typisierten Fit und ein
+Ausführungsprotokoll, damit Modell, Eingabe und Betriebsgrenzen sichtbar bleiben.
 
-Dieser Stand enthält Exponential-, Weibull-Minimum- und Lognormal-MLE-Zellen mit
-festem Ort für exakte und unabhängig rechtszensierte Lebensdauern. Wenn eine
-endliche Lösung existiert, wird eine Punktschätzung zurückgegeben; andernfalls
-entstehen typisierte Fehlschläge. Für die unzensierte Exponentialzelle gibt es
-außerdem Refit-Monte-Carlo-KS-, AD- und CvM-Tests, AIC/BIC,
-Kalibrierungszusammenfassungen und adequacy-gesteuerte Auswahl. Diese Inferenz
-ist auf diese deklarierte Zelle und einen aufruferseitigen Generator begrenzt.
-Der öffentliche CSV-Pfad ist strikt: UTF-8-CSV mit exakt
-`time,event_observed`, Ereignis-Token `1` und Rechtszensur-Token `0`. Er führt
-einen Iterator-Durchlauf mit einem deklarierten logischen Budget für behaltene
-Payloads aus und gibt ein geschlossenes, typisiertes Ausführungsergebnis zurück.
-Dies ist keine Behauptung über allgemeines CSV, portable RSS-Grenzen,
-Durchsatz, Abbruch, Retry, Checkpoints oder breite Out-of-Core-Unterstützung.
-Die hinterlegte Evidenz belegt begrenzte interne Payload nur für die gemessene
-Matrix aus 10k/100k/1m Zeilen und 32KiB/64KiB/128KiB; daraus folgt keine
-allgemeine Big-Data- oder Hochdurchsatzfähigkeit.
+## Installation und erster Erfolg
 
-`IterableDataSource` ist der wiederverwendbare öffentliche Stream-Adapter für
-aufruferseitige Chunk-Iterables. Seine unveränderlichen Metadaten erklären
-Einmaligkeit oder Wiederholbarkeit ausdrücklich: Eine zweite Akquisition einer
-Einmalquelle schlägt mit einem typisierten Pass-Budget-Fehler fehl; eine
-wiederholbare Quelle benötigt eine Iterator-Factory. `BoundedChunkBuffer`
-berechnet Bytes für eingereihte und vom Consumer gehaltene Chunks bis
-`BufferedChunk.release()`; empfangene Chunks müssen, üblicherweise in
-`finally`, freigegeben werden. Der einzige ausgelieferte Datei-Adapter bleibt
-der strikte CSV-Lebensdauer-Adapter. Dies ergänzt weder allgemeines CSV noch
-Parquet-, Arrow-, Dataframe-, Datenbank- oder breite Out-of-Core-Adapter.
-
-Die separate skalare Oberfläche bietet unveränderliche `FAMILY_REGISTRY`-
-Metadaten für Normal-, Gamma-, Weibull-Minimum-, Lognormal- und Rechts-Gumbel-
-Familien, die skalare `evaluate_log_density` und die exakte Zustandsreduktion
-`reduce_log_likelihood_chunks`. Sie ist keine generische Anpassungs-,
-Inferenz-, Anpassungsgüte-, Ranking-, Array- oder Zensierungs-API.
-Erfolgreiche binary64-Terme werden exakt repräsentiert; die Endsumme wird
-einmal gerundet. Die unsigned-64-Zählgrenze ergibt eine 2162-Bit-Grenze für die
-exakte Summe. Die Evidenz für 10k/100k/1m gilt nur für getestete Normalströme.
-
-Die Scale-Messung eines Kandidaten ist bewusst manuell: Der Workflow
-`veridist-scale-evidence` bindet zunächst den vollständigen SHA eines sauberen
-Kandidaten und führt die Evidenzverträge aus. Erst dann misst er den öffentlichen
-Iterable-Likelihood-Pfad und den strikten CSV/Exponential-Pfad unter Linux und
-Windows. Artefakte werden erst nach ihrer eigenen fail-closed SHA- und
-Schema-Validierung aufbewahrt. Das bloße Vorhandensein dieses Workflows oder eines
-historischen Artefakts ist kein Beleg für einen neuen Kandidaten und keine
-Durchsatz- oder RSS-Behauptung.
-
-## Installation
-
-Veröffentlichte Version von PyPI installieren:
+Das veröffentlichte Paket installieren:
 
 ```console
 python -m pip install veridist
 ```
 
-Nach dem Klonen wird das verschachtelte Python-Projekt installiert:
+Für einen Source-Checkout:
 
 ```console
 git clone https://github.com/alisadeghiaghili/veridist.git
@@ -72,21 +32,18 @@ cd veridist/python
 python -m pip install .
 ```
 
-Alternativ kann ein selbst gebautes oder aus einem bestimmten geprüften Lauf
-bezogenes Wheel installiert werden:
+Oder ein Wheel aus einem verifizierten Lauf installieren:
 
 ```console
 python -m pip install /path/to/veridist-1.0.0-py3-none-any.whl
 ```
 
-Das Projekt fordert nicht zur Installation eines unveröffentlichten
-Paketnamens aus einem öffentlichen Index auf.
-
-## Experimentelle Vertikale ausprobieren
+Nach der Installation diesen vollständigen CSV-Fit ausführen:
 
 ```python
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
 from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
 from veridist.families import ExponentialFitSuccess
 
@@ -94,7 +51,8 @@ with TemporaryDirectory() as directory:
     path = Path(directory) / "lifetimes.csv"
     path.write_text("time,event_observed\n1,1\n1,0\n", encoding="utf-8")
     fit = fit_exponential_csv(
-        path, schema=CsvLifetimeSchema("time", "event_observed"),
+        path,
+        schema=CsvLifetimeSchema("time", "event_observed"),
         source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
         limits=CsvLifetimeLimits(32768, 32768),
     ).fit
@@ -104,18 +62,56 @@ assert fit.inference == "not_provided"
 assert fit.censoring_assumption == "independent_right_censoring"
 ```
 
-Weitere Einzelheiten stehen in der
-[Dokumentations-Toolchain](docs/README.md) und im
-[Evidenzregister](../docs/v1-readiness.md). Dort werden implementierte Prüfungen
-und ausdrückliche Grenzen getrennt ausgewiesen.
+## Passenden Pfad wählen
 
-## Lizenz
+| Bedarf | Einstieg |
+| --- | --- |
+| Strikte Lebensdauer-CSV anpassen | `fit_exponential_csv` und [CSV-Tutorial](docs/source/exponential-right-censoring.md) |
+| Deklarierte skalare Verteilung auswerten | `FAMILY_REGISTRY` und `evaluate_log_density`; [Familienleitfaden](docs/source/families-log-density-likelihood.md) |
+| Zustandsgenauen Reduzierer über eigene Chunks verwenden | `reduce_log_likelihood_chunks`; [Stream-API](docs/source/api.md#generic-stream-source-api) |
+| Lokales Checkpointing und Resume entwerfen | `SQLiteCheckpointStore` und [CSV-Vertrag](tests/contract/test_v1_checkpointed_csv.py) |
+
+## Fähigkeit und Evidenz
+
+Die Anpassungsoberfläche enthält Exponential-, Weibull-Minimum- und Lognormal-MLE-Zellen
+mit festem Ort für exakte und unabhängig rechtszensierte Lebensdauern.
+Eine endliche Lösung liefert eine Punktschätzung; ungültige statistische oder
+betriebliche Bedingungen erzeugen typisierte Fehlschläge. Inferenz ist auf diese
+deklarierte Zelle beschränkt: Die unzensierte Exponentialzelle unterstützt
+Refit-Monte-Carlo-KS, AD und CvM, AIC/BIC sowie adequacy-gesteuerte Auswahl mit
+einem aufruferseitigen Generator.
+
+Der öffentliche CSV-Pfad ist strikt: UTF-8 mit exakt `time,event_observed`,
+Ereignis-Token `1` und Rechtszensur-Token `0`. Er benötigt einen
+Iterator-Durchlauf und ist kein allgemeines CSV. Ein Ergebnis immer zusammen
+mit Ausführungsprotokoll und Modellannahmen lesen.
+
+Die CI prüft unterstützte Python-Versionen, mindestens 95 % Line- und Branch-
+Coverage, Qualität, Paketinstallation und Dokumentation. Das Badge Coverage
+≥95% zeigt den Pass/Fail-Status dieses erzwungenen Vertrags auf `main`; diese
+Seite enthält keinen statischen Coverage-Wert.
+
+## Skalierung und Produktionsgrenzen
+
+Hinterlegte Evidenz umfasst die gemessene Matrix aus 10k/100k/1m Zeilen und
+32KiB/64KiB/128KiB für die deklarierten Pfade. Sie belegt keine allgemeine
+Big-Data-Unterstützung, keinen Durchsatz, keine portable RSS-Grenze, keine
+Dataframe-, Parquet-, Arrow-, Datenbank- oder verteilte Ausführung, keine breite
+Zensierung, keine vektorisierten Operationen und keine universelle Modellwahl.
+`SQLiteCheckpointStore` ist dauerhafter lokaler Zustand, kein verteilter Dienst.
+
+Vor Produktionseinsatz [KNOWN_LIMITS.de.md](KNOWN_LIMITS.de.md) und das
+[Evidenzregister](../docs/v1-readiness.md) lesen.
+
+## Dokumentation, Beiträge und Support
+
+Für Integration die [API-Referenz](docs/source/api.md), für Statistik den
+[Familienleitfaden](docs/source/families-log-density-likelihood.md) und für
+Dokumentation die [Toolchain](docs/README.md) verwenden. Änderungen beginnen
+mit dem [Beitragsleitfaden](../CONTRIBUTING.md) und den
+[Engineering-Konventionen](../docs/conventions.md). Reproduzierbare Fehler in
+[GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues) und
+Sicherheitslücken gemäß [SECURITY.md](../SECURITY.md) melden.
 
 BUSL-1.1 mit einer zusätzlichen Apache-2.0-Nutzungserlaubnis für persönliche,
 nicht-kommerzielle Nutzung; siehe [LICENSE](LICENSE).
-Für einen sequentiellen, nebenwirkungsfreien Reducer bietet
-`veridist.engine.SQLiteCheckpointStore` dauerhaften lokalen Checkpoint-Zustand
-mit generationsbasiertem Compare-and-Swap und SQLite-Sperren zwischen
-Prozessen. Der Umfang ist auf einen Rechner und ein lokales Dateisystem
-beschränkt; der strikte CSV-Adapter verspricht noch kein automatisches
-Checkpoint-Replay.
