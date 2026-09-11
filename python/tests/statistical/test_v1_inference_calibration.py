@@ -14,6 +14,20 @@ class V1InferenceCalibrationTests(unittest.TestCase):
         self.assertAlmostEqual(result.standard_error, (0.05 * 0.95 / 200) ** 0.5, places=15)
         self.assertEqual(result.scope, "declared_grid_only")
 
+    def test_calibration_summary_rejects_invalid_counts_and_probability(self) -> None:
+        from veridist.inference import summarize_calibration
+
+        invalid = (
+            {"rejections": -1, "replicates": 10, "nominal_alpha": 0.05},
+            {"rejections": 1, "replicates": 0, "nominal_alpha": 0.05},
+            {"rejections": 11, "replicates": 10, "nominal_alpha": 0.05},
+            {"rejections": 1, "replicates": 10, "nominal_alpha": 0.0},
+            {"rejections": 1, "replicates": 10, "nominal_alpha": float("nan")},
+        )
+        for arguments in invalid:
+            with self.subTest(arguments=arguments), self.assertRaises(ValueError):
+                summarize_calibration(**arguments)
+
 
 if __name__ == "__main__":
     unittest.main()

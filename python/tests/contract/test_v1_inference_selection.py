@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import unittest
+from unittest.mock import patch
 
 
 class V1InferenceSelectionTests(unittest.TestCase):
@@ -45,6 +46,79 @@ class V1InferenceSelectionTests(unittest.TestCase):
         )
         self.assertEqual(result.code, SelectionCode.NONE_ADEQUATE)
         self.assertIsNone(result.selected_family)
+
+    def test_information_criteria_reject_invalid_inputs(self) -> None:
+        from veridist.inference import information_criteria
+
+        invalid = (
+            {"log_likelihood": float("nan"), "sample_size": 2, "free_parameters": 1},
+            {"log_likelihood": -1.0, "sample_size": True, "free_parameters": 1},
+            {"log_likelihood": -1.0, "sample_size": 0, "free_parameters": 1},
+            {"log_likelihood": -1.0, "sample_size": 2, "free_parameters": -1},
+        )
+        for arguments in invalid:
+            with self.subTest(arguments=arguments), self.assertRaises(ValueError):
+                information_criteria(**arguments)
+
+    def test_refit_gof_rejects_invalid_contracts_and_all_failed_refits(self) -> None:
+        import numpy as np
+
+        import veridist.inference as inference
+        from veridist.inference import GofStatistic, refit_monte_carlo_gof
+
+        generator = np.random.default_rng(4)
+        common = {
+            "observations": (0.5, 1.0),
+            "family": "exponential",
+            "statistics": frozenset({GofStatistic.KS}),
+            "replicates": 1,
+            "rng": generator,
+        }
+        invalid = (
+            {**common, "family": "normal"},
+            {**common, "statistics": frozenset()},
+            {**common, "statistics": frozenset({"KS"})},
+            {**common, "replicates": 0},
+            {**common, "rng": object()},
+            {**common, "observations": ()},
+            {**common, "observations": (float("nan"),)},
+            {**common, "observations": (0.0,)},
+        )
+        for arguments in invalid:
+            with self.subTest(arguments=arguments), self.assertRaises((TypeError, ValueError)):
+                refit_monte_carlo_gof(**arguments)
+
+        observed = inference._empirical_statistics((0.5, 1.0))
+        with patch.object(
+            inference,
+            "_empirical_statistics",
+            side_effect=(observed, ArithmeticError("synthetic refit failure")),
+        ):
+            with self.assertRaises(RuntimeError):
+                refit_monte_carlo_gof(**common)
+
+    def test_model_selection_validates_evidence_and_selects_lowest_aic(self) -> None:
+        from veridist.inference import SelectionCode, compare_models
+
+        result = compare_models(
+            candidates=(
+                {"family": "normal", "aic": 12.0, "p_value": 0.2},
+                {"family": "gamma", "aic": 8.0, "p_value": 0.1},
+            ),
+            adequacy_threshold=0.05,
+        )
+        self.assertEqual(result.code, SelectionCode.SELECTED)
+        self.assertEqual(result.selected_family, "gamma")
+
+        invalid = (
+            (({"family": "normal", "aic": 1.0, "p_value": 0.2},), float("nan")),
+            ((object(),), 0.05),
+            (({"family": 1, "aic": 1.0, "p_value": 0.2},), 0.05),
+            (({"family": "normal", "aic": float("inf"), "p_value": 0.2},), 0.05),
+        )
+        for candidates, threshold in invalid:
+            with self.subTest(candidates=candidates), self.assertRaises((TypeError, ValueError)):
+                compare_models(candidates=candidates, adequacy_threshold=threshold)
 
 
 if __name__ == "__main__":
