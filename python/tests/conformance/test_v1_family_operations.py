@@ -118,7 +118,7 @@ class V1FamilyOperationTests(unittest.TestCase):
             cdf("weibull_min", 4.0, {"shape": 1.5, "scale": 4.0}), 0.6321205588, places=9
         )
         self.assertAlmostEqual(
-            ppf("weibull_min", 0.5, {"shape": 1.5, "scale": 4.0}), 3.1328920255, places=8
+            ppf("weibull_min", 0.5, {"shape": 1.5, "scale": 4.0}), 3.1328790751, places=8
         )
         self.assertEqual(cdf("lognormal", math.exp(0.5), {"mu_log": 0.5, "sigma_log": 0.75}), 0.5)
         self.assertAlmostEqual(
