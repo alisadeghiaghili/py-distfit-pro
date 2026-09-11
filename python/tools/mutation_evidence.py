@@ -12,6 +12,13 @@ from typing import Any
 
 SCHEMA_VERSION = 2
 CRITICAL_MODULES = ("domain", "statistics", "families", "engine")
+MUTATION_TEST_SELECTION = (
+    "tests/contract",
+    "tests/reference",
+    "tests/unit",
+    "tests/conformance",
+    "tests/property",
+)
 MUTMUT_VERSION = "3.7.0"
 MUTMUT_WHEEL_SHA256 = "1d2f9a1bfa4a474b2213df6b17223150b492bf4a85af0eda4fb322297337fb32"
 META_KEYS = frozenset(
@@ -140,7 +147,7 @@ def mutation_manifest(project_root: Path) -> dict[str, Any]:
         or value["production_root"] != "src/veridist"
         or value["critical_modules"] != list(CRITICAL_MODULES)
         or value["mutmut_version"] != MUTMUT_VERSION
-        or value["pytest_selection"] != ["tests/contract", "tests/reference", "tests/unit"]
+        or value["pytest_selection"] != list(MUTATION_TEST_SELECTION)
     ):
         raise ValueError("mutation manifest scope/version drift")
     score = value["minimum_score"]
@@ -171,7 +178,7 @@ def mutation_config(project_root: Path) -> dict[str, Any]:
         set(config) != allowed
         or config.get("source_paths") != [f"src/veridist/{item}" for item in CRITICAL_MODULES]
         or config.get("pytest_add_cli_args_test_selection")
-        != ["tests/contract", "tests/reference", "tests/unit"]
+        != list(MUTATION_TEST_SELECTION)
         or config.get("also_copy")
         != [
             "tools",
