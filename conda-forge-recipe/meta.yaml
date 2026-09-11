@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://github.com/alisadeghiaghili/veridist/releases/download/v{{ version }}/veridist-{{ version }}.tar.gz
-  sha256: 364f351580141e5689ae1f52400dfb7330910ba17f457065ccaa2a56c55af405
+  sha256: af4ba42eb8ed769964c8860c5cf7c3ccbfab01f43254d4ef30abb3b2793e0a15
 
 build:
   noarch: python
