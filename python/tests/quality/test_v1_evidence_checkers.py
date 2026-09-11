@@ -116,17 +116,18 @@ class V1EvidenceCheckerTests(unittest.TestCase):
 
     def test_source_lock_requires_every_publishable_claim_cell(self) -> None:
         row = {
-            "project": "fixture",
-            "language": "Python",
-            "capability": "fit",
-            "status": "supported",
+            "tool": "fixture",
+            "ecosystem": "Python",
+            "feature": "fit",
+            "capability_status": "supported",
         }
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             matrix = root / "matrix.csv"
             locks = root / "locks.json"
             matrix.write_text(
-                "project,language,capability,status\nfixture,Python,fit,supported\n",
+                "tool,ecosystem,feature,capability_status,evidence_url\n"
+                "fixture,Python,fit,supported,https://example.invalid/source\n",
                 encoding="utf-8",
             )
             locks.write_text(
@@ -147,6 +148,18 @@ class V1EvidenceCheckerTests(unittest.TestCase):
             self.assertEqual(validate_source_locks(matrix, locks), [])
             locks.write_text('{"schema_version": 1, "locks": []}', encoding="utf-8")
             self.assertIn("coverage", " ".join(validate_source_locks(matrix, locks)))
+
+    def test_source_lock_rejects_unknown_matrix_schema_instead_of_passing_empty(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            matrix = root / "matrix.csv"
+            locks = root / "locks.json"
+            matrix.write_text(
+                "project,language,capability,status\nfixture,Python,fit,supported\n",
+                encoding="utf-8",
+            )
+            locks.write_text('{"schema_version": 1, "locks": []}', encoding="utf-8")
+            self.assertIn("schema", " ".join(validate_source_locks(matrix, locks)))
 
 
 if __name__ == "__main__":

@@ -10,12 +10,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
+_CLAIM_FIELDS = ("tool", "ecosystem", "feature", "capability_status")
+_REQUIRED_FIELDS = frozenset((*_CLAIM_FIELDS, "evidence_url"))
+_PUBLISHABLE = frozenset({"supported", "not_supported"})
+
 
 def claim_id(row: dict[str, str]) -> str:
     """Derive a stable claim-cell ID from the public comparison fields."""
 
     canonical = "\x1f".join(
-        row.get(field, "").strip() for field in ("project", "language", "capability", "status")
+        row.get(field, "").strip() for field in _CLAIM_FIELDS
     )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -24,7 +28,10 @@ def validate(matrix: Path, lock_file: Path) -> list[str]:
     errors: list[str] = []
     try:
         with matrix.open(encoding="utf-8", newline="") as handle:
-            rows = list(csv.DictReader(handle))
+            reader = csv.DictReader(handle)
+            if reader.fieldnames is None or not _REQUIRED_FIELDS.issubset(reader.fieldnames):
+                return ["competitive matrix schema is invalid"]
+            rows = list(reader)
         payload: Any = json.loads(lock_file.read_text(encoding="utf-8"))
     except (OSError, csv.Error, json.JSONDecodeError):
         return ["source-lock inputs are unreadable"]
@@ -34,7 +41,7 @@ def validate(matrix: Path, lock_file: Path) -> list[str]:
     if not isinstance(locks, list):
         return ["source-lock records must be a list"]
     required = {
-        claim_id(row) for row in rows if row.get("status") in {"supported", "not_supported"}
+        claim_id(row) for row in rows if row.get("capability_status") in _PUBLISHABLE
     }
     observed: set[str] = set()
     for record in locks:
