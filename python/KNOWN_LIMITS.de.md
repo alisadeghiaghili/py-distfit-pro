@@ -1,24 +1,29 @@
-# Bekannte Grenzen von Veridist 0.5
+# Bekannte Grenzen von Veridist 0.9
 
-Dieses Dokument beschreibt die vorgesehene Release-Grenze für 0.5. Solange die
-Paketversion `0.5.0` lautet, sind diese Aussagen
-sind keine Veröffentlichungsbehauptung.
+Dieses Dokument definiert die Release-Grenze 0.9 für Paketversion `0.9.0`.
 
-- `FIT-CSV-EXP`: Die Anpassung ist auf ein Exponentialmodell mit festem Ort und
-  ausschließlich Rate für exakte und unabhängig rechtszensierte Lebensdauern
-  begrenzt. Inferenz, Konfidenzintervalle, Anpassungstests, Modellrangfolge,
-  Gewichte, Kovariaten, Trunkierung, Links- oder Intervallzensierung und ein
-  freier Ortsparameter werden nicht angeboten.
+- `FIT-CSV-EXP`: Der strikte CSV-Pfad passt nur ein Exponentialmodell mit
+  festem Ort und Rate für exakte und unabhängig rechtszensierte Lebensdauern
+  an. Weibull-Minimum und Lognormal sind über typisierte Lebensdauerobjekte,
+  nicht über eine allgemeine Datei-API, verfügbar. Analytische Gewichte,
+  Kovariaten, Trunkierung, Links- und Intervallzensierung sowie freie
+  Ortsparameter bleiben nicht unterstützt.
 - `CSV-STRICT`: Der mitgelieferte Dateiadapter akzeptiert nur UTF-8-CSV mit
   exakt `time,event_observed`; `1` bezeichnet ein exaktes Ereignis und `0`
   unabhängige Rechtszensierung. Er ist kein allgemeiner CSV- oder
   Tabellenkalkulationsleser.
 - `SCALAR-FAMILIES`: Normal-, Gamma-, Weibull-Minimum-, Lognormal- und
-  Rechts-Gumbel-Familien werten nur endliche skalare Log-Dichten aus. Arrays,
-  Anpassung, CDF, PPF, Inferenz, zensierte Likelihood und Rangfolge fehlen.
+  Rechts-Gumbel-Familien bieten skalare Log-Dichte-, CDF-, Survival-, Quantil-
+  und Sampling-Operationen. Arrays, eine einheitliche Fit-API und Inferenz für
+  jede registrierte Familie fehlen.
 - `STREAM-SOURCE`: `IterableDataSource` adaptiert Chunk-Iterables des Aufrufers.
   Das Paket enthält keinen Parquet-, Arrow-, Dataframe-, Datenbank- oder
-  Netzwerkadapter. Checkpoint-wiederholbare Akquisition wird abgelehnt.
+  Netzwerkadapter. Dauerhafte Fortsetzung ist auf den strikten Lebensdauer-CSV-
+  Pfad und lokales SQLite begrenzt; ein verteilter Checkpoint-Store fehlt.
+- `INFERENCE-EXP`: Refit-Monte-Carlo-KS/AD/CvM und adequacy-gesteuerte Auswahl
+  gelten nur für endliche positive unzensierte Exponentialstichproben. Es gibt
+  keine Bootstrap-Auswahlstabilität oder Kalibrierungsbehauptung außerhalb des
+  geprüften Gitters.
 - `MEMORY-BOUND`: Die Liefergrenze umfasst Nutzdaten in der Warteschlange und
   aktive Verbraucher-Leases bis zur ausdrücklichen Freigabe. Sie ist eine
   logische Grenze für gehaltene Nutzdaten, keine portable RSS-Obergrenze.

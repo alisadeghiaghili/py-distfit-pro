@@ -11,7 +11,7 @@ from toolchain import postprocess_rendered_html  # noqa: E402
 project = "veridist"
 author = "veridist contributors"
 version = "0.0"
-release = "0.5.0"
+release = "0.9.0"
 
 extensions = ["myst_parser"]
 source_suffix = {".md": "markdown"}

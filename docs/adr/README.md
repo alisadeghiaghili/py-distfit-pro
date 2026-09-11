@@ -31,7 +31,7 @@ needed.
 | 0014 | Evidence freezing and competitive claims | Proposed |
 | 0015 | Retry/checkpoint transactional guarantees | Accepted |
 | 0016 | Evidence-gated legacy salvage and migration ledger | Accepted; partially supersedes ADR-0001's no-port prohibition only |
-| 0017 | Exponential right-censored MLE vertical | Accepted; experimental implementation on the 0.0.0.dev0 development branch; 0.1.0a1 remains a target, not a release claim |
+| 0017 | Exponential right-censored MLE vertical | Accepted; released within the bounded Veridist contract |
 | 0018 | CSV lifetime adapter and one-pass exponential orchestrator | Accepted |
 | 0019 | Evaluated-family kernel and parameter contracts | Accepted |
 | 0020 | Veridist 0.5 release contract and fail-closed publication | Accepted |

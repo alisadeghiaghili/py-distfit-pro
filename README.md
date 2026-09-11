@@ -2,30 +2,30 @@
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-`veridist` 0.5.0 is an evidence-first distribution-fitting package. Its first
-public release binds its stated scope to retained CI, mutation, release, and
-cross-platform scale evidence.
+`veridist` 0.9.0 is an evidence-first distribution-fitting package whose stated
+scope is bound to executable CI, coverage, mutation, release, and scale
+contracts.
 
-The current public scope is deliberately narrow: a strict UTF-8 CSV,
-fixed-location, rate-only exponential MLE for exact and independently
-right-censored lifetimes; five scalar log-density evaluators; and exact-state
-streaming likelihood reduction. It does not provide generic fitting,
-inference, goodness-of-fit, ranking, broad censoring, a generic CSV reader, or
-a general out-of-core or performance claim.
+The current public scope includes strict UTF-8 CSV and resumable local SQLite
+execution; fixed-location Exponential, Weibull-minimum, and Lognormal MLE cells
+for exact and independently right-censored lifetimes; scalar operations for the
+declared continuous families; and refit Monte Carlo goodness-of-fit plus
+adequacy-gated model selection for uncensored exponential samples. See the
+known-limits documents for the exact boundaries; this release makes no general
+RSS, throughput, broad censoring, or universal best-fit claim.
 
 Install an evaluation build from the nested project after cloning:
 
 ```console
-cd py-distfit-pro/python
+cd veridist/python
 python -m pip install .
 ```
 
 The package landing pages give the executable example, adapter contracts, and
 limits in [English](python/README.md), [Persian](python/README.fa.md), and
-[German](python/README.de.md). The candidate [changelog](python/CHANGELOG.md)
-and [known limits](python/KNOWN_LIMITS.md) are maintained separately. The binding release contract is
-[ADR-0020](docs/adr/ADR-0020-veridist-0.5-release-contract.md); it keeps the
-candidate-specific gates passed for this release.
+[German](python/README.de.md). The [changelog](python/CHANGELOG.md),
+[known limits](python/KNOWN_LIMITS.md), and [v1 roadmap](docs/v1-roadmap.md)
+define the release boundary and the remaining work toward 1.0.
 
 ## Security and license
 

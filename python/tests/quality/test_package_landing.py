@@ -28,8 +28,8 @@ class PackageLandingContractTests(unittest.TestCase):
         required = {
             REPOSITORY_ROOT / "README.md": (
                 "# veridist",
-                "0.5.0",
-                "first public release",
+                "0.9.0",
+                "evidence-first distribution-fitting package",
                 "python/README.md",
                 "README.fa.md",
                 "README.de.md",
@@ -38,13 +38,13 @@ class PackageLandingContractTests(unittest.TestCase):
             ),
             REPOSITORY_ROOT / "README.fa.md": (
                 "# veridist",
-                "0.5.0",
+                "0.9.0",
                 "python/README.fa.md",
                 "python/KNOWN_LIMITS.fa.md",
             ),
             REPOSITORY_ROOT / "README.de.md": (
                 "# veridist",
-                "0.5.0",
+                "0.9.0",
                 "python/README.de.md",
                 "python/KNOWN_LIMITS.de.md",
             ),
@@ -95,7 +95,7 @@ class PackageLandingContractTests(unittest.TestCase):
                 content = path.read_text(encoding="utf-8")
                 self.assertIn(LANGUAGE_NAVIGATION, content)
                 self.assertIn("veridist", content.casefold())
-                self.assertIn("0.0.0.dev0", content)
+                self.assertIn("0.9.0", content)
                 self.assertIn("cd veridist/python", content)
                 self.assertIn("python -m pip install .", content)
                 self.assertIn("python -m pip install /path/to/veridist-", content)
@@ -104,10 +104,10 @@ class PackageLandingContractTests(unittest.TestCase):
     def test_each_locale_states_the_same_experimental_vertical_and_limits(self) -> None:
         required = {
             "en": (
-                "0.5.0 is the first evidence-backed public contract release",
-                "experimental rate-only exponential MLE",
+                "0.9.0 is an evidence-backed public contract release",
+                "fixed-location Exponential, Weibull-minimum, and Lognormal",
                 "exact and independently right-censored lifetimes",
-                "Inference is not provided",
+                "Inference is restricted to that declared cell",
                 "typed failures",
                 "public CSV path is strict",
                 "one iterator pass",
@@ -115,10 +115,10 @@ class PackageLandingContractTests(unittest.TestCase):
                 "BUSL-1.1 with an Apache-2.0 additional-use grant",
             ),
             "fa": (
-                "نخستین انتشار عمومی با شواهد قابل‌بازبینی",
-                "برآوردگر آزمایشی MLE نمایی فقط برای پارامتر نرخ",
+                "نسخهٔ 0.9.0 یک انتشار عمومی با شواهد قابل‌بازبینی",
+                "سلول‌های MLE نمایی، Weibull-minimum و Lognormal",
                 "طول عمرهای دقیق و راست‌سانسورشدهٔ مستقل",
-                "استنباط ارائه نمی‌شود",
+                "استنباط به همین سلول اعلام‌شده",
                 "شکست‌های نوع‌دار",
                 "مسیر CSV عمومی آن سخت‌گیرانه است",
                 "یک گذر از iterator",
@@ -126,10 +126,10 @@ class PackageLandingContractTests(unittest.TestCase):
                 "BUSL-1.1 با مجوز استفادهٔ اضافی Apache-2.0",
             ),
             "de": (
-                "0.5.0 ist die erste öffentlich dokumentierte Vertragsversion",
-                "experimentellen, rein ratenparametrisierten exponentiellen MLE",
+                "0.9.0 ist eine öffentlich dokumentierte Vertragsversion",
+                "Exponential-, Weibull-Minimum- und Lognormal-MLE-Zellen",
                 "exakte und unabhängig rechtszensierte Lebensdauern",
-                "Inferenz wird nicht bereitgestellt",
+                "Inferenz ist auf diese deklarierte Zelle",
                 "typisierte Fehlschläge",
                 "öffentliche CSV-Pfad ist strikt",
                 "einen Iterator-Durchlauf",
@@ -231,9 +231,9 @@ class PackageLandingContractTests(unittest.TestCase):
     def test_candidate_changelog_and_known_limits_are_complete_and_parallel(self) -> None:
         changelog = (PYTHON_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         for required in (
-            "## [0.5.0] - 2026-09-10",
-            "package version is `0.5.0`",
-            "ADR-0020",
+            "## [0.9.0] - 2026-09-11",
+            "AIC/BIC, adequacy-gated model selection",
+            "CvM goodness-of-fit",
             "KNOWN_LIMITS.md",
         ):
             self.assertIn(required, changelog)
@@ -257,7 +257,7 @@ class PackageLandingContractTests(unittest.TestCase):
         )
         for locale, content in limits.items():
             with self.subTest(locale=locale):
-                self.assertIn("0.5.0", content)
+                self.assertIn("0.9.0", content)
                 self.assertIn("BUSL-1.1", content)
                 self.assertIn("Apache-2.0", content)
                 self.assertIn("2030-09-05", content)

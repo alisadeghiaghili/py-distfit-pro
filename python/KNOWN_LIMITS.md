@@ -1,24 +1,27 @@
-# Known limits for Veridist 0.5
+# Known limits for Veridist 0.9
 
-This document describes the intended 0.5 release boundary. While the package
-version is `0.5.0`, these statements
-must not be read as a publication claim.
+This document defines the 0.9 release boundary for package version `0.9.0`.
 
-- `FIT-CSV-EXP`: fitting is limited to a fixed-location, rate-only
+- `FIT-CSV-EXP`: the strict CSV path fits only a fixed-location, rate-only
   exponential model over exact and independently right-censored lifetimes.
-  There is no inference, confidence interval, goodness-of-fit test, model
-  ranking, weights, covariates, truncation, left censoring, interval censoring,
-  or free location parameter.
+  Weibull-minimum and lognormal fits are callable over typed lifetime objects,
+  not through a general file-fitting API. Analytic weights, covariates,
+  truncation, left censoring, interval censoring, and free location parameters
+  remain unsupported.
 - `CSV-STRICT`: the bundled file adapter accepts only UTF-8 CSV with exactly
   `time,event_observed`, where `1` is an exact event and `0` is independent
   right censoring. It is not a general CSV or spreadsheet reader.
 - `SCALAR-FAMILIES`: normal, gamma, Weibull-minimum, lognormal, and
-  right-Gumbel expose finite scalar log-density evaluation. They do not expose
-  array evaluation, fitting, CDF, PPF, inference, censoring likelihood, or
-  ranking.
+  right-Gumbel expose scalar log-density, CDF, survival, quantile, and sampling
+  operations. They do not expose array evaluation, a uniform fitting API, or
+  inference for every registered family.
 - `STREAM-SOURCE`: `IterableDataSource` adapts caller-owned chunk iterables.
   The package bundles no Parquet, Arrow, dataframe, database, or network
-  adapter. Checkpoint-replayable acquisition is rejected by this adapter.
+  adapter. Durable resume is limited to the strict lifetime CSV path and local
+  SQLite; it is not a distributed checkpoint store.
+- `INFERENCE-EXP`: refit Monte Carlo KS/AD/CvM and adequacy-gated selection are
+  limited to finite positive uncensored exponential samples. There is no
+  bootstrap selection stability or calibration claim outside the tested grid.
 - `MEMORY-BOUND`: the delivery bound covers queued payload and active consumer
   leases until explicit release. It is a logical retained-payload bound, not a
   portable RSS ceiling.

@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-`veridist` 0.5.0 is the supported public release line.
+`veridist` 0.9.x is the supported public release line.
 
 ## Reporting a vulnerability
 

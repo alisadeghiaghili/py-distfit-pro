@@ -1,60 +1,36 @@
 # veridist capability matrix
 
-## Exact-state streaming log likelihood
+This matrix records the callable scope of `veridist` 0.9.0. A listed cell is
+supported only within its stated data and execution contracts. Historical
+evidence remains useful context, but release claims require checks on the exact
+candidate revision.
 
-Five validated scalar-density families support an exact binary64-output
-streaming reducer. The retained 10k/100k/1m generated-stream matrix at
-`python/evidence/scale-log-likelihood-v1.json` is a historical schema-v2
-snapshot, not current candidate evidence: it lacks candidate binding and the
-public-source-route fact. A current schema-v3 run must bind the candidate SHA
-and use the public `IterableDataSource` single-pass route before it can support
-one-pass or exact-result evidence. It is not a process-memory, throughput,
-out-of-core, fitting, or cross-platform scalar-equivalence claim.
+| Capability | Admitted scope | Result and failure contract | Evidence boundary |
+| --- | --- | --- | --- |
+| Exponential MLE | Fixed `loc=0`, rate-only; exact and independent right-censoring; typed objects or strict UTF-8 lifetime CSV | Finite point estimate or typed statistical/execution failure | Reference, contract, CSV, checkpoint, coverage, and mutation tests |
+| Weibull-minimum MLE | Fixed `loc=0`; exact and independent right-censoring; optional frequency weights and optional fixed shape | Finite shape/scale estimate or typed failure with convergence facts | Independent reference and censoring/weight contract tests |
+| Lognormal MLE | Fixed `loc=0`; exact and independent right-censoring; optional frequency weights | Finite log-location/log-scale estimate or typed failure with convergence facts | Independent reference and censoring/weight contract tests |
+| Scalar family operations | Normal, Gamma, Weibull-minimum, Lognormal, and right-Gumbel | Log-density, CDF, survival, quantile, and caller-owned RNG sampling | Conformance, identity, boundary, and coverage tests; scalar only |
+| Streaming likelihood | Exact-state reduction of successful binary64 scalar log-density terms | One final binary64 rounding; explicit unsigned-64 count limit | Contract and generated-stream evidence; no generic RSS or throughput claim |
+| Durable resume | Sequential exponential reduction over canonical chunks or strict lifetime CSV, one host, local filesystem | SQLite generation compare-and-swap, checksum validation, source revision and range checks | End-to-end interruption, replay, corruption, contention, and cancellation tests |
+| Inference and selection | Finite positive uncensored exponential samples | Refit Monte Carlo KS/AD/CvM, AIC/BIC, calibration summary, lowest-AIC adequate selection or `NONE_ADEQUATE` | Caller-owned NumPy generator; requested/successful/failed refits and Monte Carlo uncertainty reported |
 
-This matrix records callable behavior on the current development branch. It is
-not a release announcement: the package version remains `0.0.0.dev0`.  The
-binding 0.5 claim boundary and pre-tag gates are defined by ADR-0020; no cell
-is release-ready until that candidate-specific evidence is complete.
+The fixed O(1) reducer state and logical bounded-delivery budget are
+algorithmic contracts. They do not establish a portable process RSS ceiling,
+universal throughput, distributed execution, or a general out-of-core claim.
 
-| Family | Estimator and parameterization | Accepted data semantics | Result | Inference | Scale boundary | Status/evidence |
-| --- | --- | --- | --- | --- | --- | --- |
-| Exponential, fixed `loc=0` | rate-only exponential MLE | strict UTF-8 CSV with exact `time,event_observed` header; event `1` is exact; `0` is independent right-censoring; finite times `>= 0` | finite point estimate, typed statistical non-estimate, or typed failed execution | `inference=not_provided` | one CSV iterator and one pass by contract; current candidate scale evidence pending; no RSS ceiling | Experimental callable cell; ADR-0017/0018, `EXP-01`--`EXP-14`, `CSV-01`--`CSV-06`; historical `SCALE-CSV-EXP-01` only |
-| Normal, Gamma, Weibull-min, Lognormal, Gumbel-right | exact scalar log-density only; canonical two-parameter forms in ADR-0019 | one finite built-in scalar; Gamma/Weibull-min/Lognormal require strict `x>0`; no aliases | finite log-density or closed typed evaluation failure | none | scalar only; no array, fitting, censoring, ranking, or streaming claim | Experimental internal module; ADR-0019 addendum, independent 100-digit oracle and metamorphic contracts |
+Unsupported combinations fail explicitly. The 0.9 line has no left or interval
+censoring, truncation, covariates, analytic weights, free location parameters,
+array API, distributed checkpoint store, generic dataframe/database adapter,
+bootstrap selection stability, or inference for every registered family.
 
-This callable cell accepts exact and independent right-censoring observations;
-the censoring independence is a declared modeling assumption, not a property
-verified from the CSV values.
+English, Persian, and German landing pages describe the same release boundary.
+The strict CSV example and rendered Persian RTL reports are executable CI
+contracts. The detailed exclusions are in
+[`python/KNOWN_LIMITS.md`](../python/KNOWN_LIMITS.md).
 
-The estimator retains fixed O(1) reducer state; that algorithmic fact is
-separate from the measured CSV retained-payload boundary and is not an RSS or
-generic big-data claim.
-
-The exponential cell does not accept weights, covariates, truncation,
-left/interval censoring, free location, model selection, goodness-of-fit,
-confidence intervals, or another estimator. No other distribution family is a
-callable v1 statistical cell yet. EN/FA/DE reports are presentation adapters for
-the same locale-neutral result facts; they do not expand statistical support.
-
-The five scalar log-density evaluators are intentionally not package-top-level
-exports and are not a generic distribution-fitting API.  They have no fitting,
-CDF/SF/PPF, inference, reports, weights, or big-data claim.  Their registry
-availability is all-or-nothing and checked against the exact dispatch table at
-module import.
-
-Traceability for `EXP-01`--`EXP-14` is split across
-`python/tests/reference/test_exponential_mle_reference.py` and
-`python/tests/contract/test_exponential_reducer_contract.py`. Report semantics
-and browser rendering are exercised by
-`python/tests/docs/test_exponential_report_i18n.py` and
-`python/tests/browser/test_exponential_report_rtl.py`.
-
-The public package surface exposes only `fit_exponential_csv`,
-`CsvLifetimeSchema`, `CsvLifetimeLimits`, `PublicSourceId`, and its closed
-result. It has no legacy runtime import. The retained scale artifact is limited
-to the strict CSV/exponential matrix; it does not establish generic big-data,
-portable RSS, throughput, retry/checkpoint, cancellation, or other-adapter
-support. On immutable candidate `31a015f`, GitHub Actions run `33804554520`
-retained a mutation baseline pass for the binding scope: 2,217 generated,
-1,776 killed, 441 survived, zero unresolved, and score
-`0.801082543978349`.  This is milestone-quality evidence only; it does not
-prove the 0.5 release gates, scale portability, or broader statistical claims.
+The release line is tested on Python 3.11 through 3.14. The deterministic
+coverage manifest requires at least 95% global line and branch coverage and
+stricter numerical-module thresholds. The critical statistical core also has a
+fail-closed mutation gate. Candidate-specific scale and release validation
+workflows bind retained evidence to a full commit SHA.

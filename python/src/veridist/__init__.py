@@ -1,6 +1,6 @@
 """Veridist's deliberately small, stdlib-only public CSV fit surface."""
 
-__version__ = "0.5.0"
+__version__ = "0.9.0"
 
 from veridist.adapters.csv_lifetimes import CsvLifetimeLimits, CsvLifetimeSchema
 from veridist.engine.data_source import DataSourceMetadata, Replayability
