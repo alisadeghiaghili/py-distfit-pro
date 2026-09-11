@@ -2,7 +2,15 @@
 
 [English](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.md) | [فارسی](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.fa.md) | [Deutsch](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.de.md)
 
-## Status
+## What Veridist is for
+
+Veridist helps reliability and data-science teams fit a small, explicitly
+defined set of lifetime distributions from strict CSV input, retain an
+auditable execution record, and resume compatible local work after an
+interruption. It is designed for decisions where stated statistical and
+operational boundaries matter as much as a point estimate.
+
+## Release status
 
 `veridist` 1.0.0 is an evidence-backed public contract release.
 It specifies and tests bounded delivery, replayability, pass budgets,
@@ -58,7 +66,15 @@ Linux and Windows. It retains artifacts only after their own fail-closed SHA and
 schema validation. Merely having this workflow, or a historical artifact, is not
 evidence for a new candidate and is not a throughput or RSS claim.
 
-## Install an evaluation build
+## Install
+
+Install the released package:
+
+```console
+python -m pip install veridist
+```
+
+For development from a repository checkout:
 
 Install from the nested source project after cloning the repository:
 
@@ -74,10 +90,19 @@ Or install a wheel that you built or obtained from a specific verified run:
 python -m pip install /path/to/veridist-1.0.0-py3-none-any.whl
 ```
 
-The project does not direct users to install an unreleased package name from a
-public index.
+## Choose the right entry point
 
-## Try the experimental vertical
+| If you need to… | Start with… |
+| --- | --- |
+| Fit a strict lifetime CSV once | `fit_exponential_csv` |
+| Resume a compatible interrupted CSV fit | `fit_exponential_checkpointed_csv` and `SQLiteCheckpointStore` |
+| Process caller-owned chunks | `IterableDataSource` and `reduce_log_likelihood_chunks` |
+| Evaluate a declared distribution | the scalar distribution operations and `FAMILY_REGISTRY` |
+
+Every result should be read with its execution report and the declared
+limitations below; a successful API call is not a universal suitability claim.
+
+## Quick start: fit a lifetime CSV
 
 ```python
 from pathlib import Path
@@ -99,9 +124,16 @@ assert fit.inference == "not_provided"
 assert fit.censoring_assumption == "independent_right_censoring"
 ```
 
-See the [documentation toolchain](docs/README.md) and the repository's
-[evidence ledger](../docs/v1-readiness.md) for implemented checks and explicit
-limits.
+## Before production use
+
+Review [known limits](KNOWN_LIMITS.md) and the repository
+[evidence ledger](../docs/v1-readiness.md). In particular, checkpoints are
+local SQLite state, public file input is strict UTF-8 lifetime CSV, and the
+inference matrix is deliberately narrower than the distribution-operation
+registry. The package does not promise a universal best distribution, general
+throughput, or portable distributed execution.
+
+See the [documentation toolchain](docs/README.md) for contributor docs.
 
 ## License
 
