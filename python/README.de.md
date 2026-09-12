@@ -10,11 +10,13 @@
 
 [English](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.md) | [فارسی](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.fa.md) | [Deutsch](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.de.md)
 
-## Deklarierte Lebensdauermodelle mit klarem Vertrag anpassen
+## Lebensdauerdaten mit einem prüfbaren Ergebnis anpassen
 
-`veridist` 1.0.0 ist eine öffentlich dokumentierte Vertragsversion. Es macht
-aus einer strikten Lebensdauer-CSV einen typisierten Fit und ein
-Ausführungsprotokoll, damit Modell, Eingabe und Betriebsgrenzen sichtbar bleiben.
+Veridist hilft Reliability Engineers und Analysten, aus einer definierten
+Lebensdauer-CSV einen prüfbaren Fit zu erhalten: Eingaben werden validiert,
+typisierte Fits oder Fehler zurückgegeben und Ausführungsfakten bleiben sichtbar.
+
+[Ergebnis ansehen](#ergebnis-ansehen) · [Pfad wählen](#passenden-pfad-wählen) · [Grenzen lesen](KNOWN_LIMITS.de.md)
 
 ## Installation und erster Erfolg
 
@@ -24,19 +26,7 @@ Das veröffentlichte Paket installieren:
 python -m pip install veridist
 ```
 
-Für einen Source-Checkout:
-
-```console
-git clone https://github.com/alisadeghiaghili/veridist.git
-cd veridist/python
-python -m pip install .
-```
-
-Oder ein Wheel aus einem verifizierten Lauf installieren:
-
-```console
-python -m pip install /path/to/veridist-1.0.0-py3-none-any.whl
-```
+## Ergebnis ansehen
 
 Nach der Installation diesen vollständigen CSV-Fit ausführen:
 
@@ -44,7 +34,12 @@ Nach der Installation diesen vollständigen CSV-Fit ausführen:
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
+from veridist import (
+    CsvLifetimeLimits,
+    CsvLifetimeSchema,
+    PublicSourceId,
+    fit_exponential_csv,
+)
 from veridist.families import ExponentialFitSuccess
 
 with TemporaryDirectory() as directory:
@@ -60,6 +55,11 @@ assert isinstance(fit, ExponentialFitSuccess)
 assert fit.rate == 0.5
 assert fit.inference == "not_provided"
 assert fit.censoring_assumption == "independent_right_censoring"
+print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
+```
+
+```text
+rate=0.5; events=1; censored=1
 ```
 
 ## Passenden Pfad wählen
@@ -69,7 +69,15 @@ assert fit.censoring_assumption == "independent_right_censoring"
 | Strikte Lebensdauer-CSV anpassen | `fit_exponential_csv` und [CSV-Tutorial](docs/source/exponential-right-censoring.md) |
 | Deklarierte skalare Verteilung auswerten | `FAMILY_REGISTRY` und `evaluate_log_density`; [Familienleitfaden](docs/source/families-log-density-likelihood.md) |
 | Zustandsgenauen Reduzierer über eigene Chunks verwenden | `reduce_log_likelihood_chunks`; [Stream-API](docs/source/api.md#generic-stream-source-api) |
-| Lokales Checkpointing und Resume entwerfen | `SQLiteCheckpointStore` und [CSV-Vertrag](tests/contract/test_v1_checkpointed_csv.py) |
+| Lokales Checkpointing und Resume entwerfen | [Ausführbares SQLite-Rezept](examples/checkpoint_resume.py) und [Grenzen](KNOWN_LIMITS.de.md) |
+
+## Unterstützte Aufgaben
+
+| Für | Ergebnis |
+| --- | --- |
+| Reliability Engineering | Lebensdauer-Ergebnis mit prüfbaren Ausführungsfakten |
+| Rechtszensierte Analyse | Explizite Semantik für Ereignis `1` und unabhängige Rechtszensur `0` |
+| Auditierbare Batches | Begrenzter Ein-Pass-Lauf und lokaler Neustart |
 
 ## Fähigkeit und Evidenz
 
@@ -91,7 +99,7 @@ Coverage, Qualität, Paketinstallation und Dokumentation. Das Badge Coverage
 ≥95% zeigt den Pass/Fail-Status dieses erzwungenen Vertrags auf `main`; diese
 Seite enthält keinen statischen Coverage-Wert.
 
-## Skalierung und Produktionsgrenzen
+## Skalierung und Fortsetzen
 
 Hinterlegte Evidenz umfasst die gemessene Matrix aus 10k/100k/1m Zeilen und
 32KiB/64KiB/128KiB für die deklarierten Pfade. Sie belegt keine allgemeine
@@ -99,6 +107,12 @@ Big-Data-Unterstützung, keinen Durchsatz, keine portable RSS-Grenze, keine
 Dataframe-, Parquet-, Arrow-, Datenbank- oder verteilte Ausführung, keine breite
 Zensierung, keine vektorisierten Operationen und keine universelle Modellwahl.
 `SQLiteCheckpointStore` ist dauerhafter lokaler Zustand, kein verteilter Dienst.
+Für das Fortsetzen Source-Revision stabil halten, denselben lokalen Store öffnen
+und den bestätigten Präfix fortsetzen.
+Das [ausführbare SQLite-Rezept](examples/checkpoint_resume.py) zeigt die nötige
+Initialisierung und einen kompatiblen zweiten Durchlauf.
+
+## Produktionsreife
 
 Vor Produktionseinsatz [KNOWN_LIMITS.de.md](KNOWN_LIMITS.de.md) und das
 [Evidenzregister](../docs/v1-readiness.md) lesen.

@@ -1,4 +1,4 @@
-# veridist
+# Veridist
 
 [![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
 [![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
@@ -12,28 +12,12 @@
 
 <div lang="fa" dir="rtl">
 
-## برازش توزیع با زنجیرهٔ شواهد قابل‌مشاهده
+## از دادهٔ طول‌عمر، نتیجه‌ای قابل‌بررسی بسازید
 
-`veridist` 1.0.0 یک بستهٔ evidence-first برای برازش توزیع است؛ برای تیم‌هایی
-که به نتیجهٔ طول‌عمر قابل‌بررسی، بازتولیدپذیر و دارای مرز روشن نیاز دارند. ورودی
-CSV سخت‌گیرانه را به نتیجه و گزارش اجرای نوع‌دار تبدیل می‌کند، بی‌آن‌که معنای
-داده را حدس بزند یا یک پاسخ کلیِ «بهترین توزیع» عرضه کند.
-
-## چرا Veridist
-
-| نیاز | آنچه Veridist می‌دهد |
-| --- | --- |
-| نقطهٔ شروع روشن | سلول‌های MLE نمایی، Weibull-minimum و Lognormal با مکان ثابت برای طول‌عمرهای دقیق و راست‌سانسورشدهٔ مستقل |
-| ورودی قابل اتکا | قرارداد UTF-8 سخت‌گیرانهٔ `time,event_observed`؛ `1` رخداد و `0` راست‌سانسوری مستقل است |
-| نتیجهٔ قابل ممیزی | برآورد و شکست‌های نوع‌دار، واقعیت اجرای یک‌گذر و منشأ دادهٔ پالایش‌شده |
-| شواهد پیش از پذیرش | گیت‌های CI و پوشش، mutation، انتشار بازتولیدپذیر و شواهد release |
-
-این بسته برای تیم‌های قابلیت‌اطمینان، مهندسی و علم داده با مدل طول‌عمر مشخص
-ساخته شده است، نه برای جست‌وجوی اکتشافی و عمومی میان همهٔ توزیع‌ها.
-
-## شروع در ۶۰ ثانیه
-
-بستهٔ منتشرشده را نصب کنید:
+Veridist یک بستهٔ Python برای برازش مدل‌های مشخصِ طول‌عمر بر دادهٔ زمان رخداد است؛
+برای نمونه، زمان خرابی قطعه‌ها. این بسته قالب کوچک و صریح CSV را اعتبارسنجی می‌کند
+و علاوه بر برازش، واقعیت اجرای محاسبه را هم برمی‌گرداند. وقتی به نتیجه‌ای نیاز دارید
+که همکار دیگری بتواند فرض‌ها و مسیر تولیدش را بررسی کند، از آن استفاده کنید.
 
 </div>
 
@@ -43,8 +27,13 @@ python -m pip install veridist
 
 <div lang="fa" dir="rtl">
 
-نمونهٔ اجراییِ کامل، یک CSV کوچک با یک مشاهدهٔ راست‌سانسورشده می‌سازد و فرض‌های
-مدل نتیجه را کنترل می‌کند.
+[اجرای نمونهٔ نخست](#نخستین-برازش-را-اجرا-کنید) · [انتخاب کار بعدی](#کار-بعدی-را-انتخاب-کنید) · [راهنمای بسته](python/README.fa.md)
+
+## نخستین برازش را اجرا کنید
+
+این نمونه CSV خودش را می‌سازد و بلافاصله پس از نصب اجرا می‌شود. `1` یعنی رخداد
+مشاهده شده است. `0` یعنی تا پایان مشاهده رخداد اتفاق نیفتاده است؛ به این وضعیت
+راست‌سانسوری می‌گویند.
 
 </div>
 
@@ -52,89 +41,96 @@ python -m pip install veridist
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
+from veridist import (
+    CsvLifetimeLimits,
+    CsvLifetimeSchema,
+    PublicSourceId,
+    fit_exponential_csv,
+)
 from veridist.families import ExponentialFitSuccess
 
 with TemporaryDirectory() as directory:
     path = Path(directory) / "lifetimes.csv"
     path.write_text("time,event_observed\n1,1\n1,0\n", encoding="utf-8")
-    result = fit_exponential_csv(
+    fit = fit_exponential_csv(
         path,
         schema=CsvLifetimeSchema("time", "event_observed"),
         source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
         limits=CsvLifetimeLimits(32_768, 32_768),
-    )
+    ).fit
 
-fit = result.fit
 assert isinstance(fit, ExponentialFitSuccess)
-assert fit.rate == 0.5
-assert fit.inference == "not_provided"
-assert fit.censoring_assumption == "independent_right_censoring"
 print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
+```
+
+```text
+rate=0.5; events=1; censored=1
 ```
 
 <div lang="fa" dir="rtl">
 
-برای نصب از clone، به `veridist/python` بروید و `python -m pip install .` را
-اجرا کنید. راهنمای بسته با همین نمونه به [English](python/README.md)،
-[فارسی](python/README.fa.md) و [Deutsch](python/README.de.md) در دسترس است.
+`rate` معکوس واحد زمانی CSV شماست. در این مثال واحدی برای زمان مشخص نشده، پس
+نرخ `0.5` به‌ازای هر واحد زمان ورودی است. برازش موفق فقط می‌گوید محاسبهٔ اعلام‌شده
+تمام شده است؛ مناسب‌بودن مدل نمایی را به‌تنهایی ثابت نمی‌کند.
 
-## انتخاب مسیر کار
+## کار بعدی را انتخاب کنید
 
-| هدف | از این‌جا شروع کنید |
+| کار شما | از این‌جا شروع کنید |
 | --- | --- |
-| برازش CSV طول‌عمر سخت‌گیرانه | [نخستین برازش و قرارداد CSV](python/docs/source/exponential-right-censoring.md) |
-| دادهٔ راست‌سانسورشدهٔ مستقل | [مدل و حالت‌های شکست](python/docs/source/exponential-right-censoring.md#model-and-estimate) |
-| بررسی نتیجه یا شکست نوع‌دار | [API نمایی CSV](python/docs/source/api.md) |
-| محاسبهٔ توزیع اعلام‌شده یا جریان chunkها | [خانواده‌ها و likelihood جریانی](python/docs/source/families-log-density-likelihood.md) |
-| برنامه‌ریزی checkpoint و ادامهٔ اجرا | [آزمون‌های قرارداد checkpoint/resume](python/tests/contract/test_v1_checkpointed_csv.py) |
+| برآورد مدل قابلیت‌اطمینان از CSV کوچک طول‌عمر | [برازش CSV سخت‌گیرانه](python/docs/source/exponential-right-censoring.md) |
+| کار با مشاهده‌ای که هنوز خراب نشده است | [راست‌سانسوری و فرض‌های آن](python/docs/source/exponential-right-censoring.md#model-and-estimate) |
+| بررسی نتیجه یا مشکل ورودی | [API CSV و حالت‌های خطا](python/docs/source/api.md) |
+| محاسبهٔ توزیع پشتیبانی‌شده یا پردازش chunkهای خودتان | [خانواده‌های اسکالر و likelihood جریانی](python/docs/source/families-log-density-likelihood.md) |
+| ادامهٔ اجرای محلیِ سازگار پس از وقفه | [راهنمای checkpoint و resume](python/examples/checkpoint_resume.py) |
 
-checkpoint فقط وضعیت SQLite محلی است. اجرای سازگار می‌تواند پیشوند commit‌شده را
-ادامه دهد؛ این سرویس checkpoint توزیع‌شده نیست.
+Veridist اکنون برازش‌های نمایی، Weibull-minimum و Lognormal با مکان ثابت را برای
+دادهٔ طول‌عمر دقیق و راست‌سانسورشدهٔ مستقل پشتیبانی می‌کند. نقطهٔ ورود CSV از
+مسیر نمایی استفاده می‌کند؛ عملیات اسکالر توزیع‌ها سطحی جدا از برازش هستند.
 
-## اعتبارسنجی نتیجه
+## اگر اجرا متوقف شد
 
-نتیجه را همراه با فرض‌های مدل و گزارش اجرا بخوانید. برآورد نقطه‌ای متناهی، فاصلهٔ
-اطمینان یا نتیجهٔ goodness-of-fit نیست. سلول نماییِ بدون سانسور آزمون‌های refit
-Monte Carlo از نوع KS، AD و CvM، AIC/BIC و انتخاب مدل adequacy-gated دارد؛ این
-استنباط به همان سلول اعلام‌شده و generator متعلق به فراخواننده محدود است.
+برای یک ماشین و فایل‌سیستم محلی، `SQLiteCheckpointStore` می‌تواند بخش ثبت‌شدهٔ
+اجرا را نگه دارد و اجرای سازگار را ادامه دهد. revision منبع را ثابت نگه دارید و
+همان store محلی را دوباره باز کنید. [نمونهٔ checkpoint قابل‌اجرا](python/examples/checkpoint_resume.py)
+راه‌اندازی و گذر دوم را نشان می‌دهد.
 
-CI اصلی همهٔ نسخه‌های پشتیبانی‌شدهٔ Python را اجرا و دست‌کم ۹۵٪ پوشش line و
-branch را الزام می‌کند. بج Coverage ≥95% وضعیت گذر/شکست همین قرارداد الزام‌شده
-را روی `main` نشان می‌دهد و درصدی ساختگی نشان نمی‌دهد.
+این قابلیت سرویس توزیع‌شده نیست. برای تصمیم‌گیری، [محدودیت‌های شناخته‌شده](python/KNOWN_LIMITS.fa.md)
+را بخوانید.
 
-## شواهد، مقیاس و مرزهای تولید
+## چرا می‌توان به این صفحه اعتماد کرد
 
-اعتبارسنجی انتشار SHA نامزد را bind می‌کند، بسته را دو بار می‌سازد و تطابق
-بایت‌به‌بایت می‌خواهد. مرز release شامل ماتریس ۲۷سلولیِ complete، retry-resume
-و cancellation در 10k، 100k و 1m ردیف روی Linux، macOS و Windows است.
-
-این شواهد ادعای عمومی دربارهٔ throughput، RSS، اجرای توزیع‌شده، Parquet، Arrow،
-dataframe، پایگاه‌داده، سانسور گسترده، عملیات برداری یا انتخاب بهترین توزیع ایجاد
-نمی‌کنند. پیش از استفادهٔ عملیاتی، [محدودیت‌های شناخته‌شده](python/KNOWN_LIMITS.fa.md)
-و [دفتر شواهد](docs/v1-readiness.md) را بخوانید.
-
-محتوای `distfit_pro` هنوز برای زمینهٔ تاریخی و ممیزی‌شده در مخزن هست. این محتوا
-وعدهٔ سازگاری با `veridist` نیست؛ وضعیت آن در
-[دفتر مهاجرت legacy](docs/migration/README.md) ثبت شده است.
-
-## نقشهٔ مستندات
-
-| برای چه کاری | مرجع |
+| شاهد | معنای آن |
 | --- | --- |
-| شروع با بسته | [راهنمای بسته](python/README.fa.md) و [آموزش CSV](python/docs/source/exponential-right-censoring.md) |
-| یکپارچه‌سازی API | [مرجع API](python/docs/source/api.md) و [محدودیت‌ها](python/KNOWN_LIMITS.fa.md) |
-| بررسی سطح آماری | [خانواده‌ها و likelihood](python/docs/source/families-log-density-likelihood.md) |
-| بررسی کیفیت و release | [برنامهٔ آزمون](docs/v1-test-plan.md)، [readiness](docs/v1-readiness.md) و [ADRها](docs/adr/README.md) |
-| مشارکت | [راهنمای مشارکت](CONTRIBUTING.md)، [قراردادهای مهندسی](docs/conventions.md) و [toolchain مستندات](python/docs/README.md) |
+| PyPI و Python | بستهٔ منتشرشده و سازگاری اعلام‌شدهٔ Python |
+| CI | آزمون‌ها، نصب بسته، مستندات و بررسی مرورگر روی `main` اجرا می‌شوند |
+| Coverage ≥95% | CI حداقل ۹۵٪ پوشش line و branch را الزام می‌کند؛ badge وضعیت گذر/شکست همین گیت است، نه یک درصد ساختگی |
+| Mutation gate | هستهٔ آماری مهم در برابر mutation آزموده می‌شود |
+| Release evidence | نامزد انتشار دوباره build و قابلیت بازتولید artifactها بررسی می‌شود |
 
-## پشتیبانی، امنیت و مجوز
+شواهد انتشار، مسیرهای اعلام‌شده را در 10k، 100k و 1m ردیف و شرایط مشخص پوشش
+می‌دهد. این شواهد وعدهٔ عمومی دربارهٔ throughput، حافظه، اجرای توزیع‌شده، Parquet،
+dataframe یا «بهترین» مدل نیست.
 
-برای خطای بازتولیدپذیر یا پیشنهاد قابلیت از
-[GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues) استفاده کنید.
-آسیب‌پذیری را مطابق [SECURITY.md](SECURITY.md) گزارش کنید. تاریخچهٔ انتشار در
-[python/CHANGELOG.md](python/CHANGELOG.md) است. مخزن و بستهٔ تو در تو از
-BUSL-1.1 با مجوز استفادهٔ اضافی Apache-2.0 مطابق [LICENSE](LICENSE) استفاده
-می‌کنند.
+## پیش از استفادهٔ عملیاتی
+
+[محدودیت‌های شناخته‌شده](python/KNOWN_LIMITS.fa.md)، [مرجع API](python/docs/source/api.md)
+و [شواهد انتشار](docs/v1-readiness.md) را بخوانید. ورودی UTF-8 سخت‌گیرانه با
+`time,event_observed` است، checkpointها SQLite محلی‌اند و سطح استنباط از registry
+کامل توزیع‌ها محدودتر است.
+
+محتوای `distfit_pro` برای زمینهٔ تاریخی در مخزن نگه‌داری می‌شود و وعدهٔ سازگاری
+با Veridist نیست؛ وضعیت آن در [دفتر مهاجرت legacy](docs/migration/README.md) ثبت شده است.
+
+## کمک و مطالعهٔ بیشتر
+
+برای نصب و مثال‌ها [راهنمای بسته](python/README.fa.md)، برای سطح آماری
+[راهنمای خانواده‌ها](python/docs/source/families-log-density-likelihood.md) و برای
+تصمیم پذیرش [محدودیت‌ها](python/KNOWN_LIMITS.fa.md) را ببینید. خطای بازتولیدپذیر
+را در [GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues) و مشکل
+امنیتی را در [SECURITY.md](SECURITY.md) گزارش کنید. مشارکت‌کنندگان باید
+[CONTRIBUTING.md](CONTRIBUTING.md) و [قراردادهای مهندسی](docs/conventions.md) را بخوانند.
+
+بسته با BUSL-1.1 و مجوز استفادهٔ اضافی Apache-2.0 در [LICENSE](LICENSE) منتشر
+می‌شود. تاریخچهٔ انتشار در [python/CHANGELOG.md](python/CHANGELOG.md) است.
 
 </div>

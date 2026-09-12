@@ -10,12 +10,14 @@
 
 [English](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.md) | [فارسی](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.fa.md) | [Deutsch](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.de.md)
 
-## Fit declared lifetime models without hiding the contract
+## Fit lifetime data with an inspectable result
 
-`veridist` 1.0.0 is an evidence-backed public contract release. It helps a
-reliability or data-science team turn a strict lifetime CSV into a typed fit and
-an execution record that makes the model, input, and operational boundaries
-visible.
+Veridist is for reliability engineers and analysts who need a defined lifetime
+fit from a strict CSV, plus the information needed to review how it ran. It
+validates the input, returns a typed fit or failure, and keeps the execution
+facts visible.
+
+[See it work](#see-it-work) · [Choose a workflow](#pick-the-right-path) · [Read known limits](KNOWN_LIMITS.md)
 
 ## Install and first success
 
@@ -25,19 +27,7 @@ Install the released package:
 python -m pip install veridist
 ```
 
-For a source checkout:
-
-```console
-git clone https://github.com/alisadeghiaghili/veridist.git
-cd veridist/python
-python -m pip install .
-```
-
-Or install a wheel from a verified run:
-
-```console
-python -m pip install /path/to/veridist-1.0.0-py3-none-any.whl
-```
+## See it work
 
 Run this complete CSV fit after installation:
 
@@ -45,7 +35,12 @@ Run this complete CSV fit after installation:
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
+from veridist import (
+    CsvLifetimeLimits,
+    CsvLifetimeSchema,
+    PublicSourceId,
+    fit_exponential_csv,
+)
 from veridist.families import ExponentialFitSuccess
 
 with TemporaryDirectory() as directory:
@@ -61,7 +56,18 @@ assert isinstance(fit, ExponentialFitSuccess)
 assert fit.rate == 0.5
 assert fit.inference == "not_provided"
 assert fit.censoring_assumption == "independent_right_censoring"
+print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
 ```
+
+```text
+rate=0.5; events=1; censored=1
+```
+
+The first row is an observed event. The second had not occurred by the end of
+observation, so it is independently right-censored. `rate` is expressed in the
+inverse of the time unit in the CSV. A successful fit is not, by itself, proof
+that the exponential model is appropriate; use the model guidance below before
+making a decision.
 
 ## Pick the right path
 
@@ -70,7 +76,15 @@ assert fit.censoring_assumption == "independent_right_censoring"
 | A strict CSV lifetime fit | `fit_exponential_csv` and the [CSV tutorial](docs/source/exponential-right-censoring.md) |
 | A declared scalar distribution operation | `FAMILY_REGISTRY` and `evaluate_log_density`; see the [family guide](docs/source/families-log-density-likelihood.md) |
 | An exact-state reducer over caller-owned chunks | `reduce_log_likelihood_chunks`; see the [stream source API](docs/source/api.md#generic-stream-source-api) |
-| Local checkpoint and resume design | `SQLiteCheckpointStore` plus the [checkpoint CSV contract](tests/contract/test_v1_checkpointed_csv.py) |
+| Local checkpoint and resume design | [Executable SQLite recipe](examples/checkpoint_resume.py) plus [known limits](KNOWN_LIMITS.md) |
+
+## Supported work
+
+| For | Outcome |
+| --- | --- |
+| Reliability engineering | A declared lifetime-model result that can be reviewed with its execution facts |
+| Censored lifetime analysis | Explicit `1` event and `0` independent-right-censoring semantics |
+| Auditable batch execution | A bounded one-pass record and a local SQLite restart option |
 
 ## Capability and evidence
 
@@ -92,13 +106,18 @@ Coverage ≥95% badge shows the pass/fail status of that enforced contract on
 `main`; this page does not claim a static percentage. The mutation and release-
 evidence badges link to their own verifiable workflows.
 
-## Scale and production boundaries
+## Scale and resume
 
 Retained evidence covers a measured 10k/100k/1m by 32KiB/64KiB/128KiB matrix
 for the declared paths. It does not establish general big-data support,
 throughput, portable RSS, dataframe, Parquet, Arrow, database, distributed
 execution, broad censoring, vectorized operations, or universal model choice.
-`SQLiteCheckpointStore` is durable local state, not a distributed service.
+`SQLiteCheckpointStore` is durable local state, not a distributed service. Use
+it with the same source revision and compatible store to continue a committed
+prefix after interruption. The [executable SQLite recipe](examples/checkpoint_resume.py)
+shows the necessary initialization and a compatible second pass.
+
+## Production readiness
 
 Read [KNOWN_LIMITS.md](KNOWN_LIMITS.md) and the repository
 [evidence ledger](../docs/v1-readiness.md) before production use.

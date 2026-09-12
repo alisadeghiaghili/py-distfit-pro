@@ -1,4 +1,4 @@
-# veridist
+# Veridist
 
 [![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
 [![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
@@ -10,127 +10,122 @@
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-## Distribution fitting with a visible evidence trail
+## Turn lifetime data into a result you can review
 
-`veridist` 1.0.0 is an evidence-first distribution-fitting package for teams
-that need a lifetime-fit result they can inspect, reproduce, and constrain. It
-turns a strict CSV of event times into a typed result and execution record,
-instead of silently guessing input semantics or presenting a generic
-"best-fit" answer.
-
-## Why Veridist
-
-| What you need | What Veridist provides |
-| --- | --- |
-| A clear starting point | Fixed-location Exponential, Weibull-minimum, and Lognormal MLE cells for exact and independently right-censored lifetimes. |
-| Inputs you can trust | A strict UTF-8 `time,event_observed` CSV contract: `1` is an event and `0` is independent right censoring. |
-| Results you can audit | Typed estimates and failures, one-pass execution facts, and redacted source provenance. |
-| Evidence before adoption | CI coverage gates, a critical mutation gate, reproducible-release checks, and retained release evidence. |
-
-It is aimed at reliability, engineering, and data-science teams working with a
-declared lifetime model. It is not a broad exploratory fitting workbench.
-
-## Start in 60 seconds
-
-Install the published package:
+Veridist is a Python package for fitting declared lifetime models to event-time
+data, such as component failure times. It validates a small, explicit CSV
+format and returns both the fit and facts about how the calculation ran. Use it
+when another person needs to understand the data assumptions behind the result,
+not only see a curve.
 
 ```console
 python -m pip install veridist
 ```
 
-Then run this complete example. It writes a tiny censored-lifetime CSV, fits
-the supported exponential vertical, and checks the returned model assumptions.
+[Run the first example](#run-your-first-fit) · [Choose your next task](#what-you-can-do-today) · [Read the package guide](python/README.md)
+
+## Run your first fit
+
+The example below creates its own CSV, so it works immediately after
+installation. `1` means that the event was observed. `0` means that the event
+had not happened by the end of observation; this is called right censoring.
 
 ```python
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
+from veridist import (
+    CsvLifetimeLimits,
+    CsvLifetimeSchema,
+    PublicSourceId,
+    fit_exponential_csv,
+)
 from veridist.families import ExponentialFitSuccess
 
 with TemporaryDirectory() as directory:
     path = Path(directory) / "lifetimes.csv"
     path.write_text("time,event_observed\n1,1\n1,0\n", encoding="utf-8")
-    result = fit_exponential_csv(
+    fit = fit_exponential_csv(
         path,
         schema=CsvLifetimeSchema("time", "event_observed"),
         source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
         limits=CsvLifetimeLimits(32_768, 32_768),
-    )
+    ).fit
 
-fit = result.fit
 assert isinstance(fit, ExponentialFitSuccess)
-assert fit.rate == 0.5
-assert fit.inference == "not_provided"
-assert fit.censoring_assumption == "independent_right_censoring"
 print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
 ```
 
-For a checkout instead, use `cd veridist/python` followed by `python -m pip
-install .`. The package page has the same executable example in
-[English](python/README.md), [Persian](python/README.fa.md), and
-[German](python/README.de.md).
+```text
+rate=0.5; events=1; censored=1
+```
 
-## Choose a workflow
+`rate` is expressed in the inverse of the time unit used in your CSV. Here the
+time values have no stated unit, so the rate is `0.5` per input-time unit. A
+successful fit means the declared calculation completed; it does not by itself
+prove that the exponential model is suitable. Review the model assumptions
+before using a result in a decision.
 
-| Goal | Start here |
+## What you can do today
+
+| Your task | Start here |
 | --- | --- |
-| Fit a small, strict lifetime CSV | [First fit and CSV contract](python/docs/source/exponential-right-censoring.md) |
-| Fit data with independent right censoring | [Censoring model and failure cases](python/docs/source/exponential-right-censoring.md#model-and-estimate) |
-| Inspect a result or a typed failure | [CSV exponential API](python/docs/source/api.md) |
-| Evaluate a declared distribution or reduce caller-owned chunks | [Scalar families and streaming likelihood](python/docs/source/families-log-density-likelihood.md) |
-| Plan local checkpoint and resume work | [Checkpoint/resume contract tests](python/tests/contract/test_v1_checkpointed_csv.py) |
+| Estimate a reliability model from a small lifetime CSV | [Fit a strict CSV](python/docs/source/exponential-right-censoring.md) |
+| Work with observations that have not yet failed | [Understand right censoring and its assumptions](python/docs/source/exponential-right-censoring.md#model-and-estimate) |
+| Inspect a result or handle an input problem | [Read the CSV API and failure cases](python/docs/source/api.md) |
+| Evaluate a supported distribution or process your own chunks | [Use scalar families and streaming likelihood](python/docs/source/families-log-density-likelihood.md) |
+| Continue a compatible local run after interruption | [Follow the checkpoint and resume recipe](python/examples/checkpoint_resume.py) |
 
-The checkpoint store is local SQLite state. A compatible run may resume its
-committed prefix; it is not a distributed checkpoint service. Read the linked
-contract before putting it on an operational path.
+Veridist currently supports fixed-location Exponential, Weibull-minimum, and
+Lognormal fits for exact and independently right-censored lifetime data. The
+CSV entry point uses the Exponential workflow. Scalar distribution operations
+are available for the declared registry; they are separate from the fitting
+surface.
 
-## Validate before you trust a result
+## When a run is interrupted
 
-Read the returned fit together with its declared model assumptions and execution
-record. A finite point estimate is not a confidence interval or a goodness-of-
-fit conclusion. The uncensored exponential cell has refit Monte Carlo KS, AD,
-and CvM assessment plus AIC/BIC and adequacy-gated selection; that inference is
-limited to its declared cell and caller-owned generator.
+For a single machine and local filesystem, `SQLiteCheckpointStore` can retain a
+committed prefix and continue a compatible CSV reduction. Keep the source
+revision stable and reopen the same local store. The [executable checkpoint
+recipe](python/examples/checkpoint_resume.py) shows the setup and a second pass.
 
-The main CI runs supported Python versions and enforces global line and branch
-coverage of at least 95%. The Coverage ≥95% badge reports the pass/fail state
-of that enforced contract on `main`; it does not invent a percentage. The
-[quality contract](python/tools/check_coverage.py) rejects weak or incomplete
-coverage evidence.
+This is a local restart mechanism, not a distributed job system. Use the
+[known limits](python/KNOWN_LIMITS.md) to decide whether its boundaries match
+your workload.
 
-## Evidence, scale, and production boundaries
+## Why you can trust what is shown here
 
-Release validation binds a candidate SHA, rebuilds the package twice, and
-requires byte-for-byte matching artifacts. The release boundary includes a
-27-cell execution matrix across complete, retry-resume, and cancellation
-scenarios at 10k, 100k, and 1m rows on Linux, macOS, and Windows.
-
-Those checks do not establish a general throughput, RSS, distributed, Parquet,
-Arrow, dataframe, database, broad censoring, vectorized, or universal best-fit
-capability. Review [known limits](python/KNOWN_LIMITS.md) before using a result
-in a production decision path, and consult the [evidence ledger](docs/v1-readiness.md)
-for the exact scope of retained evidence.
-
-The repository still contains `distfit_pro` material for its historical and
-audited context. It is not a compatibility promise for `veridist`; see the
-[legacy migration ledger](docs/migration/README.md) for its evidence-gated
-status.
-
-## Find the right documentation
-
-| You are… | Use this |
+| Evidence | What it means |
 | --- | --- |
-| Trying the package | [Package guide](python/README.md) and [CSV tutorial](python/docs/source/exponential-right-censoring.md) |
-| Integrating an API | [API reference](python/docs/source/api.md) and [known limits](python/KNOWN_LIMITS.md) |
-| Assessing the statistical surface | [Family and likelihood guide](python/docs/source/families-log-density-likelihood.md) |
-| Reviewing quality or release evidence | [Test plan](docs/v1-test-plan.md), [readiness ledger](docs/v1-readiness.md), and [ADRs](docs/adr/README.md) |
-| Contributing | [Contributing guide](CONTRIBUTING.md), [engineering conventions](docs/conventions.md), and [documentation toolchain](python/docs/README.md) |
+| PyPI and Python | The published package and its declared Python compatibility |
+| CI | Tests, package installation, documentation, and browser checks run on `main` |
+| Coverage ≥95% | CI enforces at least 95% global line and branch coverage; the badge reports that gate's pass/fail state, not a made-up percentage |
+| Mutation gate | The critical statistical core is tested against code mutations |
+| Release evidence | A release candidate is rebuilt and its artifacts are checked for reproducibility |
 
-## Support, security, and license
+The release evidence covers the stated paths at 10k, 100k, and 1m rows under
+defined test conditions. It is not a general promise about throughput, memory,
+distributed execution, Parquet, dataframes, or a universal “best” model.
 
-Use [GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues) for
-reproducible defects and feature proposals. Report vulnerabilities through the
-process in [SECURITY.md](SECURITY.md). Release history is in
-[python/CHANGELOG.md](python/CHANGELOG.md). The repository and nested package
-use BUSL-1.1 with the Apache-2.0 additional-use grant stated in [LICENSE](LICENSE).
+## Before production use
+
+Read [known limits](python/KNOWN_LIMITS.md), then review the [API reference](python/docs/source/api.md)
+and [release evidence](docs/v1-readiness.md) for the exact scope. In particular,
+the input is strict UTF-8 CSV with `time,event_observed`, checkpoints are local
+SQLite state, and inference is narrower than the full distribution registry.
+
+The repository retains `distfit_pro` material for historical context. It is not
+a compatibility promise for Veridist; its status is recorded in the [legacy
+migration ledger](docs/migration/README.md).
+
+## Help and further reading
+
+Start with the [package guide](python/README.md) for installation and examples,
+the [statistics guide](python/docs/source/families-log-density-likelihood.md)
+for the supported model surface, and [known limits](python/KNOWN_LIMITS.md) for
+adoption decisions. Report reproducible defects through [GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues)
+and security problems through [SECURITY.md](SECURITY.md). Contributors should
+read [CONTRIBUTING.md](CONTRIBUTING.md) and [engineering conventions](docs/conventions.md).
+
+The package is licensed under BUSL-1.1 with the Apache-2.0 additional-use grant
+in [LICENSE](LICENSE). Release history is in [python/CHANGELOG.md](python/CHANGELOG.md).

@@ -10,126 +10,120 @@
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-## Verteilungsanpassung mit sichtbarer Evidenz
+## Ein prüfbares Modell aus Ereigniszeitdaten erstellen
 
-`veridist` 1.0.0 ist ein evidenzorientiertes Paket zur Verteilungsanpassung
-für Teams, die ein Lebensdauer-Ergebnis prüfen, reproduzieren und klar
-eingrenzen müssen. Es macht aus einer strikten CSV mit Ereigniszeiten ein
-typisiertes Ergebnis samt Ausführungsprotokoll, statt Eingabesemantik zu raten
-oder pauschal eine „beste Verteilung“ auszugeben.
+Veridist ist ein Python-Paket für Lebensdauermodelle, etwa für die Zeit bis zum
+Ausfall eines Bauteils. Es richtet sich an Reliability Engineers und Analysten,
+die Daten, Annahmen und die Ausführung einer Anpassung prüfen müssen.
 
-## Warum Veridist
-
-| Bedarf | Veridist liefert |
-| --- | --- |
-| Einen klaren Einstieg | Exponential-, Weibull-Minimum- und Lognormal-MLE-Zellen mit festem Ort für exakte und unabhängig rechtszensierte Lebensdauern |
-| Vertrauenswürdige Eingaben | Einen strikten UTF-8-Vertrag `time,event_observed`: `1` bedeutet Ereignis, `0` unabhängige Rechtszensur |
-| Prüfbare Ergebnisse | Typisierte Schätzungen und Fehler, Fakten zur Ein-Pass-Ausführung und redigierte Quellprovenienz |
-| Evidenz vor der Übernahme | CI- und Coverage-Gates, Mutationstests, reproduzierbare Release-Prüfungen und Release-Evidenz |
-
-Das Paket richtet sich an Reliability-, Engineering- und Data-Science-Teams
-mit einem deklarierten Lebensdauermodell. Es ist keine breite explorative
-Workbench für beliebige Anpassungen.
-
-## In 60 Sekunden starten
-
-Das veröffentlichte Paket installieren:
+Es validiert eine definierte Lebensdauer-CSV und gibt entweder einen typisierten
+Fit oder einen typisierten Fehler mit Ausführungsprotokoll zurück. Das Beispiel
+ausführen und für Installation und API die [Paket-Anleitung](python/README.de.md)
+verwenden.
 
 ```console
 python -m pip install veridist
 ```
 
-Dieses vollständige Beispiel erzeugt eine kleine CSV mit einer rechtszensierten
-Beobachtung, passt die unterstützte Exponential-Vertikale an und prüft ihre
-Modellannahmen.
+[Beispiel ausführen](#schnellstart) · [Nächsten Schritt wählen](#nächsten-schritt-wählen) · [Paket-Anleitung](python/README.de.md)
+
+## Schnellstart
+
+Das Beispiel erzeugt zwei Beobachtungen. Die erste ist ein Ausfall zur Zeit
+`1`; die zweite läuft zur Zeit `1` noch, ist also rechtszensiert und kein
+Ausfall.
 
 ```python
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
+from veridist import (
+    CsvLifetimeLimits,
+    CsvLifetimeSchema,
+    PublicSourceId,
+    fit_exponential_csv,
+)
 from veridist.families import ExponentialFitSuccess
 
 with TemporaryDirectory() as directory:
     path = Path(directory) / "lifetimes.csv"
     path.write_text("time,event_observed\n1,1\n1,0\n", encoding="utf-8")
-    result = fit_exponential_csv(
+    fit = fit_exponential_csv(
         path,
         schema=CsvLifetimeSchema("time", "event_observed"),
         source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
         limits=CsvLifetimeLimits(32_768, 32_768),
-    )
+    ).fit
 
-fit = result.fit
 assert isinstance(fit, ExponentialFitSuccess)
-assert fit.rate == 0.5
-assert fit.inference == "not_provided"
-assert fit.censoring_assumption == "independent_right_censoring"
 print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
 ```
 
-Für einen Checkout `cd veridist/python` und danach `python -m pip install .`
-ausführen. Die Paket-Anleitung enthält dasselbe ausführbare Beispiel auf
-[English](python/README.md), [فارسی](python/README.fa.md) und
-[Deutsch](python/README.de.md).
+```text
+rate=0.5; events=1; censored=1
+```
 
-## Workflow auswählen
+`rate` ist die Zahl der Ausfälle pro Einheit der Spalte `time`; bei Stunden
+also Ausfälle pro Stunde. Das Modell setzt unabhängige Rechtszensur voraus:
+das Ende der Beobachtung darf nicht von der unbeobachteten Ausfallzeit abhängen.
+Ein erfolgreicher Fit beweist keine Modellangemessenheit; zuerst
+[Annahmen und Beurteilung](python/docs/source/exponential-right-censoring.md#model-and-estimate) lesen.
 
-| Ziel | Hier beginnen |
+## Einsatzfälle und vorhandene Fähigkeiten
+
+- Ein deklariertes Lebensdauermodell für kontrollierte Ausfalldaten anpassen.
+- Rechtszensierte Daten ausdrücken: `1` ist ein beobachtetes Ereignis, `0`
+  ein bis zum Beobachtungsende nicht eingetretenes Ereignis.
+- Auditierbare Batch-Ausführung mit Ein-Pass-Protokoll und lokalem Checkpoint.
+
+Verfügbar sind Exponential-, Weibull-Minimum- und Lognormal-Modelle mit festem
+Ort für exakte und unabhängig rechtszensierte Lebensdauern. Die öffentliche CSV
+ist UTF-8 mit genau `time,event_observed`; sie ist kein allgemeiner CSV-Reader
+und keine universelle Best-Fit-Suche.
+
+## Nächsten Schritt wählen
+
+| Wenn Sie… | Hier beginnen |
 | --- | --- |
-| Eine kleine, strikte Lebensdauer-CSV anpassen | [Erste Anpassung und CSV-Vertrag](python/docs/source/exponential-right-censoring.md) |
-| Daten mit unabhängiger Rechtszensur anpassen | [Modell und Fehlerfälle](python/docs/source/exponential-right-censoring.md#model-and-estimate) |
-| Ergebnis oder typisierten Fehler prüfen | [CSV-Exponential-API](python/docs/source/api.md) |
-| Deklarierte Verteilung auswerten oder eigene Chunks reduzieren | [Skalare Familien und Streaming-Likelihood](python/docs/source/families-log-density-likelihood.md) |
-| Lokales Checkpointing und Fortsetzen planen | [Checkpoint/Resume-Vertragstests](python/tests/contract/test_v1_checkpointed_csv.py) |
+| erste strikte Lebensdauer-CSV anpassen | [CSV-Eingabe und erster Fit](python/docs/source/exponential-right-censoring.md) |
+| Zensur, Schätzung und Fehler verstehen | [Modellannahmen](python/docs/source/exponential-right-censoring.md#model-and-estimate) |
+| API integrieren | [API-Referenz](python/docs/source/api.md) |
+| kompatiblen lokalen Lauf fortsetzen | [Checkpoint- und Resume-Anleitung](python/docs/checkpoint-resume.md) |
+| Eingabe- oder Betriebsfehler lösen | [Grenzen und Fehlersuche](python/KNOWN_LIMITS.de.md) |
 
-Der Checkpoint-Speicher ist lokaler SQLite-Zustand. Ein kompatibler Lauf kann
-seinen gespeicherten Präfix fortsetzen; er ist kein verteilter Checkpoint-Dienst.
+## Große Eingaben und lokales Fortsetzen
 
-## Ergebnis vor dem Vertrauen validieren
+Der unterstützte CSV-Pfad arbeitet in einem Iterator-Durchlauf. SQLite kann
+einen unterbrochenen lokalen, kompatiblen Lauf mit derselben Source-Revision,
+demselben Store und bestätigten Präfix fortsetzen. Das gilt für einen Host und
+lokales Dateisystem, nicht für mehrere Worker oder verteilte Stores. Die
+[Checkpoint-Anleitung](python/docs/checkpoint-resume.md) enthält ein ausführbares
+Zwei-Pass-Beispiel.
 
-Ein Ergebnis ist zusammen mit Modellannahmen und Ausführungsprotokoll zu lesen.
-Eine endliche Punktschätzung ist weder ein Konfidenzintervall noch ein
-Goodness-of-Fit-Urteil. Die unzensierte Exponentialzelle bietet Refit-Monte-
-Carlo-KS-, AD- und CvM-Tests, AIC/BIC und adequacy-gesteuerte Auswahl. Diese
-Inferenz bleibt auf die deklarierte Zelle und einen aufruferseitigen Generator
-beschränkt.
+Die Release-Evidenz umfasst deklarierte Szenarien mit 10k, 100k und 1m Zeilen
+und konkreten Speicherbudgets. Sie belegt keinen allgemeinen Durchsatz, kein
+portables RSS, keine verteilte Ausführung, kein Parquet, Arrow, Dataframe,
+Datenbank, breite Zensierung oder universelle Modellwahl.
 
-Die Haupt-CI testet unterstützte Python-Versionen und erzwingt mindestens 95 %
-Line- und Branch-Coverage. Das Badge Coverage ≥95% zeigt den Pass/Fail-Status
-dieses erzwungenen Vertrags auf `main`, keine erfundene Prozentzahl.
+## Umfang und Qualitätsevidenz
 
-## Evidenz, Skalierung und Produktionsgrenzen
+Das CI-Badge umfasst Tests, Paketinstallation und Dokumentation. **Coverage
+≥95%** bedeutet: Der verlinkte Workflow erzwingt mindestens 95% globale Line-
+und Branch-Coverage und zeigt nur Pass/Fail dieses Gates, keinen gemessenen
+Prozentwert. Vor Produktion [Grenzen](python/KNOWN_LIMITS.de.md) und
+[Evidenzregister](docs/v1-readiness.md) lesen.
 
-Die Release-Validierung bindet einen Kandidaten-SHA, baut das Paket zweimal und
-fordert byteidentische Artefakte. Die Release-Grenze umfasst eine 27-Zellen-
-Matrix für vollständige Läufe, Retry-Resume und Abbruch bei 10k, 100k und 1m
-Zeilen auf Linux, macOS und Windows.
+`distfit_pro` bleibt für historischen und auditierten Kontext im Repository und
+ist kein Kompatibilitätsversprechen für Veridist; siehe
+[Migrationsregister](docs/migration/README.md).
 
-Das belegt keine allgemeine Durchsatz-, RSS-, verteilte, Parquet-, Arrow-,
-Dataframe-, Datenbank-, breite Zensierungs-, vektorisierte oder universelle
-Best-Fit-Fähigkeit. Vor einem Produktionseinsatz [bekannte Grenzen](python/KNOWN_LIMITS.de.md)
-und das [Evidenzregister](docs/v1-readiness.md) lesen.
+## Hilfe, Beiträge, Zitat und Lizenz
 
-`distfit_pro`-Material bleibt für historischen und auditierten Kontext im
-Repository. Es ist kein Kompatibilitätsversprechen für `veridist`; der Status
-steht im [Legacy-Migrationsregister](docs/migration/README.md).
+Fehler in [GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues)
+und Sicherheitslücken gemäß [SECURITY.md](SECURITY.md) melden. Für Änderungen
+[Beitragsleitfaden](CONTRIBUTING.md), für Releases
+[CHANGELOG](python/CHANGELOG.md) verwenden. In Berichten Paketversion,
+Source-Commit und Modellannahmen angeben.
 
-## Dokumentation nach Aufgabe
-
-| Rolle oder Aufgabe | Referenz |
-| --- | --- |
-| Paket ausprobieren | [Paket-Anleitung](python/README.de.md) und [CSV-Tutorial](python/docs/source/exponential-right-censoring.md) |
-| API integrieren | [API-Referenz](python/docs/source/api.md) und [Grenzen](python/KNOWN_LIMITS.de.md) |
-| Statistische Oberfläche prüfen | [Familien und Likelihood](python/docs/source/families-log-density-likelihood.md) |
-| Qualität und Release-Evidenz prüfen | [Testplan](docs/v1-test-plan.md), [Readiness-Register](docs/v1-readiness.md) und [ADRs](docs/adr/README.md) |
-| Beitragen | [Beitragsleitfaden](CONTRIBUTING.md), [Engineering-Konventionen](docs/conventions.md) und [Dokumentations-Toolchain](python/docs/README.md) |
-
-## Support, Sicherheit und Lizenz
-
-Reproduzierbare Fehler und Funktionsvorschläge gehören in die
-[GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues).
-Sicherheitslücken gemäß [SECURITY.md](SECURITY.md) melden. Die Release-Historie
-steht in [python/CHANGELOG.md](python/CHANGELOG.md). Repository und
-verschachteltes Paket verwenden BUSL-1.1 mit einer zusätzlichen Apache-2.0-
-Nutzungserlaubnis gemäß [LICENSE](LICENSE).
+[BUSL-1.1](LICENSE) gilt mit der dort beschriebenen zusätzlichen Apache-2.0-
+Nutzungserlaubnis.

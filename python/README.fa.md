@@ -12,11 +12,13 @@
 
 <div lang="fa" dir="rtl">
 
-## مدل طول‌عمر مشخص را با قرارداد روشن برازش دهید
+## دادهٔ طول‌عمر را با نتیجه‌ای قابل‌بررسی برازش دهید
 
-نسخهٔ 1.0.0 یک انتشار عمومی با شواهد قابل‌بازبینی است. `veridist` CSV طول‌عمر
-سخت‌گیرانه را به برازش نوع‌دار و گزارش اجرا تبدیل می‌کند تا مدل، ورودی و مرزهای
-عملیاتی روشن بمانند.
+`veridist` برای مهندسان قابلیت‌اطمینان و تحلیل‌گرانی است که از CSV طول‌عمر
+تعریف‌شده نتیجه‌ای قابل‌بررسی می‌خواهند: ورودی اعتبارسنجی می‌شود، برازش یا شکست
+نوع‌دار برمی‌گردد و واقعیت اجرا روشن می‌ماند.
+
+[در عمل ببینید](#در-عمل-ببینید) · [انتخاب مسیر](#مسیر-درست-را-انتخاب-کنید) · [محدودیت‌ها](KNOWN_LIMITS.fa.md)
 
 ## نصب و نخستین موفقیت
 
@@ -30,27 +32,7 @@ python -m pip install veridist
 
 <div lang="fa" dir="rtl">
 
-برای source checkout:
-
-</div>
-
-```console
-git clone https://github.com/alisadeghiaghili/veridist.git
-cd veridist/python
-python -m pip install .
-```
-
-<div lang="fa" dir="rtl">
-
-یا wheel یک اجرای تأییدشده را نصب کنید:
-
-</div>
-
-```console
-python -m pip install /path/to/veridist-1.0.0-py3-none-any.whl
-```
-
-<div lang="fa" dir="rtl">
+## در عمل ببینید
 
 پس از نصب، این برازش کامل CSV را اجرا کنید:
 
@@ -60,7 +42,12 @@ python -m pip install /path/to/veridist-1.0.0-py3-none-any.whl
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from veridist import CsvLifetimeLimits, CsvLifetimeSchema, PublicSourceId, fit_exponential_csv
+from veridist import (
+    CsvLifetimeLimits,
+    CsvLifetimeSchema,
+    PublicSourceId,
+    fit_exponential_csv,
+)
 from veridist.families import ExponentialFitSuccess
 
 with TemporaryDirectory() as directory:
@@ -76,6 +63,11 @@ assert isinstance(fit, ExponentialFitSuccess)
 assert fit.rate == 0.5
 assert fit.inference == "not_provided"
 assert fit.censoring_assumption == "independent_right_censoring"
+print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
+```
+
+```text
+rate=0.5; events=1; censored=1
 ```
 
 <div lang="fa" dir="rtl">
@@ -87,7 +79,15 @@ assert fit.censoring_assumption == "independent_right_censoring"
 | برازش CSV طول‌عمر سخت‌گیرانه | `fit_exponential_csv` و [آموزش CSV](docs/source/exponential-right-censoring.md) |
 | محاسبهٔ توزیع اسکالر اعلام‌شده | `FAMILY_REGISTRY` و `evaluate_log_density`؛ [راهنمای خانواده‌ها](docs/source/families-log-density-likelihood.md) |
 | کاهش حالت‌دقیق روی chunkهای متعلق به فراخواننده | `reduce_log_likelihood_chunks`؛ [API جریان](docs/source/api.md#generic-stream-source-api) |
-| طراحی checkpoint و resume محلی | `SQLiteCheckpointStore` و [قرارداد CSV](tests/contract/test_v1_checkpointed_csv.py) |
+| طراحی checkpoint و resume محلی | [نمونهٔ SQLite قابل‌اجرا](examples/checkpoint_resume.py) و [محدودیت‌ها](KNOWN_LIMITS.fa.md) |
+
+## کارهای پشتیبانی‌شده
+
+| مخاطب | نتیجه |
+| --- | --- |
+| مهندسی قابلیت‌اطمینان | نتیجهٔ مدل طول‌عمر با واقعیت اجرای قابل‌بررسی |
+| تحلیل سانسورشده | معنای صریح `1` برای رخداد و `0` برای راست‌سانسوری مستقل |
+| batch قابل‌ممیزی | اجرای یک‌گذر کران‌دار و امکان restart محلی |
 
 ## قابلیت و شواهد
 
@@ -105,14 +105,19 @@ CI نسخه‌های پشتیبانی‌شدهٔ Python، حداقل ۹۵٪ پو
 و مستندات را کنترل می‌کند. بج Coverage ≥95% گذر/شکست همین قرارداد الزام‌شده را
 روی `main` نشان می‌دهد؛ در این صفحه عدد ثابت coverage وجود ندارد.
 
-## مقیاس و مرزهای تولید
+## مقیاس و ادامهٔ اجرا
 
 شواهد نگه‌داری‌شده ماتریس اندازه‌گیری‌شدهٔ 10k/100k/1m ردیف و بودجه‌های
 32KiB/64KiB/128KiB را برای مسیرهای اعلام‌شده پوشش می‌دهند. این شواهد، پشتیبانی
 کلی از big-data، throughput، RSS قابل‌حمل، dataframe، Parquet، Arrow،
 پایگاه‌داده، اجرای توزیع‌شده، سانسور گسترده، عملیات برداری یا انتخاب عمومی مدل
 را ثابت نمی‌کنند. `SQLiteCheckpointStore` وضعیت محلی پایدار است، نه سرویس
-توزیع‌شده.
+توزیع‌شده. برای ادامهٔ اجرا، revision منبع را ثابت نگه دارید، همان store محلی را
+باز کنید و prefix ثبت‌شده را ادامه دهید.
+نمونهٔ [SQLite قابل‌اجرا](examples/checkpoint_resume.py) راه‌اندازی لازم و گذر دومِ
+سازگار را نشان می‌دهد.
+
+## آمادگی تولید
 
 پیش از استفادهٔ عملیاتی [KNOWN_LIMITS.fa.md](KNOWN_LIMITS.fa.md) و
 [دفتر شواهد](../docs/v1-readiness.md) را بخوانید.
