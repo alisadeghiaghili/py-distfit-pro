@@ -118,6 +118,10 @@ The repository retains `distfit_pro` material for historical context. It is not
 a compatibility promise for Veridist; its status is recorded in the [legacy
 migration ledger](docs/migration/README.md).
 
+## Cite Veridist
+
+Use the released version that produced your result. Ready-to-copy [IEEE, BibTeX, and APA citations](docs/citing-veridist.md) are maintained with the canonical [CITATION.cff](CITATION.cff).
+
 ## Help and further reading
 
 Start with the [package guide](python/README.md) for installation and examples,

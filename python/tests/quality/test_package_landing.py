@@ -314,5 +314,30 @@ class PackageLandingContractTests(unittest.TestCase):
                 )
 
 
+    def test_citation_guide_keeps_common_formats_and_readmes_link_to_it(self) -> None:
+        guide = (REPOSITORY_ROOT / "docs" / "citing-veridist.md").read_text(encoding="utf-8")
+        for heading in (
+            "## IEEE",
+            "## APA 7",
+            "## BibTeX",
+            "## RIS",
+            "## EndNote XML",
+            "## CSL-JSON",
+            "## Chicago author-date",
+            "## MLA 9",
+            "## Harvard",
+            "## Vancouver",
+        ):
+            self.assertIn(heading, guide)
+        self.assertIn("ver. 1.0.1", guide)
+        self.assertIn("CITATION.cff", guide)
+        root_readmes = tuple(
+            REPOSITORY_ROOT / name for name in ("README.md", "README.fa.md", "README.de.md")
+        )
+        readmes = (*README_PATHS.values(), *root_readmes)
+        for path in readmes:
+            with self.subTest(path=path):
+                self.assertIn("citing-veridist.md", path.read_text(encoding="utf-8"))
+
 if __name__ == "__main__":
     unittest.main()

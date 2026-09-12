@@ -121,6 +121,10 @@ dataframe یا «بهترین» مدل نیست.
 محتوای `distfit_pro` برای زمینهٔ تاریخی در مخزن نگه‌داری می‌شود و وعدهٔ سازگاری
 با Veridist نیست؛ وضعیت آن در [دفتر مهاجرت legacy](docs/migration/README.md) ثبت شده است.
 
+## ارجاع به Veridist
+
+نسخه‌ای را ارجاع دهید که نتیجه را با آن تولید کرده‌اید. الگوهای آمادهٔ [IEEE، BibTeX و APA](docs/citing-veridist.md) همراه با [CITATION.cff](CITATION.cff) نگه‌داری می‌شوند.
+
 ## کمک و مطالعهٔ بیشتر
 
 برای نصب و مثال‌ها [راهنمای بسته](python/README.fa.md)، برای سطح آماری

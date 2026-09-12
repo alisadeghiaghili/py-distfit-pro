@@ -117,6 +117,10 @@ Prozentwert. Vor Produktion [Grenzen](python/KNOWN_LIMITS.de.md) und
 ist kein Kompatibilitätsversprechen für Veridist; siehe
 [Migrationsregister](docs/migration/README.md).
 
+## Veridist zitieren
+
+Zitieren Sie die Version, mit der das Ergebnis erzeugt wurde. [IEEE-, BibTeX- und APA-Vorlagen](docs/citing-veridist.md) werden zusammen mit [CITATION.cff](CITATION.cff) gepflegt.
+
 ## Hilfe, Beiträge, Zitat und Lizenz
 
 Fehler in [GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues)

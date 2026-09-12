@@ -33,6 +33,7 @@ class CiScopeClassifierTests(unittest.TestCase):
             "docs/evidence/scale-csv-exponential-v1.md",
             "docs/capability-matrix.md",
             "docs/readme-design-policy.md",
+            "docs/citing-veridist.md",
             "docs/v1-readiness.md",
             "docs/decisions-2026-08-20.md",
             "docs/migration/legacy-salvage-ledger.json",
