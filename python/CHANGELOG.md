@@ -4,6 +4,19 @@ This changelog covers only the nested `veridist` package. The repository-root
 legacy changelog describes the frozen `distfit_pro` history and is not a
 Veridist release record.
 
+## [Unreleased]
+
+### Changed
+
+- Rebuilt the English, Persian, and German repository and package READMEs as
+  progressive tutorials, from distribution modelling to a runnable lifetime
+  analysis, result interpretation, supported APIs, and adoption guidance.
+- Explained distribution-derived machine-learning features, the distinction
+  between current fitting APIs and future multi-model ranking, and the planned
+  review and migration of 25 legacy distributions.
+- Distinguished the static coverage requirement badge from live CI status and
+  retained explicit citation, support, and conditional-license guidance.
+
 ## [1.0.1] - 2026-09-12
 
 ### Changed

@@ -1,34 +1,82 @@
 # Veridist
 
+**Understand lifetime patterns and reliability with inspectable statistical models.**
+
 [![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
-[![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
-[![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
-[![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
-[![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
-[![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
-[![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
+[![Python 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB)](https://github.com/alisadeghiaghili/veridist/blob/main/docs/capability-matrix.md)
+[![CI](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=CI)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Coverage ≥95%](https://img.shields.io/badge/coverage%20requirement-%E2%89%A595%25-blue)](https://github.com/alisadeghiaghili/veridist/blob/main/docs/capability-matrix.md)
+[![License](https://img.shields.io/badge/license-BUSL--1.1-purple)](https://github.com/alisadeghiaghili/veridist/blob/main/LICENSE)
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-## Turn lifetime data into a result you can review
+## Why model a probability distribution?
 
-Veridist is a Python package for fitting declared lifetime models to event-time
-data, such as component failure times. It validates a small, explicit CSV
-format and returns both the fit and facts about how the calculation ran. Use it
-when another person needs to understand the data assumptions behind the result,
-not only see a curve.
+Data contains patterns: typical outcomes, variation, and rare events. Fitting a probability distribution gives us a way to describe those patterns, estimate event probabilities, and reason about uncertainty.
+
+When there is too little data to train and evaluate complex models such as deep neural networks reliably, statistical models with fewer parameters can be useful, provided their assumptions suit the problem. They can offer an interpretable account of statistical behaviour with limited observations. Data volume alone does not determine the right method: the analytical goal, data structure, and need for explanation matter too. Distribution modelling remains useful for large datasets.
+
+A reference distribution can also help identify unusual observations or changes in the pattern of new data. These ideas underpin **anomaly detection** and **distribution drift monitoring**. Reliable applications also need model validation, decision thresholds, and control of false alarms.
+
+Distribution models can later contribute to deep learning. Estimated parameters, quantiles, and threshold-exceedance probabilities can become input features alongside the original data. Evaluate whether these features help, and estimate them without future observations or test-set information to avoid leakage.
+
+## When you do not know the distribution
+
+Distribution fitting can involve fitting several candidate models, estimating their parameters, and comparing how well they describe the observations. A multi-model workflow can return ranked candidates with their parameters and evaluation measures.
+
+The best-ranked fit depends on the candidates, comparison criterion, and assumptions. It need not be the true data-generating distribution; none of the candidates may be adequate.
+
+Veridist currently provides separate Exponential, Weibull-minimum, and Lognormal fitting APIs. Automatic ranking across these three families is a future direction, not a current feature. Existing inference and selection have a narrower Exponential scope.
+
+## What Veridist helps you do
+
+Veridist is a Python library for **lifetime data and reliability analysis**. It helps engineers and researchers turn observations into estimates whose assumptions and execution facts can be inspected.
+
+- Fit Exponential, Weibull-minimum, and Lognormal lifetime models.
+- Include observations that ended before the event occurred.
+- Inspect estimates, observation counts, and calculation assumptions.
+- Use scalar distribution operations and chunked likelihood reduction.
+- Resume compatible interrupted computations locally on supported paths.
+
+Anomaly detection, drift monitoring, and deep learning are broader applications of distribution modelling. Veridist does not currently supply ready-made systems for these tasks.
+
+## From an observation to a model
+
+Imagine following a fleet of pumps. For each pump, you know how long it was observed and whether it failed.
+
+| Pump status | What the record tells you |
+| --- | --- |
+| Failed during the study | Its failure time is known. |
+| Still operating when observation ended | Its lifetime exceeds the recorded observation time. |
+
+The second record is **right-censored**: observation ended before failure was seen. It still contributes information.
+
+A statistical model is a simplified description of these times. Veridist fits the declared model; checking whether its assumptions describe your equipment remains part of the analysis.
+
+## Your first analysis
+
+We start with an Exponential model. It assumes a constant failure rate over time: a simple learning example, but not necessarily a suitable description of ageing equipment.
+
+### Install
+
+Use Python 3.11 through 3.14:
 
 ```console
 python -m pip install veridist
 ```
 
-[Run the first example](#run-your-first-fit) · [Choose your next task](#what-you-can-do-today) · [Read the package guide](python/README.md)
+### Understand the data
 
-## Run your first fit
+| time | event_observed | Meaning |
+| --- | --- | --- |
+| 1 | 1 | Failure was observed at time 1. |
+| 1 | 0 | The pump was still operating at time 1. |
 
-The example below creates its own CSV, so it works immediately after
-installation. `1` means that the event was observed. `0` means that the event
-had not happened by the end of observation; this is called right censoring.
+Choose one time unit, such as hours or months, and use it throughout. These two records illustrate the calculation; they are not sufficient evidence for a real reliability decision.
+
+### Fit the model
+
+The example creates its own CSV and runs after installation.
 
 ```python
 from pathlib import Path
@@ -49,10 +97,12 @@ with TemporaryDirectory() as directory:
         path,
         schema=CsvLifetimeSchema("time", "event_observed"),
         source_id=PublicSourceId("src_0123456789abcdef0123456789abcdef"),
-        limits=CsvLifetimeLimits(32_768, 32_768),
+        limits=CsvLifetimeLimits(32768, 32768),
     ).fit
-
 assert isinstance(fit, ExponentialFitSuccess)
+assert fit.rate == 0.5
+assert fit.inference == "not_provided"
+assert fit.censoring_assumption == "independent_right_censoring"
 print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
 ```
 
@@ -60,80 +110,102 @@ print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}
 rate=0.5; events=1; censored=1
 ```
 
-`rate` is expressed in the inverse of the time unit used in your CSV. Here the
-time values have no stated unit, so the rate is `0.5` per input-time unit. A
-successful fit means the declared calculation completed; it does not by itself
-prove that the exponential model is suitable. Review the model assumptions
-before using a result in a decision.
+### Interpret the result
 
-## What you can do today
+There is one failure across two observed time units, so the estimated rate is 1 / 2 = 0.5. If the times are months, this is 0.5 failures per pump-month of observation. It is a rate, not a 50% probability of failure within a month.
 
-| Your task | Start here |
+The operating pump contributes one observed time unit without failure. The model assumes censoring is independent of the unobserved failure time. Removing pumps early because they appear likely to fail would require examining that assumption.
+
+A successful fit confirms the calculation completed; it does not prove model adequacy. Continue with the [right-censoring walkthrough](python/docs/source/exponential-right-censoring.md).
+
+## Use your own data
+
+Pass your CSV path to the fitting function. The public CSV entry point is Exponential-only and accepts strict UTF-8 lifetime CSV.
+
+| Setting | Purpose |
 | --- | --- |
-| Estimate a reliability model from a small lifetime CSV | [Fit a strict CSV](python/docs/source/exponential-right-censoring.md) |
-| Work with observations that have not yet failed | [Understand right censoring and its assumptions](python/docs/source/exponential-right-censoring.md#model-and-estimate) |
-| Inspect a result or handle an input problem | [Read the CSV API and failure cases](python/docs/source/api.md) |
-| Evaluate a supported distribution or process your own chunks | [Use scalar families and streaming likelihood](python/docs/source/families-log-density-likelihood.md) |
-| Continue a compatible local run after interruption | [Follow the checkpoint and resume recipe](python/examples/checkpoint_resume.py) |
+| CsvLifetimeSchema | Names the time and event-indicator columns. |
+| PublicSourceId | Supplies a non-secret source identifier in execution provenance. |
+| CsvLifetimeLimits | Declares input byte budgets. |
 
-Veridist currently supports fixed-location Exponential, Weibull-minimum, and
-Lognormal fits for exact and independently right-censored lifetime data. The
-CSV entry point uses the Exponential workflow. Scalar distribution operations
-are available for the declared registry; they are separate from the fitting
-surface.
+The [API reference](python/docs/source/api.md) explains accepted input, result types, and typed failures.
 
-## When a run is interrupted
+## Models and tools available today
 
-For a single machine and local filesystem, `SQLiteCheckpointStore` can retain a
-committed prefix and continue a compatible CSV reduction. Keep the source
-revision stable and reopen the same local store. The [executable checkpoint
-recipe](python/examples/checkpoint_resume.py) shows the setup and a second pass.
+### Lifetime fitting
 
-This is a local restart mechanism, not a distributed job system. Use the
-[known limits](python/KNOWN_LIMITS.md) to decide whether its boundaries match
-your workload.
-
-## Why you can trust what is shown here
-
-| Evidence | What it means |
+| Model | Pattern it can describe |
 | --- | --- |
-| PyPI and Python | The published package and its declared Python compatibility |
-| CI | Tests, package installation, documentation, and browser checks run on `main` |
-| Coverage ≥95% | CI enforces at least 95% global line and branch coverage; the badge reports that gate's pass/fail state, not a made-up percentage |
-| Mutation gate | The critical statistical core is tested against code mutations |
-| Release evidence | A release candidate is rebuilt and its artifacts are checked for reproducibility |
+| Exponential | A constant failure rate. |
+| Weibull-minimum | A decreasing, constant, or increasing failure rate, depending on shape. |
+| Lognormal | Positive lifetimes whose logarithms are modelled by a Normal distribution. |
 
-The release evidence covers the stated paths at 10k, 100k, and 1m rows under
-defined test conditions. It is not a general promise about throughput, memory,
-distributed execution, Parquet, dataframes, or a universal “best” model.
+These fits use fixed location zero and support exact and independently right-censored lifetimes. Weibull-minimum and Lognormal use their model APIs; the CSV example fits Exponential only.
 
-## Before production use
+### Probability calculations
 
-Read [known limits](python/KNOWN_LIMITS.md), then review the [API reference](python/docs/source/api.md)
-and [release evidence](docs/v1-readiness.md) for the exact scope. In particular,
-the input is strict UTF-8 CSV with `time,event_observed`, checkpoints are local
-SQLite state, and inference is narrower than the full distribution registry.
+Scalar operations for Normal, Gamma, Weibull-minimum, Lognormal, and right-Gumbel include log-density, CDF, survival, quantiles, and caller-owned RNG sampling. An available distribution operation does not imply an available fitting API. See the [families and likelihood guide](python/docs/source/families-log-density-likelihood.md).
 
-The repository retains `distfit_pro` material for historical context. It is not
-a compatibility promise for Veridist; its status is recorded in the [legacy
-migration ledger](docs/migration/README.md).
+### Model assessment
+The lower-level API exposes `FAMILY_REGISTRY`, `evaluate_log_density`, and `reduce_log_likelihood_chunks` for family lookup, scalar log-density, and chunked likelihood reduction.
+
+
+Finite positive uncensored Exponential samples support refit Monte Carlo KS/AD/CvM, AIC/BIC, and adequacy-gated selection with a caller-owned generator. Inference is narrower than fitting; the [capability matrix](docs/capability-matrix.md) records the exact scope.
+
+## When data grows
+
+Likelihood tools can reduce caller-supplied chunks. Your application owns how data is split and delivered.
+
+SQLiteCheckpointStore retains local restart state for compatible Exponential reductions, including the supported CSV path. Keep the source revision stable and follow the [checkpoint and resume recipe](python/examples/checkpoint_resume.py).
+
+Release evidence covers declared CSV/Exponential paths at 10k, 100k, and 1m rows under recorded conditions. It does not establish universal throughput or a portable process-memory ceiling. Current durable resume runs on one machine with a local filesystem.
+
+## How quality is checked
+
+| Check | What it establishes |
+| --- | --- |
+| Statistical reference and API contract tests | Numerical results, boundaries, and explicit failure behaviour. |
+| Coverage ≥95% | Required global line and branch coverage; numerical modules have stricter thresholds. |
+| Mutation testing of the statistical core | Whether tests detect deliberately faulty code changes. |
+| Package build and installation checks | Whether release artifacts can be built and installed. |
+| Executable examples and multilingual documentation checks | Whether examples run and documentation builds. |
+
+The coverage badge states the required threshold, not a measured current percentage. The CI badge reports the main workflow status.
+
+## Before adopting Veridist
+
+Review three things: whether the statistical assumptions match data collection, whether the needed fitting and inference path exists, and whether local processing and recovery meet your workload requirements.
+
+The [known limits](python/KNOWN_LIMITS.md) describe exclusions such as left and interval censoring, covariates, and distributed execution. The historical distfit_pro source is tracked in the [migration ledger](docs/migration/README.md); it is not a runtime compatibility promise.
+
+## Future plans
+
+Development directions focus on broader model coverage, easier analysis, and statistical correctness:
+
+- **Review and migrate the 25 legacy distributions:** 20 continuous and 5 discrete distributions, with numerical tests, documentation, and explicit capability boundaries for each migrated model.
+- **Multi-model fitting and comparison:** ranked candidate results with fitted parameters, comparison measures, adequacy information, and an explicit outcome when no model is suitable.
+- **Broader statistical assessment:** extend goodness-of-fit and uncertainty tools to more families and observation settings.
+- **More efficient large-data processing:** measure and improve runtime and memory with reproducible experiments, alongside chunked processing.
+- **More practical vignettes:** walk from a real question through data to interpretation, then explore distribution-derived features for anomaly detection, drift monitoring, and machine learning.
+
+These are development directions, not currently supported features or promised release dates. Published capabilities remain in the [capability matrix](docs/capability-matrix.md), and delivered changes in the [changelog](python/CHANGELOG.md).
+
+## Guides, help, and contributions
+
+| Your goal | Where to go |
+| --- | --- |
+| Read the standalone package guide | [Package README](python/README.md) |
+| Learn the censoring example | [Exponential walkthrough](python/docs/source/exponential-right-censoring.md) |
+| Inspect inputs, outputs, and failures | [API reference](python/docs/source/api.md) |
+| Report a reproducible defect | [GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues) |
+| Contribute | [Contribution guide](CONTRIBUTING.md) and [engineering conventions](docs/conventions.md) |
+| Report a vulnerability | [Security policy](SECURITY.md) |
+| Follow releases | [Changelog](python/CHANGELOG.md) |
 
 ## Cite Veridist
 
-Cite the release that produced your result.
+Cite the version that produced your result. The [citation guide](docs/citing-veridist.md) provides IEEE, APA 7, Chicago, MLA 9, Harvard, Vancouver, BibTeX, RIS, EndNote XML, and CSL-JSON formats. [CITATION.cff](CITATION.cff) is the canonical machine-readable record.
 
-> A. S. Aghili, “Veridist,” ver. 1.0.1, Sep. 2026. [Online]. Available:
-> https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1
+## License
 
-The [citation guide](docs/citing-veridist.md) also provides APA 7, BibTeX, RIS, EndNote XML, CSL-JSON, Chicago, MLA 9, Harvard, and Vancouver. The canonical machine-readable record is [CITATION.cff](CITATION.cff).
-## Help and further reading
-
-Start with the [package guide](python/README.md) for installation and examples,
-the [statistics guide](python/docs/source/families-log-density-likelihood.md)
-for the supported model surface, and [known limits](python/KNOWN_LIMITS.md) for
-adoption decisions. Report reproducible defects through [GitHub Issues](https://github.com/alisadeghiaghili/veridist/issues)
-and security problems through [SECURITY.md](SECURITY.md). Contributors should
-read [CONTRIBUTING.md](CONTRIBUTING.md) and [engineering conventions](docs/conventions.md).
-
-The package is licensed under BUSL-1.1 with the Apache-2.0 additional-use grant
-in [LICENSE](LICENSE). Release history is in [python/CHANGELOG.md](python/CHANGELOG.md).
+Veridist is distributed under **Business Source License 1.1 (BUSL-1.1)**. The [LICENSE](LICENSE) specifies the conditional Apache-2.0 additional-use grant and the change date. The BUSL-1.1 badge does not mean the current release is unconditionally licensed under Apache-2.0.
