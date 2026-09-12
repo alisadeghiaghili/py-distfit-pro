@@ -304,7 +304,7 @@ class PackageLandingContractTests(unittest.TestCase):
         )
         for locale, content in limits.items():
             with self.subTest(locale=locale):
-                self.assertIn("1.0.0", content)
+                self.assertIn("1.0.1", content)
                 self.assertIn("BUSL-1.1", content)
                 self.assertIn("Apache-2.0", content)
                 self.assertIn("2030-09-05", content)
