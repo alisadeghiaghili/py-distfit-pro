@@ -32,6 +32,7 @@ _VERIDIST_PATHS = frozenset(
         "docs/competitive-feature-matrix.md",
         "docs/competitive-landscape.md",
         "docs/conventions.md",
+        "docs/readme-design-policy.md",
         "docs/v1-readiness.md",
         "docs/v1-roadmap.md",
         "docs/v1-test-plan.md",

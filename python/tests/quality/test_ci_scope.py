@@ -32,6 +32,7 @@ class CiScopeClassifierTests(unittest.TestCase):
             "docs/adr/ADR-0015-retry-checkpoint-transactional-guarantees.md",
             "docs/evidence/scale-csv-exponential-v1.md",
             "docs/capability-matrix.md",
+            "docs/readme-design-policy.md",
             "docs/v1-readiness.md",
             "docs/decisions-2026-08-20.md",
             "docs/migration/legacy-salvage-ledger.json",
