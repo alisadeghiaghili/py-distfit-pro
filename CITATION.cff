@@ -12,6 +12,7 @@ keywords:
 authors:
   - family-names: Sadeghi Aghili
     given-names: Seyed Ali
+    orcid: "https://orcid.org/0000-0002-5938-3291"
     website: "https://zil.ink/thedatascientist"
 repository-code: "https://github.com/alisadeghiaghili/veridist"
 url: "https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1"

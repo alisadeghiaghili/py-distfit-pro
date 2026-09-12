@@ -212,6 +212,8 @@ Maintainer: [Seyed Ali Sadeghi Aghili](https://zil.ink/thedatascientist).
 See the [Google Scholar](https://scholar.google.com/citations?user=BDD_JUIAAAAJ&hl=en&authuser=1),
 [ResearchGate](https://www.researchgate.net/profile/Seyed-Ali-Sadeghi-Aghili), and
 [PeerJ](https://peerj.com/AliSadeghiAghili/) profiles.
+The author's [ORCID](https://orcid.org/0000-0002-5938-3291) is included in the
+machine-readable citation metadata.
 
 ## Terminology
 
