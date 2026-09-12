@@ -8,25 +8,33 @@ The examples below cite Veridist 1.0.1. For another release, take the version,
 publication date, and release URL from `CITATION.cff`; do not represent an
 unversioned repository page as the exact software release.
 
+## Author identity
+
+The author's published name is **Seyed Ali Sadeghi Aghili**; \`Sadeghi Aghili\`
+is treated as the compound family name in the formats below. Research profiles:
+[Google Scholar](https://scholar.google.com/citations?user=BDD_JUIAAAAJ&hl=en&authuser=1),
+[ResearchGate](https://www.researchgate.net/profile/Seyed-Ali-Sadeghi-Aghili),
+and [PeerJ](https://peerj.com/AliSadeghiAghili/).
+
 ## IEEE
 
 ```text
-A. S. Aghili, “Veridist,” ver. 1.0.1, Sep. 2026. [Online]. Available:
+S. A. Sadeghi Aghili, “Veridist,” ver. 1.0.1, Sep. 2026. [Online]. Available:
 https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1
 ```
 
 ## APA 7
 
 ```text
-Aghili, A. S. (2026). Veridist (Version 1.0.1) [Computer software].
+Sadeghi Aghili, S. A. (2026). Veridist (Version 1.0.1) [Computer software].
 https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1
 ```
 
 ## BibTeX
 
 ```bibtex
-@software{aghili_veridist_2026,
-  author  = {Aghili, Ali Sadeghi},
+@software{sadeghi_aghili_veridist_2026,
+  author  = {Sadeghi Aghili, Seyed Ali},
   title   = {Veridist},
   version = {1.0.1},
   month   = sep,
@@ -39,7 +47,7 @@ https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1
 
 ```text
 TY  - COMP
-AU  - Aghili, Ali Sadeghi
+AU  - Sadeghi Aghili, Seyed Ali
 TI  - Veridist
 PY  - 2026
 DA  - 2026/09/12
@@ -53,7 +61,7 @@ ER  -
 ```xml
 <record>
   <ref-type name="Computer Program">9</ref-type>
-  <contributors><authors><author>Aghili, Ali Sadeghi</author></authors></contributors>
+  <contributors><authors><author>Sadeghi Aghili, Seyed Ali</author></authors></contributors>
   <titles><title>Veridist</title></titles>
   <dates><year>2026</year></dates>
   <volume>1.0.1</volume>
@@ -65,10 +73,10 @@ ER  -
 
 ```json
 {
-  "id": "aghili-veridist-2026",
+  "id": "sadeghi-aghili-veridist-2026",
   "type": "software",
   "title": "Veridist",
-  "author": [{"family": "Aghili", "given": "Ali Sadeghi"}],
+  "author": [{"family": "Sadeghi Aghili", "given": "Seyed Ali"}],
   "version": "1.0.1",
   "issued": {"date-parts": [[2026, 9, 12]]},
   "URL": "https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1"
@@ -78,27 +86,27 @@ ER  -
 ## Chicago author-date
 
 ```text
-Aghili, Ali Sadeghi. 2026. Veridist, version 1.0.1. Computer software.
+Sadeghi Aghili, Seyed Ali. 2026. Veridist, version 1.0.1. Computer software.
 https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1.
 ```
 
 ## MLA 9
 
 ```text
-Aghili, Ali Sadeghi. Veridist. Version 1.0.1, 12 Sept. 2026,
+Sadeghi Aghili, Seyed Ali. Veridist. Version 1.0.1, 12 Sept. 2026,
 https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1.
 ```
 
 ## Harvard
 
 ```text
-Aghili, A.S. (2026) Veridist. Version 1.0.1 [Computer software]. Available at:
+Sadeghi Aghili, S.A. (2026) Veridist. Version 1.0.1 [Computer software]. Available at:
 https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1 (Accessed: date).
 ```
 
 ## Vancouver
 
 ```text
-Aghili AS. Veridist [computer program]. Version 1.0.1. 2026 Sep 12. Available
+Sadeghi Aghili SA. Veridist [computer program]. Version 1.0.1. 2026 Sep 12. Available
 from: https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1
 ```

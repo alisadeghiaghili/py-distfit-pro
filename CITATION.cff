@@ -10,8 +10,9 @@ keywords:
   - reliability analysis
   - survival analysis
 authors:
-  - family-names: Aghili
-    given-names: Ali Sadeghi
+  - family-names: Sadeghi Aghili
+    given-names: Seyed Ali
+    website: "https://zil.ink/thedatascientist"
 repository-code: "https://github.com/alisadeghiaghili/veridist"
 url: "https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1"
 license: BUSL-1.1

@@ -206,6 +206,18 @@ These are development directions, not currently supported features or promised r
 
 Cite the version that produced your result. The [citation guide](https://github.com/alisadeghiaghili/veridist/blob/main/docs/citing-veridist.md) provides IEEE, APA 7, Chicago, MLA 9, Harvard, Vancouver, BibTeX, RIS, EndNote XML, and CSL-JSON formats. [CITATION.cff](https://github.com/alisadeghiaghili/veridist/blob/main/CITATION.cff) is the canonical machine-readable record.
 
+## Author and research profiles
+
+Maintainer: [Seyed Ali Sadeghi Aghili](https://zil.ink/thedatascientist).
+See the [Google Scholar](https://scholar.google.com/citations?user=BDD_JUIAAAAJ&hl=en&authuser=1),
+[ResearchGate](https://www.researchgate.net/profile/Seyed-Ali-Sadeghi-Aghili), and
+[PeerJ](https://peerj.com/AliSadeghiAghili/) profiles.
+
+## Terminology
+
+Important terms are named in English at first use: Distribution Fitting,
+Likelihood, Right Censoring, Anomaly Detection, and Distribution Drift.
+
 ## License
 
 Veridist is distributed under **Business Source License 1.1 (BUSL-1.1)**. The [LICENSE](https://github.com/alisadeghiaghili/veridist/blob/main/LICENSE) specifies the conditional Apache-2.0 additional-use grant and the change date. The BUSL-1.1 badge does not mean the current release is unconditionally licensed under Apache-2.0.
