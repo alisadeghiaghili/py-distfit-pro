@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+import subprocess
+import sys
 import tomllib
 import unicodedata
 import unittest
@@ -24,12 +26,10 @@ README_PATHS = {
 
 
 class PackageLandingContractTests(unittest.TestCase):
-    def test_repository_landing_and_security_policy_describe_the_release_package(self) -> None:
+    def test_repository_landings_link_to_the_release_package_and_support(self) -> None:
         required = {
             REPOSITORY_ROOT / "README.md": (
                 "# veridist",
-                "1.0.0",
-                "evidence-first distribution-fitting package",
                 "python/README.md",
                 "README.fa.md",
                 "README.de.md",
@@ -38,13 +38,11 @@ class PackageLandingContractTests(unittest.TestCase):
             ),
             REPOSITORY_ROOT / "README.fa.md": (
                 "# veridist",
-                "1.0.0",
                 "python/README.fa.md",
                 "python/KNOWN_LIMITS.fa.md",
             ),
             REPOSITORY_ROOT / "README.de.md": (
                 "# veridist",
-                "1.0.0",
                 "python/README.de.md",
                 "python/KNOWN_LIMITS.de.md",
             ),
@@ -54,10 +52,10 @@ class PackageLandingContractTests(unittest.TestCase):
             ),
         }
         for path, phrases in required.items():
-            content = " ".join(path.read_text(encoding="utf-8").split())
+            content = " ".join(path.read_text(encoding="utf-8").split()).casefold()
             with self.subTest(path=path):
                 for phrase in phrases:
-                    self.assertIn(phrase, content)
+                    self.assertIn(phrase.casefold(), content)
 
     def test_project_metadata_points_to_packaged_human_facing_material(self) -> None:
         configuration = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
@@ -89,60 +87,24 @@ class PackageLandingContractTests(unittest.TestCase):
             (REPOSITORY_ROOT / "LICENSE").read_text(encoding="utf-8").splitlines(),
         )
 
-    def test_all_three_package_readmes_exist_link_each_other_and_match_version(self) -> None:
+    def test_all_three_package_readmes_link_each_other_and_install_from_pypi(self) -> None:
         for locale, path in README_PATHS.items():
             with self.subTest(locale=locale):
                 content = path.read_text(encoding="utf-8")
                 self.assertIn(LANGUAGE_NAVIGATION, content)
                 self.assertIn("veridist", content.casefold())
-                self.assertIn("1.0.0", content)
-                self.assertIn("cd veridist/python", content)
-                self.assertIn("python -m pip install .", content)
-                self.assertIn("python -m pip install /path/to/veridist-", content)
                 self.assertRegex(content, r"(?m)^python -m pip install veridist\s*$")
 
-    def test_each_locale_states_the_same_experimental_vertical_and_limits(self) -> None:
-        required = {
-            "en": (
-                "1.0.0 is an evidence-backed public contract release",
-                "fixed-location Exponential, Weibull-minimum, and Lognormal",
-                "exact and independently right-censored lifetimes",
-                "Inference is restricted to that declared cell",
-                "typed failures",
-                "public CSV path is strict",
-                "one iterator pass",
-                "not a generic CSV reader",
-                "BUSL-1.1 with an Apache-2.0 additional-use grant",
-            ),
-            "fa": (
-                "نسخهٔ 1.0.0 یک انتشار عمومی با شواهد قابل‌بازبینی",
-                "سلول‌های MLE نمایی، Weibull-minimum و Lognormal",
-                "طول عمرهای دقیق و راست‌سانسورشدهٔ مستقل",
-                "استنباط به همین سلول اعلام‌شده",
-                "شکست‌های نوع‌دار",
-                "مسیر CSV عمومی آن سخت‌گیرانه است",
-                "یک گذر از iterator",
-                "CSV عمومی",
-                "BUSL-1.1 با مجوز استفادهٔ اضافی Apache-2.0",
-            ),
-            "de": (
-                "1.0.0 ist eine öffentlich dokumentierte Vertragsversion",
-                "Exponential-, Weibull-Minimum- und Lognormal-MLE-Zellen",
-                "exakte und unabhängig rechtszensierte Lebensdauern",
-                "Inferenz ist auf diese deklarierte Zelle",
-                "typisierte Fehlschläge",
-                "öffentliche CSV-Pfad ist strikt",
-                "einen Iterator-Durchlauf",
-                "allgemeines CSV",
-                "BUSL-1.1 mit einer zusätzlichen Apache-2.0-Nutzungserlaubnis",
-            ),
-        }
-        for locale, phrases in required.items():
-            content = README_PATHS[locale].read_text(encoding="utf-8")
-            normalized_content = " ".join(content.split())
-            for phrase in phrases:
-                with self.subTest(locale=locale, phrase=phrase):
-                    self.assertIn(phrase, normalized_content)
+    def test_package_landings_cover_the_adoption_journey_without_copy_assertions(self) -> None:
+        for locale, path in README_PATHS.items():
+            content = path.read_text(encoding="utf-8")
+            with self.subTest(locale=locale):
+                self.assertIn("python -m pip install veridist", content)
+                self.assertIn("```python", content)
+                self.assertIn("```text", content)
+                self.assertIn("SQLiteCheckpointStore", content)
+                self.assertIn("KNOWN_LIMITS", content)
+                self.assertIn("Coverage ≥95%", content)
 
     def test_all_locales_publish_the_same_executable_quickstart(self) -> None:
         snippets: dict[str, str] = {}
@@ -171,16 +133,97 @@ class PackageLandingContractTests(unittest.TestCase):
         namespace: dict[str, object] = {}
         exec(compile(quickstart, "package-landing-quickstart", "exec"), namespace)
 
-    def test_scale_evidence_claim_is_equivalent_and_limited_in_every_locale(self) -> None:
-        expected = {
-            "en": "measured 10k/100k/1m by 32KiB/64KiB/128KiB matrix",
-            "fa": "ماتریس اندازه‌گیری‌شدهٔ 10k/100k/1m ردیف و بودجه‌های 32KiB/64KiB/128KiB",
-            "de": "gemessene Matrix aus 10k/100k/1m Zeilen und 32KiB/64KiB/128KiB",
-        }
-        for locale, phrase in expected.items():
-            with self.subTest(locale=locale):
-                content = " ".join(README_PATHS[locale].read_text(encoding="utf-8").split())
-                self.assertIn(phrase, content)
+    def test_root_landings_offer_the_same_task_paths(self) -> None:
+        for filename in ("README.md", "README.fa.md", "README.de.md"):
+            content = (REPOSITORY_ROOT / filename).read_text(encoding="utf-8")
+            with self.subTest(filename=filename):
+                self.assertIn("Coverage ≥95%", content)
+                self.assertIn("python -m pip install veridist", content)
+                self.assertIn("GitHub Issues", content)
+                self.assertIn("python/README", content)
+                self.assertIn("KNOWN_LIMITS", content)
+                self.assertEqual(len(re.findall(r"```python\n(.*?)```", content, re.DOTALL)), 1)
+                self.assertEqual(len(re.findall(r"```text\n(.*?)```", content, re.DOTALL)), 1)
+
+    def test_root_quickstarts_are_equivalent_and_executable(self) -> None:
+        snippets: dict[str, str] = {}
+        outputs: dict[str, str] = {}
+        root_readmes = {"en": "README.md", "fa": "README.fa.md", "de": "README.de.md"}
+        for locale, filename in root_readmes.items():
+            content = (REPOSITORY_ROOT / filename).read_text(encoding="utf-8")
+            snippets[locale] = re.search(
+                r"```python\n(.*?)```", content, re.DOTALL
+            ).group(1).strip()
+            outputs[locale] = re.search(r"```text\n(.*?)```", content, re.DOTALL).group(1).strip()
+
+        self.assertEqual(len(set(snippets.values())), 1)
+        self.assertEqual(set(outputs.values()), {"rate=0.5; events=1; censored=1"})
+        namespace: dict[str, object] = {}
+        exec(compile(snippets["en"], "root-landing-quickstart", "exec"), namespace)
+
+    def test_checkpoint_resume_example_is_executable(self) -> None:
+        example = PYTHON_ROOT / "examples" / "checkpoint_resume.py"
+        result = subprocess.run(
+            [sys.executable, str(example)],
+            cwd=PYTHON_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "rows=2; events=1; total_time=3.75")
+
+    def test_readme_local_links_and_anchors_resolve(self) -> None:
+        readmes = (
+            REPOSITORY_ROOT / "README.md",
+            REPOSITORY_ROOT / "README.fa.md",
+            REPOSITORY_ROOT / "README.de.md",
+            *README_PATHS.values(),
+        )
+        for readme in readmes:
+            content = readme.read_text(encoding="utf-8")
+            for target in re.findall(r"(?<!!)\[[^\]]*\]\(([^)]+)\)", content):
+                href = target.split(maxsplit=1)[0].strip("<>")
+                if href.startswith(("http://", "https://", "mailto:")):
+                    continue
+                relative_path, separator, anchor = href.partition("#")
+                destination = (readme.parent / relative_path).resolve() if relative_path else readme
+                with self.subTest(readme=readme, href=href, contract="destination"):
+                    self.assertTrue(destination.exists())
+                if separator:
+                    headings = re.findall(
+                        r"(?m)^#{1,6}\s+(.+?)\s*$",
+                        destination.read_text(encoding="utf-8"),
+                    )
+                    anchors = {self._github_like_anchor(heading) for heading in headings}
+                    with self.subTest(readme=readme, href=href, contract="anchor"):
+                        self.assertIn(anchor, anchors)
+
+    def test_localized_readme_structures_are_parallel(self) -> None:
+        readme_groups = (
+            (
+                REPOSITORY_ROOT / "README.md",
+                REPOSITORY_ROOT / "README.fa.md",
+                REPOSITORY_ROOT / "README.de.md",
+            ),
+            tuple(README_PATHS.values()),
+        )
+        for paths in readme_groups:
+            heading_counts = {
+                path.name: len(re.findall(r"(?m)^## ", path.read_text(encoding="utf-8")))
+                for path in paths
+            }
+            with self.subTest(paths=tuple(path.name for path in paths)):
+                self.assertEqual(len(set(heading_counts.values())), 1, heading_counts)
+
+    @staticmethod
+    def _github_like_anchor(heading: str) -> str:
+        normalized = "".join(
+            character
+            for character in heading.casefold()
+            if character.isalnum() or character in " -_"
+        )
+        return re.sub(r"[\s-]+", "-", normalized.strip())
 
     def test_all_landing_pages_are_clean_nfc_without_retired_claims_or_bidi_controls(self) -> None:
         retired_claims = (
@@ -203,13 +246,17 @@ class PackageLandingContractTests(unittest.TestCase):
             with self.subTest(locale=locale, contract="bidi-controls"):
                 self.assertFalse(any(control in content for control in bidi_controls))
 
-    def test_persian_rtl_wrapper_never_contains_ltr_code_fences(self) -> None:
-        content = README_PATHS["fa"].read_text(encoding="utf-8")
-        self.assertIn('<div lang="fa" dir="rtl">', content)
-        for fence in re.finditer(r"```(?:console|python)?", content):
-            prefix = content[: fence.start()]
-            with self.subTest(fence=fence.group(0), offset=fence.start()):
-                self.assertEqual(prefix.count('<div lang="fa" dir="rtl">'), prefix.count("</div>"))
+    def test_persian_rtl_wrappers_never_contain_ltr_code_fences(self) -> None:
+        for path in (REPOSITORY_ROOT / "README.fa.md", README_PATHS["fa"]):
+            content = path.read_text(encoding="utf-8")
+            with self.subTest(path=path, contract="wrapper"):
+                self.assertIn('<div lang="fa" dir="rtl">', content)
+            for fence in re.finditer(r"```(?:console|python|text|mermaid)?", content):
+                prefix = content[: fence.start()]
+                with self.subTest(path=path, fence=fence.group(0), offset=fence.start()):
+                    self.assertEqual(
+                        prefix.count('<div lang="fa" dir="rtl">'), prefix.count("</div>")
+                    )
 
     def test_source_manifest_includes_all_package_landing_files(self) -> None:
         manifest = (PYTHON_ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()
