@@ -1,20 +1,24 @@
-# veridist
+# Veridist
+
+**Lebensdauermodelle nachvollziehbar anpassen und reproduzieren.**
 
 [![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
-[![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
-[![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Python 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB)](https://github.com/alisadeghiaghili/veridist/blob/main/docs/capability-matrix.md)
 [![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
-[![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
-[![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
-[![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-## Ein prüfbares Modell aus Ereigniszeitdaten erstellen
+## Von Ausfallzeiten zu nachvollziehbaren Ergebnissen
 
-Veridist ist ein Python-Paket für Lebensdauermodelle, etwa für die Zeit bis zum
-Ausfall eines Bauteils. Es richtet sich an Reliability Engineers und Analysten,
-die Daten, Annahmen und die Ausführung einer Anpassung prüfen müssen.
+Veridist hilft Zuverlässigkeitsingenieuren und Forschenden, Lebensdauermodelle anzupassen, vor dem Ausfall beendete Beobachtungen auszuwerten und die Berechnung zu dokumentieren.
+
+### Drei Einsatzmöglichkeiten
+
+| Ihr Ziel | Das Ergebnis |
+| --- | --- |
+| Ausfallzeiten analysieren | Exponential-, Weibull-Minimum- und Lognormal-Fits mit festem Ort |
+| Ergebnisse prüfen | Explizite Annahmen, typisierte Fehler und Ausführungsdaten |
+| Unterbrochene Arbeit fortsetzen | Lokale Checkpoints für kompatible Exponential-Reduktionen |
 
 Es validiert eine definierte Lebensdauer-CSV und gibt entweder einen typisierten
 Fit oder einen typisierten Fehler mit Ausführungsprotokoll zurück. Das Beispiel
@@ -32,6 +36,9 @@ python -m pip install veridist
 Das Beispiel erzeugt zwei Beobachtungen. Die erste ist ein Ausfall zur Zeit
 `1`; die zweite läuft zur Zeit `1` noch, ist also rechtszensiert und kein
 Ausfall.
+
+<details>
+<summary>Vollständiges Beispiel anzeigen</summary>
 
 ```python
 from pathlib import Path
@@ -58,6 +65,8 @@ with TemporaryDirectory() as directory:
 assert isinstance(fit, ExponentialFitSuccess)
 print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
 ```
+
+</details>
 
 ```text
 rate=0.5; events=1; censored=1

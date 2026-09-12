@@ -1,23 +1,26 @@
 # Veridist
 
+**برازش دادهٔ طول‌عمر با نتیجه‌ای قابل بررسی و بازتولید.**
+
 [![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
-[![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
-[![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Python 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB)](https://github.com/alisadeghiaghili/veridist/blob/main/docs/capability-matrix.md)
 [![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
-[![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
-[![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
-[![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
 <div lang="fa" dir="rtl">
 
-## از دادهٔ طول‌عمر، نتیجه‌ای قابل‌بررسی بسازید
+## از زمان خرابی تا یک نتیجهٔ قابل بررسی
 
-Veridist یک بستهٔ Python برای برازش مدل‌های مشخصِ طول‌عمر بر دادهٔ زمان رخداد است؛
-برای نمونه، زمان خرابی قطعه‌ها. این بسته قالب کوچک و صریح CSV را اعتبارسنجی می‌کند
-و علاوه بر برازش، واقعیت اجرای محاسبه را هم برمی‌گرداند. وقتی به نتیجه‌ای نیاز دارید
-که همکار دیگری بتواند فرض‌ها و مسیر تولیدش را بررسی کند، از آن استفاده کنید.
+Veridist به مهندسان قابلیت اطمینان و پژوهشگران کمک می‌کند مدل طول‌عمر برازش کنند، داده‌های پایان‌یافته پیش از خرابی را تحلیل کنند و اطلاعات اجرای محاسبه را نگه دارند.
+
+### سه کاربرد اصلی
+
+| هدف شما | نتیجه |
+| --- | --- |
+| تحلیل زمان خرابی | برازش نمایی، Weibull-minimum و Lognormal با مکان ثابت |
+| بررسی نتیجه | فرض‌های مشخص، خطاهای نوع‌دار و اطلاعات اجرا |
+| بازیابی اجرای متوقف‌شده | checkpoint محلی برای محاسبهٔ نمایی سازگار |
 
 </div>
 
@@ -36,6 +39,9 @@ python -m pip install veridist
 راست‌سانسوری می‌گویند.
 
 </div>
+
+<details>
+<summary>نمایش مثال کامل قابل اجرا</summary>
 
 ```python
 from pathlib import Path
@@ -62,6 +68,8 @@ with TemporaryDirectory() as directory:
 assert isinstance(fit, ExponentialFitSuccess)
 print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
 ```
+
+</details>
 
 ```text
 rate=0.5; events=1; censored=1

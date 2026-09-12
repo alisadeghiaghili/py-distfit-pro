@@ -1,22 +1,24 @@
 # Veridist
 
+**Lifetime models you can inspect and reproduce.**
+
 [![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
-[![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
-[![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Python 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB)](https://github.com/alisadeghiaghili/veridist/blob/main/docs/capability-matrix.md)
 [![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
-[![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
-[![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
-[![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
 
 [English](README.md) | [فارسی](README.fa.md) | [Deutsch](README.de.md)
 
-## Turn lifetime data into a result you can review
+## From failure times to an inspectable result
 
-Veridist is a Python package for fitting declared lifetime models to event-time
-data, such as component failure times. It validates a small, explicit CSV
-format and returns both the fit and facts about how the calculation ran. Use it
-when another person needs to understand the data assumptions behind the result,
-not only see a curve.
+Veridist helps reliability engineers and researchers fit lifetime models, work with observations that ended before failure, and retain a record of the calculation.
+
+### Three ways to use Veridist
+
+| Your goal | What you get |
+| --- | --- |
+| Analyze failure times | Exponential, Weibull-minimum, and Lognormal fits with fixed location |
+| Review a result | Explicit assumptions, typed failures, and execution facts |
+| Recover interrupted work | Local checkpoints for compatible exponential reductions |
 
 ```console
 python -m pip install veridist
@@ -29,6 +31,9 @@ python -m pip install veridist
 The example below creates its own CSV, so it works immediately after
 installation. `1` means that the event was observed. `0` means that the event
 had not happened by the end of observation; this is called right censoring.
+
+<details>
+<summary>Show the complete runnable example</summary>
 
 ```python
 from pathlib import Path
@@ -55,6 +60,8 @@ with TemporaryDirectory() as directory:
 assert isinstance(fit, ExponentialFitSuccess)
 print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
 ```
+
+</details>
 
 ```text
 rate=0.5; events=1; censored=1
@@ -126,6 +133,7 @@ Cite the release that produced your result.
 > https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1
 
 The [citation guide](docs/citing-veridist.md) also provides APA 7, BibTeX, RIS, EndNote XML, CSL-JSON, Chicago, MLA 9, Harvard, and Vancouver. The canonical machine-readable record is [CITATION.cff](CITATION.cff).
+
 ## Help and further reading
 
 Start with the [package guide](python/README.md) for installation and examples,

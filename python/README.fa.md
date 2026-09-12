@@ -1,22 +1,26 @@
-# veridist
+# Veridist
+
+**برازش دادهٔ طول‌عمر با نتیجه‌ای قابل بررسی و بازتولید.**
 
 [![PyPI](https://img.shields.io/pypi/v/veridist.svg)](https://pypi.org/project/veridist/)
-[![Python](https://img.shields.io/pypi/pyversions/veridist.svg)](https://pypi.org/project/veridist/)
-[![CI](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
+[![Python 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB)](https://github.com/alisadeghiaghili/veridist/blob/main/docs/capability-matrix.md)
 [![Coverage ≥95%](https://img.shields.io/github/actions/workflow/status/alisadeghiaghili/veridist/v1-ci.yml?branch=main&label=coverage%20%E2%89%A595%25)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-ci.yml)
-[![Mutation gate](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/mutation.yml)
-[![Release evidence](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml/badge.svg?branch=main)](https://github.com/alisadeghiaghili/veridist/actions/workflows/v1-release-evidence.yml)
-[![License](https://img.shields.io/badge/license-BUSL--1.1-7b1fa2.svg)](LICENSE)
 
 [English](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.md) | [فارسی](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.fa.md) | [Deutsch](https://github.com/alisadeghiaghili/veridist/blob/main/python/README.de.md)
 
 <div lang="fa" dir="rtl">
 
-## دادهٔ طول‌عمر را با نتیجه‌ای قابل‌بررسی برازش دهید
+## از زمان خرابی تا یک نتیجهٔ قابل بررسی
 
-`veridist` برای مهندسان قابلیت‌اطمینان و تحلیل‌گرانی است که از CSV طول‌عمر
-تعریف‌شده نتیجه‌ای قابل‌بررسی می‌خواهند: ورودی اعتبارسنجی می‌شود، برازش یا شکست
-نوع‌دار برمی‌گردد و واقعیت اجرا روشن می‌ماند.
+Veridist به مهندسان قابلیت اطمینان و پژوهشگران کمک می‌کند مدل طول‌عمر برازش کنند، داده‌های پایان‌یافته پیش از خرابی را تحلیل کنند و اطلاعات اجرای محاسبه را نگه دارند.
+
+### سه کاربرد اصلی
+
+| هدف شما | نتیجه |
+| --- | --- |
+| تحلیل زمان خرابی | برازش نمایی، Weibull-minimum و Lognormal با مکان ثابت |
+| بررسی نتیجه | فرض‌های مشخص، خطاهای نوع‌دار و اطلاعات اجرا |
+| بازیابی اجرای متوقف‌شده | checkpoint محلی برای محاسبهٔ نمایی سازگار |
 
 [در عمل ببینید](#در-عمل-ببینید) · [انتخاب مسیر](#مسیر-درست-را-انتخاب-کنید) · [محدودیت‌ها](KNOWN_LIMITS.fa.md)
 
@@ -37,6 +41,9 @@ python -m pip install veridist
 پس از نصب، این برازش کامل CSV را اجرا کنید:
 
 </div>
+
+<details>
+<summary>نمایش مثال کامل قابل اجرا</summary>
 
 ```python
 from pathlib import Path
@@ -65,6 +72,8 @@ assert fit.inference == "not_provided"
 assert fit.censoring_assumption == "independent_right_censoring"
 print(f"rate={fit.rate}; events={fit.event_count}; censored={fit.censored_count}")
 ```
+
+</details>
 
 ```text
 rate=0.5; events=1; censored=1
