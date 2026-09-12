@@ -120,8 +120,12 @@ migration ledger](docs/migration/README.md).
 
 ## Cite Veridist
 
-Use the released version that produced your result. Ready-to-copy [IEEE, BibTeX, and APA citations](docs/citing-veridist.md) are maintained with the canonical [CITATION.cff](CITATION.cff).
+Cite the release that produced your result.
 
+> A. S. Aghili, “Veridist,” ver. 1.0.1, Sep. 2026. [Online]. Available:
+> https://github.com/alisadeghiaghili/veridist/releases/tag/v1.0.1
+
+The [citation guide](docs/citing-veridist.md) also provides APA 7, BibTeX, RIS, EndNote XML, CSL-JSON, Chicago, MLA 9, Harvard, and Vancouver. The canonical machine-readable record is [CITATION.cff](CITATION.cff).
 ## Help and further reading
 
 Start with the [package guide](python/README.md) for installation and examples,
