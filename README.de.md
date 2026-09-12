@@ -286,6 +286,21 @@ bietet IEEE, APA 7, Chicago, MLA 9, Harvard, Vancouver, BibTeX, RIS, EndNote
 XML und CSL-JSON. [CITATION.cff](https://github.com/alisadeghiaghili/veridist/blob/main/CITATION.cff)
 ist der kanonische maschinenlesbare Eintrag.
 
+## Autor- und Forschungsprofile
+
+Veridist wird von [Seyed Ali Sadeghi Aghili](https://zil.ink/thedatascientist) gepflegt.
+
+- [Google Scholar](https://scholar.google.com/citations?user=BDD_JUIAAAAJ&hl=en&authuser=1)
+- [ResearchGate](https://www.researchgate.net/profile/Seyed-Ali-Sadeghi-Aghili)
+- [PeerJ](https://peerj.com/AliSadeghiAghili/)
+- [ORCID](https://orcid.org/0000-0002-5938-3291)
+
+## Fachbegriffe
+
+Wichtige Begriffe werden bei der ersten Verwendung auch auf Englisch genannt:
+Distribution Fitting, Likelihood, Right Censoring, Anomaly Detection und
+Distribution Drift.
+
 ## Lizenz
 
 Veridist wird unter **Business Source License 1.1 (BUSL-1.1)** vertrieben.

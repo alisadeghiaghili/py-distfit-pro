@@ -221,6 +221,31 @@ rate=0.5; events=1; censored=1
 
 به همان نسخه‌ای استناد کنید که نتیجه با آن تولید شده است. [راهنمای استناد](docs/citing-veridist.md) قالب‌های IEEE، APA 7، Chicago، MLA 9، Harvard، Vancouver، BibTeX، RIS، EndNote XML و CSL-JSON را ارائه می‌کند. [CITATION.cff](CITATION.cff) مرجع ماشین‌خوان است.
 
+## نویسنده و پروفایل‌های پژوهشی
+
+Veridist را [سید علی صادقی آغیلی](https://zil.ink/thedatascientist) نگهداری می‌کند.
+
+- [Google Scholar](https://scholar.google.com/citations?user=BDD_JUIAAAAJ&hl=en&authuser=1)
+- [ResearchGate](https://www.researchgate.net/profile/Seyed-Ali-Sadeghi-Aghili)
+- [PeerJ](https://peerj.com/AliSadeghiAghili/)
+- [ORCID](https://orcid.org/0000-0002-5938-3291)
+
+## یادداشت اصطلاحات
+
+در این راهنما، اصطلاح انگلیسی کنار مفهوم فارسی آمده است:
+
+- برازش توزیع[^distribution-fitting] (Distribution Fitting)
+- درست‌نمایی[^likelihood] (Likelihood)
+- دادهٔ سانسورشده از راست[^right-censoring] (Right Censoring)
+- تشخیص ناهنجاری[^anomaly-detection] (Anomaly Detection)
+- تغییر توزیع[^distribution-drift] (Distribution Drift)
+
+[^distribution-fitting]: انتخاب یک یا چند توزیع نامزد، برآورد پارامترهای آن‌ها و سنجش سازگاری‌شان با داده.
+[^likelihood]: معیاری برای سنجش سازگاری یک مدل و پارامترهایش با مشاهدات ثبت‌شده.
+[^right-censoring]: مشاهده‌ای که در آن زمان وقوع رویداد تا پایان بازهٔ مشاهده دیده نشده است.
+[^anomaly-detection]: شناسایی مشاهده‌هایی که با الگوی مرجع داده سازگاری کمی دارند.
+[^distribution-drift]: تغییر معنادار در توزیع دادهٔ جدید نسبت به توزیع مرجع یا دادهٔ گذشته.
+
 ## مجوز
 
 Veridist تحت **Business Source License 1.1 — BUSL-1.1** عرضه می‌شود. [LICENSE](LICENSE) اعطای استفادهٔ اضافی تحت Apache-2.0 با شرایط مشخص و تاریخ تغییر مجوز را تعیین می‌کند. بج BUSL-1.1 به معنای عرضهٔ فعلی بدون قیدوشرط تحت Apache-2.0 نیست.
