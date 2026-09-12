@@ -1,6 +1,6 @@
-# Bekannte Grenzen von Veridist 0.9
+# Bekannte Grenzen von Veridist 1.0
 
-Dieses Dokument definiert die Release-Grenze 0.9 für Paketversion `1.0.0`.
+Dieses Dokument definiert die Release-Grenze 1.0 für Paketversion `1.0.1`.
 
 - `FIT-CSV-EXP`: Der strikte CSV-Pfad passt nur ein Exponentialmodell mit
   festem Ort und Rate für exakte und unabhängig rechtszensierte Lebensdauern

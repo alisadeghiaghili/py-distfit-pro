@@ -1,6 +1,6 @@
 # veridist capability matrix
 
-This matrix records the callable scope of `veridist` 1.0.0. A listed cell is
+This matrix records the callable scope of `veridist` 1.0.1. A listed cell is
 supported only within its stated data and execution contracts. Historical
 evidence remains useful context, but release claims require checks on the exact
 candidate revision.
@@ -19,7 +19,7 @@ The fixed O(1) reducer state and logical bounded-delivery budget are
 algorithmic contracts. They do not establish a portable process RSS ceiling,
 universal throughput, distributed execution, or a general out-of-core claim.
 
-Unsupported combinations fail explicitly. The 0.9 line has no left or interval
+Unsupported combinations fail explicitly. The 1.0 line has no left or interval
 censoring, truncation, covariates, analytic weights, free location parameters,
 array API, distributed checkpoint store, generic dataframe/database adapter,
 bootstrap selection stability, or inference for every registered family.

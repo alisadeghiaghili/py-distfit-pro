@@ -4,6 +4,23 @@ This changelog covers only the nested `veridist` package. The repository-root
 legacy changelog describes the frozen `distfit_pro` history and is not a
 Veridist release record.
 
+## [1.0.1] - 2026-09-12
+
+### Changed
+
+- Reorganized the English, Persian, and German repository and package landing
+  pages around installation, first success, workflow selection, validation,
+  production boundaries, and task-specific documentation.
+- Added a live `coverage >=95%` badge backed by the maintained-branch CI
+  workflow and its enforced global line and branch coverage contract.
+- Corrected the published 1.0 known-limits and capability labels and aligned
+  package, citation, Zenodo, documentation, and conda-forge release metadata.
+
+### Quality
+
+- Python 3.11 through 3.14, documentation, RTL browser, package, coverage,
+  mutation, reproducible-build, and release-artifact gates remain mandatory.
+
 ## [1.0.0] - 2026-09-11
 
 ### Added

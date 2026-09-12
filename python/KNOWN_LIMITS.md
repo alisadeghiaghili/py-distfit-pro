@@ -1,6 +1,6 @@
-# Known limits for Veridist 0.9
+# Known limits for Veridist 1.0
 
-This document defines the 0.9 release boundary for package version `1.0.0`.
+This document defines the 1.0 release boundary for package version `1.0.1`.
 
 - `FIT-CSV-EXP`: the strict CSV path fits only a fixed-location, rate-only
   exponential model over exact and independently right-censored lifetimes.
