@@ -122,6 +122,10 @@ shows the necessary initialization and a compatible second pass.
 Read [KNOWN_LIMITS.md](KNOWN_LIMITS.md) and the repository
 [evidence ledger](../docs/v1-readiness.md) before production use.
 
+## Cite Veridist
+
+Cite the release that produced your result. Use the maintained [IEEE, BibTeX, and APA templates](../docs/citing-veridist.md) with the canonical [CITATION.cff](../CITATION.cff).
+
 ## Documentation, contribution, and support
 
 Use the [API reference](docs/source/api.md) to integrate, the

@@ -127,6 +127,10 @@ registry اسکالر هستند. چگالیِ لگاریتمی binary64 موف�
 مجموع صحیحِ دقیق را برای سطح اعلام‌شده نگه می‌دارند؛ این‌ها API عمومی برازش یا
 آرایه نیستند.
 
+## ارجاع به Veridist
+
+به نسخه‌ای ارجاع دهید که نتیجه را تولید کرده است. الگوهای [IEEE، BibTeX و APA](../docs/citing-veridist.md) و [CITATION.cff](../CITATION.cff) مرجع نگه‌داری‌شده هستند.
+
 ## مستندات، مشارکت و پشتیبانی
 
 [مرجع API](docs/source/api.md)، [راهنمای خانواده‌ها](docs/source/families-log-density-likelihood.md)

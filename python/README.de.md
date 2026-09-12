@@ -117,6 +117,10 @@ Initialisierung und einen kompatiblen zweiten Durchlauf.
 Vor Produktionseinsatz [KNOWN_LIMITS.de.md](KNOWN_LIMITS.de.md) und das
 [Evidenzregister](../docs/v1-readiness.md) lesen.
 
+## Veridist zitieren
+
+Zitieren Sie die Version, mit der das Ergebnis erzeugt wurde. Verwenden Sie die gepflegten [IEEE-, APA-, BibTeX-, RIS-, EndNote-, CSL-JSON-, Chicago-, MLA-, Harvard- und Vancouver-Vorlagen](../docs/citing-veridist.md) mit [CITATION.cff](../CITATION.cff).
+
 ## Dokumentation, Beiträge und Support
 
 Für Integration die [API-Referenz](docs/source/api.md), für Statistik den
